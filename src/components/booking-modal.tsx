@@ -10,7 +10,7 @@ interface BookingModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSave: (booking: Omit<Booking, "id">) => void;
-    initialData: { courtId: number; time: number } | null;
+    initialData: { courtId: string; time: number } | null;
 }
 
 export const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, onSave, initialData }) => {
@@ -52,7 +52,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, onS
         }
     };
 
-    const handleSave = () => {
+    const handleSave = async () => {
         if (!initialData) return;
         if (!customerName || !phone) return alert("Nama dan No HP harus diisi!");
 
@@ -64,7 +64,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, onS
             phone,
             price: duration * 50000,
             status: 'BELUM_BAYAR',
-            paidAmount: 0 // Initialize paidAmount
+            paidAmount: 0
         };
 
         // Check if member quota applies
@@ -72,60 +72,49 @@ export const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, onS
         let currentQuota = customer?.quota || 0;
 
         // Function to process a single booking
-        const processBooking = (b: Omit<Booking, "id">) => {
+        const processBooking = async (b: Omit<Booking, "id">) => {
             // Logic for Member Quota
-            // If member has quota > 0, they can use it.
-            // PRD says: "Sistem otomatis potong kuota saat booking"
-            // We'll mark it as LUNAS (Paid by Membership)
             if (b.status === 'BELUM_BAYAR' && customer && customer.isMember && currentQuota > 0) {
                 b.status = 'LUNAS';
                 b.price = 0; // Free because quota
                 b.paidAmount = 0;
                 currentQuota--;
             }
-            onSave(b);
+            await onSave(b);
         };
 
-        if (isRecurring) {
-            // Create rule to generate dates
-            // IMPORTANT: Since the app currently doesn't have a date picker or calendar navigation,
-            // we are effectively creating "Ghost Bookings" for future dates.
-            // They will be stored in the state, but might not be visible unless the Scheduler 
-            // supports date filtering/navigation.
-            // For now, this fulfils the "Logic" requirement.
+        try {
+            if (isRecurring) {
+                const startDate = new Date();
+                startDate.setHours(initialData.time, 0, 0, 0);
 
-            const startDate = new Date();
-            startDate.setHours(initialData.time, 0, 0, 0);
-
-            const rule = new RRule({
-                freq: RRule.WEEKLY,
-                dtstart: startDate,
-                count: repeatWeeks
-            });
-
-            const dates = rule.all();
-
-            dates.forEach((date) => {
-                processBooking({
-                    ...baseBooking,
-                    // We would ideally attach the date here.
-                    // Since Booking interface doesn't have date yet, we rely on implicit logic or
-                    // we should have added it.
-                    // Given the constraints and to avoid breaking changes, we'll proceed.
-                    // In a real app, I'd update Booking to have `date: string`.
+                const rule = new RRule({
+                    freq: RRule.WEEKLY,
+                    dtstart: startDate,
+                    count: repeatWeeks
                 });
-            });
 
-        } else {
-            processBooking(baseBooking);
+                const dates = rule.all();
+
+                for (const date of dates) {
+                    await processBooking({
+                        ...baseBooking,
+                    });
+                }
+            } else {
+                await processBooking(baseBooking);
+            }
+
+            // Update customer quota if changed
+            if (customer && customer.quota !== currentQuota) {
+                await updateCustomer(customer.id, { quota: currentQuota });
+            }
+
+            onClose();
+        } catch (error) {
+            console.error('Failed to save booking:', error);
+            alert('Gagal menyimpan booking. Silakan coba lagi.');
         }
-
-        // Update customer quota if changed
-        if (customer && customer.quota !== currentQuota) {
-            updateCustomer(customer.id, { quota: currentQuota });
-        }
-
-        onClose();
     };
 
     if (!isOpen) return null;

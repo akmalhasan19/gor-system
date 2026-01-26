@@ -40,11 +40,10 @@ export const MemberModal: React.FC<MemberModalProps> = ({ isOpen, onClose, initi
 
     if (!isOpen) return null;
 
-    const handleSave = () => {
+    const handleSave = async () => {
         if (!name || !phone) return alert("Nama dan No HP wajib diisi!");
 
-        const customerData: Customer = {
-            id: initialData?.id || `CUST-${Date.now()}`,
+        const customerData: Omit<Customer, 'id'> = {
             name,
             phone,
             isMember,
@@ -52,12 +51,19 @@ export const MemberModal: React.FC<MemberModalProps> = ({ isOpen, onClose, initi
             membershipExpiry: isMember ? expiry : undefined
         };
 
-        if (initialData) {
-            updateCustomer(initialData.id, customerData);
-        } else {
-            addCustomer(customerData);
+        try {
+            if (initialData) {
+                await updateCustomer(initialData.id, customerData);
+                alert('Data pelanggan berhasil diupdate!');
+            } else {
+                await addCustomer(customerData);
+                alert('Pelanggan baru berhasil ditambahkan!');
+            }
+            onClose();
+        } catch (error) {
+            console.error('Failed to save customer:', error);
+            alert('Gagal menyimpan data pelanggan. Silakan coba lagi.');
         }
-        onClose();
     };
 
     return (

@@ -39,33 +39,39 @@ export const StockModal: React.FC<StockModalProps> = ({ isOpen, onClose }) => {
         setShowDeleteConfirm(false);
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         const numAmount = parseInt(amount);
 
         if (numAmount <= 0 || isNaN(numAmount)) return;
 
-        if (mode === 'EXISTING') {
-            if (selectedProductId) {
-                updateProductStock(selectedProductId, numAmount);
-                onClose();
-                resetForm();
+        try {
+            if (mode === 'EXISTING') {
+                if (selectedProductId) {
+                    await updateProductStock(selectedProductId, numAmount);
+                    alert('Stok berhasil ditambahkan!');
+                    onClose();
+                    resetForm();
+                }
+            } else {
+                // New Product Mode
+                const price = parseInt(newPrice);
+                if (newName && !isNaN(price)) {
+                    const newProduct = {
+                        name: newName,
+                        price: price,
+                        category: newCategory as any,
+                        stock: numAmount
+                    };
+                    await addProduct(newProduct);
+                    alert('Produk baru berhasil ditambahkan!');
+                    onClose();
+                    resetForm();
+                }
             }
-        } else {
-            // New Product Mode
-            const price = parseInt(newPrice);
-            if (newName && !isNaN(price)) {
-                const newProduct = {
-                    id: Date.now().toString(),
-                    name: newName,
-                    price: price,
-                    category: newCategory as any,
-                    stock: numAmount
-                };
-                addProduct(newProduct);
-                onClose();
-                resetForm();
-            }
+        } catch (error) {
+            console.error('Failed to update stock/product:', error);
+            alert('Gagal menyimpan data. Silakan coba lagi.');
         }
     };
 
@@ -75,11 +81,17 @@ export const StockModal: React.FC<StockModalProps> = ({ isOpen, onClose }) => {
         }
     };
 
-    const confirmDelete = () => {
+    const confirmDelete = async () => {
         if (selectedProductId) {
-            removeProduct(selectedProductId);
-            setSelectedProductId("");
-            setShowDeleteConfirm(false);
+            try {
+                await removeProduct(selectedProductId);
+                alert('Produk berhasil dihapus!');
+                setSelectedProductId("");
+                setShowDeleteConfirm(false);
+            } catch (error) {
+                console.error('Failed to delete product:', error);
+                alert('Gagal menghapus produk. Silakan coba lagi.');
+            }
         }
     };
 
@@ -163,8 +175,8 @@ export const StockModal: React.FC<StockModalProps> = ({ isOpen, onClose }) => {
                             type="button"
                             onClick={() => setMode('EXISTING')}
                             className={`flex-1 py-2 text-xs font-black uppercase transition-all ${mode === 'EXISTING'
-                                    ? 'bg-white border-2 border-black shadow-sm'
-                                    : 'text-gray-500 hover:text-black'
+                                ? 'bg-white border-2 border-black shadow-sm'
+                                : 'text-gray-500 hover:text-black'
                                 }`}
                         >
                             Stok Lama
@@ -173,8 +185,8 @@ export const StockModal: React.FC<StockModalProps> = ({ isOpen, onClose }) => {
                             type="button"
                             onClick={() => setMode('NEW')}
                             className={`flex-1 py-2 text-xs font-black uppercase transition-all ${mode === 'NEW'
-                                    ? 'bg-white border-2 border-black shadow-sm'
-                                    : 'text-gray-500 hover:text-black'
+                                ? 'bg-white border-2 border-black shadow-sm'
+                                : 'text-gray-500 hover:text-black'
                                 }`}
                         >
                             Produk Baru

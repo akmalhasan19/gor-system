@@ -1,7 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
-import { StoreInitializer } from "@/components/store-initializer";
+import { VenueProvider } from "@/lib/venue-context";
+import { DataSyncProvider } from "@/components/data-sync-provider";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -20,13 +21,17 @@ export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
+
 }>) {
   return (
     <html lang="id">
       <body className={`min-h-screen bg-gray-900 flex justify-center font-sans`}>
         <div className="w-full max-w-[480px] min-h-screen bg-gray-100 shadow-2xl relative font-sans text-black">
-          <StoreInitializer />
-          {children}
+          <DataSyncProvider>
+            <VenueProvider>
+              {children}
+            </VenueProvider>
+          </DataSyncProvider>
         </div>
       </body>
     </html>

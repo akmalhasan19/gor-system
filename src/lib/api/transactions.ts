@@ -1,0 +1,151 @@
+import { supabase } from '../supabase';
+import { Transaction, CartItem } from '../constants';
+
+const VENUE_ID = '00000000-0000-0000-0000-000000000001';
+
+export async function createTransaction(
+    items: CartItem[],
+    paidAmount: number,
+    paymentMethod: string,
+    status: 'PAID' | 'PARTIAL' | 'UNPAID'
+): Promise<Transaction> {
+    const totalAmount = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+
+    // Start a transaction
+    const { data: transactionData, error: transactionError } = await supabase
+        .from('transactions')
+        .insert({
+            venue_id: VENUE_ID,
+            total_amount: totalAmount,
+            paid_amount: paidAmount,
+            payment_method: paymentMethod,
+            status: status,
+        })
+        .select()
+        .single();
+
+    if (transactionError) throw transactionError;
+
+    // Insert transaction items
+    const itemsToInsert = items.map(item => ({
+        transaction_id: transactionData.id,
+        product_id: item.type === 'PRODUCT' ? item.referenceId : null,
+        booking_id: item.type === 'BOOKING' ? item.referenceId : null,
+        type: item.type,
+        name: item.name,
+        quantity: item.quantity,
+        price_at_moment: item.price,
+        subtotal: item.price * item.quantity,
+    }));
+
+    const { error: itemsError } = await supabase
+        .from('transaction_items')
+        .insert(itemsToInsert);
+
+    if (itemsError) throw itemsError;
+
+    // Update product stock
+    for (const item of items) {
+        if (item.type === 'PRODUCT' && item.referenceId) {
+            const { data: product } = await supabase
+                .from('products')
+                .select('stock_quantity')
+                .eq('id', item.referenceId)
+                .single();
+
+            if (product) {
+                await supabase
+                    .from('products')
+                    .update({ stock_quantity: product.stock_quantity - item.quantity })
+                    .eq('id', item.referenceId);
+            }
+        }
+
+        // Update booking status
+        if (item.type === 'BOOKING' && item.referenceId) {
+            const newStatus = status === 'PAID' ? 'LUNAS' : (status === 'PARTIAL' ? 'DP' : 'BELUM_BAYAR');
+
+            await supabase
+                .from('bookings')
+                .update({
+                    status: newStatus,
+                    paid_amount: status === 'PAID' ? item.price : paidAmount
+                })
+                .eq('id', item.referenceId);
+        }
+    }
+
+    return {
+        id: transactionData.id,
+        date: transactionData.created_at,
+        items: items,
+        totalAmount: totalAmount,
+        paidAmount: paidAmount,
+        changeAmount: paidAmount >= totalAmount ? paidAmount - totalAmount : 0,
+        paymentMethod: paymentMethod as any,
+        status: status,
+        cashierName: 'Admin',
+    };
+}
+
+export async function getTransactions(limit: number = 50): Promise<Transaction[]> {
+    const { data, error } = await supabase
+        .from('transactions')
+        .select(`
+            *,
+            transaction_items (*)
+        `)
+        .eq('venue_id', VENUE_ID)
+        .order('created_at', { ascending: false })
+        .limit(limit);
+
+    if (error) throw error;
+
+    return (data || []).map(row => ({
+        id: row.id,
+        date: row.created_at,
+        items: (row.transaction_items || []).map((item: any) => ({
+            id: item.id,
+            type: item.type,
+            name: item.name,
+            price: item.price_at_moment,
+            quantity: item.quantity,
+            referenceId: item.product_id || item.booking_id,
+        })),
+        totalAmount: row.total_amount,
+        paidAmount: row.paid_amount,
+        changeAmount: row.paid_amount >= row.total_amount ? row.paid_amount - row.total_amount : 0,
+        paymentMethod: row.payment_method as any,
+        status: row.status,
+        cashierName: 'Admin',
+    }));
+}
+
+export async function getDailyReport(date?: string): Promise<{
+    totalRevenue: number;
+    totalTransactions: number;
+    cashAmount: number;
+    transferAmount: number;
+}> {
+    const targetDate = date || new Date().toISOString().split('T')[0];
+
+    const { data, error } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('venue_id', VENUE_ID)
+        .gte('created_at', `${targetDate}T00:00:00`)
+        .lt('created_at', `${targetDate}T23:59:59`);
+
+    if (error) throw error;
+
+    const totalRevenue = (data || []).reduce((sum, t) => sum + t.paid_amount, 0);
+    const cashAmount = (data || []).filter(t => t.payment_method === 'cash').reduce((sum, t) => sum + t.paid_amount, 0);
+    const transferAmount = (data || []).filter(t => t.payment_method === 'transfer').reduce((sum, t) => sum + t.paid_amount, 0);
+
+    return {
+        totalRevenue,
+        totalTransactions: (data || []).length,
+        cashAmount,
+        transferAmount,
+    };
+}

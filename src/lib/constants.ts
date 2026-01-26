@@ -1,6 +1,11 @@
 export interface Court {
-    id: number;
+    id: string;
+    venueId?: string;
     name: string;
+    courtNumber?: number;
+    isActive?: boolean;
+    hourlyRate?: number;
+    notes?: string;
 }
 
 export interface Booking {
@@ -9,7 +14,7 @@ export interface Booking {
     phone: string;
     startTime: number;
     duration: number;
-    courtId: number;
+    courtId: string;
     status: 'LUNAS' | 'DP' | 'BELUM_BAYAR' | 'BELUM';
     price: number;
     paidAmount: number;
@@ -19,9 +24,9 @@ export interface Booking {
 export const OPERATIONAL_HOURS = Array.from({ length: 16 }, (_, i) => i + 8);
 
 export const COURTS: Court[] = [
-    { id: 1, name: "LAPANGAN 1" },
-    { id: 2, name: "LAPANGAN 2" },
-    { id: 3, name: "LAPANGAN 3" },
+    { id: "1", name: "LAPANGAN 1" },
+    { id: "2", name: "LAPANGAN 2" },
+    { id: "3", name: "LAPANGAN 3" },
 ];
 
 export const INITIAL_BOOKINGS: Booking[] = [
@@ -31,7 +36,7 @@ export const INITIAL_BOOKINGS: Booking[] = [
         phone: '08123456789',
         startTime: 10,
         duration: 1,
-        courtId: 1,
+        courtId: '1',
         status: 'LUNAS',
         price: 50000,
         paidAmount: 50000
@@ -42,7 +47,7 @@ export const INITIAL_BOOKINGS: Booking[] = [
         phone: '08129876543',
         startTime: 14,
         duration: 2,
-        courtId: 2,
+        courtId: '2',
         status: 'BELUM_BAYAR',
         price: 100000,
         paidAmount: 0

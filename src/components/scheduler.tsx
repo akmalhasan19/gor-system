@@ -9,7 +9,7 @@ import { MessageSquare } from "lucide-react";
 interface SchedulerProps {
     bookings: Booking[];
     courts: Court[];
-    onSlotClick?: (courtId: number, hour: number) => void;
+    onSlotClick?: (courtId: string, hour: number) => void;
     readOnly?: boolean;
 }
 
@@ -23,7 +23,7 @@ export const Scheduler: React.FC<SchedulerProps> = ({ bookings, courts, onSlotCl
         window.open(url, '_blank');
     };
 
-    const getBookingAt = (courtId: number, hour: number) => {
+    const getBookingAt = (courtId: string, hour: number) => {
         return bookings.find((b) => {
             const start = b.startTime;
             const end = b.startTime + b.duration;

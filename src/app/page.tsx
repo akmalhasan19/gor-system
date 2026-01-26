@@ -25,8 +25,12 @@ import { Receipt as ReceiptComponent } from "@/components/pos/receipt";
 import { DashboardView } from "@/components/dashboard/dashboard-view";
 import { StockModal } from "@/components/pos/stock-modal";
 import { PackagePlus } from "lucide-react";
+import { useRealtimeSubscription } from "@/lib/hooks/use-realtime-subscription";
 
 export default function Home() {
+  // Enable realtime subscriptions
+  useRealtimeSubscription();
+
   const [activeTab, setActiveTab] = useState<"dashboard" | "scheduler" | "pos" | "reports" | "members">("dashboard");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isStockModalOpen, setIsStockModalOpen] = useState(false);
@@ -34,14 +38,16 @@ export default function Home() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { bookings, addBooking, transactions, cart } = useAppStore();
 
-  const [bookingInitialData, setBookingInitialData] = useState<{ courtId: number; time: number } | null>(null);
+  const [bookingInitialData, setBookingInitialData] = useState<{ courtId: string; time: number } | null>(null);
 
-  const handleSaveBooking = (newBooking: Omit<Booking, "id">) => {
-    const booking: Booking = {
-      ...newBooking,
-      id: Math.random().toString(36).substr(2, 9),
-    };
-    addBooking(booking);
+  const handleSaveBooking = async (newBooking: Omit<Booking, "id">) => {
+    try {
+      await addBooking(newBooking);
+      alert('Booking berhasil disimpan!');
+    } catch (error) {
+      console.error('Failed to save booking:', error);
+      alert('Gagal menyimpan booking. Silakan coba lagi.');
+    }
   };
 
   const handleCopyPublicLink = () => {
@@ -50,7 +56,7 @@ export default function Home() {
     alert('Link Jadwal Publik berhasil disalin! Kirim link ini ke pelanggan Anda.');
   };
 
-  const handleSlotClick = (courtId: number, hour: number) => {
+  const handleSlotClick = (courtId: string, hour: number) => {
     setBookingInitialData({ courtId, time: hour });
     setIsModalOpen(true);
   };

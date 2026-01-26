@@ -12,7 +12,7 @@ export const NeoCard = React.forwardRef<HTMLDivElement, NeoCardProps>(
             <div
                 ref={ref}
                 className={cn(
-                    "bg-white border-2 border-black p-6 neo-shadow",
+                    "bg-white border-2 border-black p-4 neo-shadow",
                     className
                 )}
                 {...props}
@@ -20,7 +20,7 @@ export const NeoCard = React.forwardRef<HTMLDivElement, NeoCardProps>(
                 {(title || action) && (
                     <div className="flex items-center justify-between mb-4 border-b-2 border-black pb-2">
                         {title && (
-                            <h3 className="font-black text-xl uppercase italic tracking-tighter">
+                            <h3 className="font-black text-lg uppercase italic tracking-tighter">
                                 {title}
                             </h3>
                         )}

@@ -2,14 +2,16 @@
 
 @theme {
   --font-sans: 'Inter', system-ui, sans-serif;
-  
+
   --color-brand-lime: #D9F99D;
   --color-brand-black: #000000;
   --color-brand-white: #FFFFFF;
   --color-brand-danger: #F87171;
-  
-  --shadow-neo: 4px 4px 0px 0px rgba(0,0,0,1);
-  --shadow-neo-sm: 2px 2px 0px 0px rgba(0,0,0,1);
+  --color-pastel-lilac: #BDB2FF;
+  /* Approximate pastel lilac matches user request */
+
+  --shadow-neo: 4px 4px 0px 0px rgba(0, 0, 0, 1);
+  --shadow-neo-sm: 2px 2px 0px 0px rgba(0, 0, 0, 1);
 }
 
 /* Custom Utilities for Neo Brutalism */
@@ -18,7 +20,7 @@
     border-width: 2px;
     border-color: var(--color-brand-black);
   }
-  
+
   .neo-shadow {
     box-shadow: var(--shadow-neo);
   }
@@ -26,10 +28,27 @@
   .neo-shadow-sm {
     box-shadow: var(--shadow-neo-sm);
   }
-  
+
+  .font-display {
+    font-family: var(--font-sans);
+    /* Fallback or specific display font if added later */
+    font-weight: 900;
+  }
+
   .neo-interactive:active {
     transform: translate(2px, 2px);
     box-shadow: none;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    /* IE and Edge */
+    scrollbar-width: none;
+    /* Firefox */
   }
 }
 

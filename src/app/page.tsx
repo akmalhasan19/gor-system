@@ -19,10 +19,11 @@ import { COURTS, Booking } from "@/lib/constants";
 import { useAppStore } from "@/lib/store";
 import { ProductList } from "@/components/pos/product-list";
 import { CartSidebar } from "@/components/pos/cart-sidebar";
-import { DailyReport } from "@/components/reports/daily-report";
+// import { DailyReport } from "@/components/reports/daily-report";
 import { MemberList } from "@/components/members/member-list";
 import { Receipt as ReceiptComponent } from "@/components/pos/receipt";
 import { DashboardView } from "@/components/dashboard/dashboard-view";
+import { ReportsView } from "@/components/dashboard/reports-view";
 import { StockModal } from "@/components/pos/stock-modal";
 import { PackagePlus } from "lucide-react";
 import { useRealtimeSubscription } from "@/lib/hooks/use-realtime-subscription";
@@ -229,12 +230,7 @@ export default function Home() {
           </div>
         )}
 
-        {activeTab === "reports" && (
-          <div className="flex-1 p-4 overflow-y-auto">
-            <h1 className="text-2xl font-black uppercase italic mb-4">Laporan Harian</h1>
-            <DailyReport />
-          </div>
-        )}
+        {activeTab === "reports" && <ReportsView />}
 
         {activeTab === "members" && (
           <div className="flex-1 p-0 overflow-y-auto">

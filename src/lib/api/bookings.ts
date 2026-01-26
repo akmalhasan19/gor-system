@@ -24,10 +24,36 @@ export async function getBookings(date?: string): Promise<Booking[]> {
         price: row.price,
         paidAmount: row.paid_amount,
         status: row.status as any,
+        bookingDate: row.booking_date,
     }));
 }
 
-export async function createBooking(booking: Omit<Booking, 'id'>): Promise<Booking> {
+export async function getBookingsRange(startDate: string, endDate: string): Promise<Booking[]> {
+    const { data, error } = await supabase
+        .from('bookings')
+        .select('*')
+        .eq('venue_id', VENUE_ID)
+        .gte('booking_date', startDate)
+        .lte('booking_date', endDate)
+        .order('booking_date', { ascending: true });
+
+    if (error) throw error;
+
+    return (data || []).map(row => ({
+        id: row.id,
+        courtId: String(row.court_id || '1'),
+        startTime: row.start_time,
+        duration: row.duration,
+        customerName: row.customer_name,
+        phone: row.phone,
+        price: row.price,
+        paidAmount: row.paid_amount,
+        status: row.status as any,
+        bookingDate: row.booking_date,
+    }));
+}
+
+export async function createBooking(booking: Omit<Booking, 'id' | 'bookingDate'>): Promise<Booking> {
     const { data, error } = await supabase
         .from('bookings')
         .insert({
@@ -49,7 +75,7 @@ export async function createBooking(booking: Omit<Booking, 'id'>): Promise<Booki
 
     return {
         id: data.id,
-        courtId: booking.courtId,
+        courtId: String(data.court_id),
         startTime: data.start_time,
         duration: data.duration,
         customerName: data.customer_name,
@@ -57,6 +83,7 @@ export async function createBooking(booking: Omit<Booking, 'id'>): Promise<Booki
         price: data.price,
         paidAmount: data.paid_amount,
         status: data.status,
+        bookingDate: data.booking_date,
     };
 }
 

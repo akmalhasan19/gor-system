@@ -25,9 +25,11 @@ export const Scheduler: React.FC<SchedulerProps> = ({ bookings, courts, onSlotCl
 
     const getBookingAt = (courtId: string, hour: number) => {
         return bookings.find((b) => {
-            const start = b.startTime;
-            const end = b.startTime + b.duration;
-            return hour >= start && hour < end;
+            // Support both number (legacy/constants) and string "HH:MM:SS" (DB)
+            let start = typeof b.startTime === 'number' ? b.startTime : parseInt(b.startTime.split(':')[0]);
+
+            const end = start + b.duration;
+            return b.courtId === courtId && hour >= start && hour < end;
         });
     };
 
@@ -76,7 +78,11 @@ export const Scheduler: React.FC<SchedulerProps> = ({ bookings, courts, onSlotCl
                         {/* Court Columns */}
                         {courts.map((court) => {
                             const booking = getBookingAt(court.id, hour);
-                            const isStart = booking && booking.startTime === hour;
+                            let startHour = -1;
+                            if (booking) {
+                                startHour = typeof booking.startTime === 'number' ? booking.startTime : parseInt(booking.startTime.split(':')[0]);
+                            }
+                            const isStart = booking && startHour === hour;
 
                             if (booking) {
                                 if (isStart) {

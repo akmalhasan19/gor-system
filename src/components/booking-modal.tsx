@@ -56,15 +56,19 @@ export const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, onS
         if (!initialData) return;
         if (!customerName || !phone) return alert("Nama dan No HP harus diisi!");
 
+        const timeString = `${initialData.time.toString().padStart(2, '0')}:00:00`;
+        const todayStr = new Date().toISOString().split('T')[0];
+
         const baseBooking: Omit<Booking, "id"> = {
             courtId: initialData.courtId,
-            startTime: initialData.time,
+            startTime: timeString,
             duration: duration,
             customerName,
             phone,
             price: duration * 50000,
             status: 'BELUM_BAYAR',
-            paidAmount: 0
+            paidAmount: 0,
+            bookingDate: todayStr
         };
 
         // Check if member quota applies
@@ -99,6 +103,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, onS
                 for (const date of dates) {
                     await processBooking({
                         ...baseBooking,
+                        bookingDate: date.toISOString().split('T')[0]
                     });
                 }
             } else {

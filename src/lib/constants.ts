@@ -12,12 +12,13 @@ export interface Booking {
     id: string;
     customerName: string;
     phone: string;
-    startTime: number;
+    startTime: string; // "HH:MM:SS"
     duration: number;
     courtId: string;
-    status: 'LUNAS' | 'DP' | 'BELUM_BAYAR' | 'BELUM';
+    status: 'LUNAS' | 'DP' | 'BELUM_BAYAR' | 'BELUM' | 'pending' | 'cancelled';
     price: number;
     paidAmount: number;
+    bookingDate: string; // "YYYY-MM-DD"
 }
 
 // Operational hours 08:00 - 23:00
@@ -34,23 +35,25 @@ export const INITIAL_BOOKINGS: Booking[] = [
         id: '1',
         customerName: 'PAK BUDI',
         phone: '08123456789',
-        startTime: 10,
+        startTime: "10:00:00",
         duration: 1,
         courtId: '1',
         status: 'LUNAS',
         price: 50000,
-        paidAmount: 50000
+        paidAmount: 50000,
+        bookingDate: "2026-01-26"
     },
     {
         id: '2',
         customerName: 'BU SITI',
         phone: '08129876543',
-        startTime: 14,
+        startTime: "14:00:00",
         duration: 2,
         courtId: '2',
         status: 'BELUM_BAYAR',
         price: 100000,
-        paidAmount: 0
+        paidAmount: 0,
+        bookingDate: "2026-01-26"
     },
 ];
 

@@ -30,6 +30,7 @@ export async function getBookings(date?: string): Promise<Booking[]> {
         paidAmount: row.paid_amount,
         status: row.status as any,
         bookingDate: row.booking_date,
+        createdAt: row.created_at,
     }));
 }
 
@@ -60,6 +61,7 @@ export async function getBookingsRange(startDate: string, endDate: string): Prom
         paidAmount: row.paid_amount,
         status: row.status as any,
         bookingDate: row.booking_date,
+        createdAt: row.created_at,
     }));
 }
 
@@ -120,12 +122,39 @@ export async function createBooking(booking: Omit<Booking, 'id' | 'bookingDate'>
 }
 
 export async function updateBooking(id: string, updates: Partial<Booking>): Promise<void> {
+    const dbUpdates: any = {};
+
+    if (updates.status !== undefined) dbUpdates.status = updates.status;
+    if (updates.paidAmount !== undefined) dbUpdates.paid_amount = updates.paidAmount;
+    if (updates.startTime !== undefined) dbUpdates.start_time = updates.startTime;
+    if (updates.bookingDate !== undefined) dbUpdates.booking_date = updates.bookingDate;
+
+    // Handle courtId update (convert number string to UUID)
+    if (updates.courtId !== undefined) {
+        let courtUuid = updates.courtId;
+
+        // If courtId looks like a number, query the courts table to get the UUID
+        if (!updates.courtId.includes('-')) {
+            const courtNumber = parseInt(updates.courtId, 10);
+
+            const { data: court, error: courtError } = await supabase
+                .from('courts')
+                .select('id')
+                .eq('venue_id', VENUE_ID)
+                .eq('court_number', courtNumber)
+                .single();
+
+            if (courtError || !court) {
+                throw new Error(`Court with number ${courtNumber} not found`);
+            }
+            courtUuid = court.id;
+        }
+        dbUpdates.court_id = courtUuid;
+    }
+
     const { error } = await supabase
         .from('bookings')
-        .update({
-            status: updates.status,
-            paid_amount: updates.paidAmount,
-        })
+        .update(dbUpdates)
         .eq('id', id);
 
     if (error) throw error;

@@ -19,6 +19,7 @@ export interface Booking {
     price: number;
     paidAmount: number;
     bookingDate: string; // "YYYY-MM-DD"
+    createdAt?: string; // ISO timestamp for stale booking detection
 }
 
 // Operational hours 08:00 - 23:00

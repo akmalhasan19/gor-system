@@ -27,6 +27,8 @@ interface AppState {
     // Booking actions
     addBooking: (booking: Omit<Booking, 'id'>) => Promise<void>;
     updateBookingStatus: (id: string, status: Booking['status']) => Promise<void>;
+    deleteBooking: (id: string) => Promise<void>;
+    updateBooking: (id: string, updates: Partial<Booking>) => Promise<void>;
     setBookings: (bookings: Booking[]) => void;
 
     // Cart actions
@@ -147,6 +149,36 @@ export const useAppStore = create<AppState>((set, get) => ({
                 bookings: state.bookings.map((b) =>
                     b.id === id ? { ...b, status } : b
                 ),
+                isLoading: false
+            }));
+        } catch (error: any) {
+            set({ error: error.message, isLoading: false });
+            throw error;
+        }
+    },
+
+    updateBooking: async (id, updates) => {
+        set({ isLoading: true, error: null });
+        try {
+            await bookingsApi.updateBooking(id, updates);
+            set((state) => ({
+                bookings: state.bookings.map((b) =>
+                    b.id === id ? { ...b, ...updates } : b
+                ),
+                isLoading: false
+            }));
+        } catch (error: any) {
+            set({ error: error.message, isLoading: false });
+            throw error;
+        }
+    },
+
+    deleteBooking: async (id: string) => {
+        set({ isLoading: true, error: null });
+        try {
+            await bookingsApi.deleteBooking(id);
+            set((state) => ({
+                bookings: state.bookings.filter((b) => b.id !== id),
                 isLoading: false
             }));
         } catch (error: any) {

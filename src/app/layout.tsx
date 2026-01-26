@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
+import { Toaster } from "sonner";
 import { VenueProvider } from "@/lib/venue-context";
 import { DataSyncProvider } from "@/components/data-sync-provider";
 
@@ -30,6 +31,17 @@ export default function RootLayout({
           <DataSyncProvider>
             <VenueProvider>
               {children}
+              <Toaster
+                position="top-center"
+                toastOptions={{
+                  className: "bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-none font-bold text-black",
+                  classNames: {
+                    success: "bg-white text-black",
+                    error: "bg-red-50 text-red-600 border-red-600",
+                    description: "text-gray-500 font-normal"
+                  }
+                }}
+              />
             </VenueProvider>
           </DataSyncProvider>
         </div>

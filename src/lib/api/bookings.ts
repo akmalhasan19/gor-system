@@ -1,9 +1,7 @@
 import { supabase } from '../supabase';
 import { Booking } from '../constants';
 
-const VENUE_ID = '00000000-0000-0000-0000-000000000001'; // Default venue ID
-
-export async function getBookings(date?: string): Promise<Booking[]> {
+export async function getBookings(venueId: string, date?: string): Promise<Booking[]> {
     const { data, error } = await supabase
         .from('bookings')
         .select(`
@@ -12,7 +10,7 @@ export async function getBookings(date?: string): Promise<Booking[]> {
                 court_number
             )
         `)
-        .eq('venue_id', VENUE_ID)
+        .eq('venue_id', venueId)
         .eq('booking_date', date || new Date().toISOString().split('T')[0])
         .order('start_time', { ascending: true });
 
@@ -34,7 +32,7 @@ export async function getBookings(date?: string): Promise<Booking[]> {
     }));
 }
 
-export async function getBookingsRange(startDate: string, endDate: string): Promise<Booking[]> {
+export async function getBookingsRange(venueId: string, startDate: string, endDate: string): Promise<Booking[]> {
     const { data, error } = await supabase
         .from('bookings')
         .select(`
@@ -43,7 +41,7 @@ export async function getBookingsRange(startDate: string, endDate: string): Prom
                 court_number
             )
         `)
-        .eq('venue_id', VENUE_ID)
+        .eq('venue_id', venueId)
         .gte('booking_date', startDate)
         .lte('booking_date', endDate)
         .order('booking_date', { ascending: true });
@@ -65,7 +63,7 @@ export async function getBookingsRange(startDate: string, endDate: string): Prom
     }));
 }
 
-export async function createBooking(booking: Omit<Booking, 'id' | 'bookingDate'>): Promise<Booking> {
+export async function createBooking(venueId: string, booking: Omit<Booking, 'id' | 'bookingDate'>): Promise<Booking> {
     // First, convert courtId (could be a number like "1") to actual court UUID
     let courtUuid = booking.courtId;
 
@@ -77,7 +75,7 @@ export async function createBooking(booking: Omit<Booking, 'id' | 'bookingDate'>
         const { data: court, error: courtError } = await supabase
             .from('courts')
             .select('id')
-            .eq('venue_id', VENUE_ID)
+            .eq('venue_id', venueId)
             .eq('court_number', courtNumber)
             .single();
 
@@ -91,7 +89,7 @@ export async function createBooking(booking: Omit<Booking, 'id' | 'bookingDate'>
     const { data, error } = await supabase
         .from('bookings')
         .insert({
-            venue_id: VENUE_ID,
+            venue_id: venueId,
             court_id: courtUuid,
             customer_name: booking.customerName,
             phone: booking.phone,
@@ -121,7 +119,7 @@ export async function createBooking(booking: Omit<Booking, 'id' | 'bookingDate'>
     };
 }
 
-export async function updateBooking(id: string, updates: Partial<Booking>): Promise<void> {
+export async function updateBooking(venueId: string, id: string, updates: Partial<Booking>): Promise<void> {
     const dbUpdates: any = {};
 
     if (updates.status !== undefined) dbUpdates.status = updates.status;
@@ -140,7 +138,7 @@ export async function updateBooking(id: string, updates: Partial<Booking>): Prom
             const { data: court, error: courtError } = await supabase
                 .from('courts')
                 .select('id')
-                .eq('venue_id', VENUE_ID)
+                .eq('venue_id', venueId)
                 .eq('court_number', courtNumber)
                 .single();
 

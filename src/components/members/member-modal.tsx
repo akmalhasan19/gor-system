@@ -12,7 +12,7 @@ interface MemberModalProps {
 }
 
 export const MemberModal: React.FC<MemberModalProps> = ({ isOpen, onClose, initialData }) => {
-    const { addCustomer, updateCustomer } = useAppStore();
+    const { addCustomer, updateCustomer, currentVenueId } = useAppStore();
 
     // Form State
     const [name, setName] = useState("");
@@ -56,7 +56,7 @@ export const MemberModal: React.FC<MemberModalProps> = ({ isOpen, onClose, initi
                 await updateCustomer(initialData.id, customerData);
                 alert('Data pelanggan berhasil diupdate!');
             } else {
-                await addCustomer(customerData);
+                await addCustomer(currentVenueId, customerData);
                 alert('Pelanggan baru berhasil ditambahkan!');
             }
             onClose();

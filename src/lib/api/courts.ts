@@ -10,13 +10,11 @@ export interface Court {
     notes?: string;
 }
 
-const VENUE_ID = '00000000-0000-0000-0000-000000000001';
-
-export async function getCourts(): Promise<Court[]> {
+export async function getCourts(venueId: string): Promise<Court[]> {
     const { data, error } = await supabase
         .from('courts')
         .select('*')
-        .eq('venue_id', VENUE_ID)
+        .eq('venue_id', venueId)
         .eq('is_active', true)
         .order('court_number', { ascending: true });
 
@@ -33,11 +31,14 @@ export async function getCourts(): Promise<Court[]> {
     }));
 }
 
-export async function createCourt(court: Omit<Court, 'id' | 'venueId'>): Promise<Court> {
+export async function createCourt(
+    venueId: string,
+    court: Omit<Court, 'id' | 'venueId'>
+): Promise<Court> {
     const { data, error } = await supabase
         .from('courts')
         .insert({
-            venue_id: VENUE_ID,
+            venue_id: venueId,
             name: court.name,
             court_number: court.courtNumber,
             is_active: court.isActive,
@@ -58,6 +59,45 @@ export async function createCourt(court: Omit<Court, 'id' | 'venueId'>): Promise
         hourlyRate: data.hourly_rate,
         notes: data.notes,
     };
+}
+
+/**
+ * Bulk create multiple courts for a venue during onboarding
+ * Generates courts named "Lapangan 1", "Lapangan 2", etc.
+ */
+export async function createMultipleCourts(
+    venueId: string,
+    count: number,
+    hourlyRate: number = 50000
+): Promise<Court[]> {
+    const courtsToCreate = [];
+
+    for (let i = 1; i <= count; i++) {
+        courtsToCreate.push({
+            venue_id: venueId,
+            name: `Lapangan ${i}`,
+            court_number: i,
+            is_active: true,
+            hourly_rate: hourlyRate,
+        });
+    }
+
+    const { data, error } = await supabase
+        .from('courts')
+        .insert(courtsToCreate)
+        .select();
+
+    if (error) throw error;
+
+    return (data || []).map(row => ({
+        id: row.id,
+        venueId: row.venue_id,
+        name: row.name,
+        courtNumber: row.court_number,
+        isActive: row.is_active,
+        hourlyRate: row.hourly_rate,
+        notes: row.notes,
+    }));
 }
 
 export async function updateCourt(id: string, updates: Partial<Court>): Promise<void> {
@@ -86,3 +126,4 @@ export async function deleteCourt(id: string): Promise<void> {
 
     if (error) throw error;
 }
+

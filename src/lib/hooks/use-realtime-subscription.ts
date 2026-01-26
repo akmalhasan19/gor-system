@@ -1,10 +1,12 @@
 import { useEffect } from 'react';
 import { supabase } from '../supabase';
 import { useAppStore } from '../store';
+import { useVenue } from '../venue-context';
 import { toast } from 'sonner';
 
 export function useRealtimeSubscription() {
     const { syncBookings, syncProducts, syncCustomers, syncTransactions, syncCourts } = useAppStore();
+    const { currentVenueId } = useVenue();
 
     useEffect(() => {
         console.log('🔌 Initializing Realtime Subscriptions...');
@@ -21,7 +23,9 @@ export function useRealtimeSubscription() {
                 async (payload) => {
                     console.log('📅 Booking updated:', payload);
                     toast.info('Data Booking diperbarui');
-                    await syncBookings();
+                    if (currentVenueId) {
+                        await syncBookings(currentVenueId);
+                    }
                 }
             )
             .on(
@@ -68,8 +72,10 @@ export function useRealtimeSubscription() {
                     table: 'courts',
                 },
                 async (payload) => {
-                    console.log('badminton Court updated:', payload);
-                    await syncCourts();
+                    console.log('🏸 Court updated:', payload);
+                    if (currentVenueId) {
+                        await syncCourts(currentVenueId);
+                    }
                 }
             )
             .subscribe((status) => {
@@ -82,5 +88,5 @@ export function useRealtimeSubscription() {
             console.log('🔌 Disconnecting Realtime...');
             supabase.removeChannel(channel);
         };
-    }, [syncBookings, syncProducts, syncCustomers, syncTransactions, syncCourts]);
+    }, [syncBookings, syncProducts, syncCustomers, syncTransactions, syncCourts, currentVenueId]);
 }

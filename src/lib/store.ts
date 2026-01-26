@@ -16,19 +16,20 @@ interface AppState {
     courts: Court[];
     isLoading: boolean;
     error: string | null;
+    currentVenueId: string;
 
     // Sync actions (fetch from DB)
-    syncBookings: () => Promise<void>;
-    syncProducts: () => Promise<void>;
-    syncCustomers: () => Promise<void>;
-    syncTransactions: () => Promise<void>;
-    syncCourts: () => Promise<void>;
+    syncBookings: (venueId: string) => Promise<void>;
+    syncProducts: (venueId: string) => Promise<void>;
+    syncCustomers: (venueId: string) => Promise<void>;
+    syncTransactions: (venueId: string) => Promise<void>;
+    syncCourts: (venueId: string) => Promise<void>;
 
     // Booking actions
-    addBooking: (booking: Omit<Booking, 'id'>) => Promise<void>;
+    addBooking: (venueId: string, booking: Omit<Booking, 'id'>) => Promise<void>;
     updateBookingStatus: (id: string, status: Booking['status']) => Promise<void>;
     deleteBooking: (id: string) => Promise<void>;
-    updateBooking: (id: string, updates: Partial<Booking>) => Promise<void>;
+    updateBooking: (venueId: string, id: string, updates: Partial<Booking>) => Promise<void>;
     setBookings: (bookings: Booking[]) => void;
 
     // Cart actions
@@ -37,22 +38,22 @@ interface AppState {
     clearCart: () => void;
 
     // Transaction actions
-    processTransaction: (transaction: Transaction) => Promise<void>;
+    processTransaction: (venueId: string, items: CartItem[], paidAmount: number, paymentMethod: 'CASH' | 'QRIS' | 'TRANSFER') => Promise<void>;
     setTransactions: (transactions: Transaction[]) => void;
 
     // Product actions
     updateProductStock: (id: string, amount: number) => Promise<void>;
-    addProduct: (product: Omit<Product, 'id'>) => Promise<void>;
+    addProduct: (venueId: string, product: Omit<Product, 'id'>) => Promise<void>;
     removeProduct: (id: string) => Promise<void>;
     setProducts: (products: Product[]) => void;
 
     // Customer actions
-    addCustomer: (customer: Omit<Customer, 'id'>) => Promise<void>;
+    addCustomer: (venueId: string, customer: Omit<Customer, 'id'>) => Promise<void>;
     updateCustomer: (id: string, updates: Partial<Customer>) => Promise<void>;
     setCustomers: (customers: Customer[]) => void;
 
     // Court actions
-    addCourt: (court: Omit<Court, 'id' | 'venueId'>) => Promise<void>;
+    addCourt: (venueId: string, court: Omit<Court, 'id' | 'venueId'>) => Promise<void>;
     updateCourt: (id: string, updates: Partial<Court>) => Promise<void>;
     deleteCourt: (id: string) => Promise<void>;
     setCourts: (courts: Court[]) => void;
@@ -67,52 +68,58 @@ export const useAppStore = create<AppState>((set, get) => ({
     courts: [],
     isLoading: false,
     error: null,
+    currentVenueId: '',
 
     // Sync methods
-    syncBookings: async () => {
+    syncBookings: async (venueId: string) => {
         set({ isLoading: true, error: null });
         try {
-            const bookings = await bookingsApi.getBookings();
+            const bookings = await bookingsApi.getBookings(venueId);
             set({ bookings, isLoading: false });
         } catch (error: any) {
             set({ error: error.message, isLoading: false });
         }
     },
 
-    syncProducts: async () => {
+    syncProducts: async (venueId: string) => {
         set({ isLoading: true, error: null });
         try {
-            const products = await productsApi.getProducts();
+            const products = await productsApi.getProducts(venueId);
             set({ products, isLoading: false });
         } catch (error: any) {
             set({ error: error.message, isLoading: false });
         }
     },
 
-    syncCustomers: async () => {
+    syncCustomers: async (venueId: string) => {
         set({ isLoading: true, error: null });
         try {
-            const customers = await customersApi.getCustomers();
+            const customers = await customersApi.getCustomers(venueId);
             set({ customers, isLoading: false });
         } catch (error: any) {
             set({ error: error.message, isLoading: false });
         }
     },
 
-    syncTransactions: async () => {
+    syncTransactions: async (venueId: string) => {
         set({ isLoading: true, error: null });
         try {
-            const transactions = await transactionsApi.getTransactions();
+            const transactions = await transactionsApi.getTransactions(venueId);
             set({ transactions, isLoading: false });
         } catch (error: any) {
             set({ error: error.message, isLoading: false });
         }
     },
 
-    syncCourts: async () => {
-        set({ isLoading: true, error: null });
+    syncCourts: async (venueId: string) => {
+        set({ isLoading: true, error: null, currentVenueId: venueId });
         try {
-            const courts = await courtsApi.getCourts();
+            if (!venueId) {
+                console.warn('No venueId provided to syncCourts');
+                set({ courts: [], isLoading: false });
+                return;
+            }
+            const courts = await courtsApi.getCourts(venueId);
             set({ courts, isLoading: false });
         } catch (error: any) {
             set({ error: error.message, isLoading: false });
@@ -127,10 +134,10 @@ export const useAppStore = create<AppState>((set, get) => ({
     setCourts: (courts) => set({ courts }),
 
     // Booking actions
-    addBooking: async (booking) => {
+    addBooking: async (venueId: string, booking) => {
         set({ isLoading: true, error: null });
         try {
-            const newBooking = await bookingsApi.createBooking(booking);
+            const newBooking = await bookingsApi.createBooking(venueId, booking);
             set((state) => ({
                 bookings: [...state.bookings, newBooking],
                 isLoading: false
@@ -144,7 +151,9 @@ export const useAppStore = create<AppState>((set, get) => ({
     updateBookingStatus: async (id, status) => {
         set({ isLoading: true, error: null });
         try {
-            await bookingsApi.updateBooking(id, { status });
+            const venueId = get().currentVenueId;
+            if (!venueId) throw new Error('No venue selected');
+            await bookingsApi.updateBooking(venueId, id, { status });
             set((state) => ({
                 bookings: state.bookings.map((b) =>
                     b.id === id ? { ...b, status } : b
@@ -157,10 +166,10 @@ export const useAppStore = create<AppState>((set, get) => ({
         }
     },
 
-    updateBooking: async (id, updates) => {
+    updateBooking: async (venueId: string, id, updates) => {
         set({ isLoading: true, error: null });
         try {
-            await bookingsApi.updateBooking(id, updates);
+            await bookingsApi.updateBooking(venueId, id, updates);
             set((state) => ({
                 bookings: state.bookings.map((b) =>
                     b.id === id ? { ...b, ...updates } : b
@@ -212,14 +221,15 @@ export const useAppStore = create<AppState>((set, get) => ({
     clearCart: () => set({ cart: [] }),
 
     // Transaction actions
-    processTransaction: async (transaction) => {
+    processTransaction: async (venueId: string, items, paidAmount, paymentMethod) => {
         set({ isLoading: true, error: null });
         try {
             const newTransaction = await transactionsApi.createTransaction(
-                transaction.items,
-                transaction.paidAmount,
-                transaction.paymentMethod,
-                transaction.status as any
+                venueId,
+                items,
+                paidAmount,
+                paymentMethod,
+                paidAmount >= items.reduce((sum, i) => sum + i.price * i.quantity, 0) ? 'PAID' : 'PARTIAL'
             );
 
             set((state) => ({
@@ -229,8 +239,8 @@ export const useAppStore = create<AppState>((set, get) => ({
             }));
 
             // Refresh bookings and products to reflect updated status/stock
-            get().syncBookings();
-            get().syncProducts();
+            get().syncBookings(venueId);
+            get().syncProducts(venueId);
         } catch (error: any) {
             set({ error: error.message, isLoading: false });
             throw error;
@@ -259,10 +269,10 @@ export const useAppStore = create<AppState>((set, get) => ({
         }
     },
 
-    addProduct: async (product) => {
+    addProduct: async (venueId: string, product) => {
         set({ isLoading: true, error: null });
         try {
-            const newProduct = await productsApi.createProduct(product);
+            const newProduct = await productsApi.createProduct(venueId, product);
             set((state) => ({
                 products: [...state.products, newProduct],
                 isLoading: false
@@ -288,10 +298,10 @@ export const useAppStore = create<AppState>((set, get) => ({
     },
 
     // Customer actions
-    addCustomer: async (customer) => {
+    addCustomer: async (venueId: string, customer) => {
         set({ isLoading: true, error: null });
         try {
-            const newCustomer = await customersApi.createCustomer(customer);
+            const newCustomer = await customersApi.createCustomer(venueId, customer);
             set((state) => ({
                 customers: [...state.customers, newCustomer],
                 isLoading: false
@@ -319,10 +329,10 @@ export const useAppStore = create<AppState>((set, get) => ({
     },
 
     // Court actions
-    addCourt: async (court) => {
+    addCourt: async (venueId: string, court) => {
         set({ isLoading: true, error: null });
         try {
-            const newCourt = await courtsApi.createCourt(court);
+            const newCourt = await courtsApi.createCourt(venueId, court);
             set((state) => ({
                 courts: [...state.courts, newCourt],
                 isLoading: false

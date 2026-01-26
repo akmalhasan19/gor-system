@@ -1,7 +1,8 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { getVenues, Venue } from './api/venues';
+import { getUserVenue, Venue } from './api/venues';
+import { supabase } from './supabase';
 
 interface VenueContextType {
     currentVenueId: string;
@@ -9,31 +10,44 @@ interface VenueContextType {
     venues: Venue[];
     currentVenue: Venue | null;
     isLoading: boolean;
+    refreshVenue: () => Promise<void>;
 }
 
 const VenueContext = createContext<VenueContextType | undefined>(undefined);
 
 export function VenueProvider({ children }: { children: React.ReactNode }) {
-    // Default to strict UUID if possible, or handle empty string
     const [currentVenueId, setCurrentVenueId] = useState<string>('');
     const [venues, setVenues] = useState<Venue[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        loadVenues();
+        loadUserVenue();
     }, []);
 
-    const loadVenues = async () => {
+    const loadUserVenue = async () => {
         try {
-            const data = await getVenues();
-            setVenues(data);
+            // Get current user
+            const { data: { user }, error } = await supabase.auth.getUser();
 
-            // Set default venue if none selected
-            if (data.length > 0 && !currentVenueId) {
-                setCurrentVenueId(data[0].id);
+            if (error || !user) {
+                console.log('No authenticated user');
+                if (error) {
+                    // Start fresh if the session is invalid (e.g. user deleted on server)
+                    await supabase.auth.signOut();
+                }
+                setIsLoading(false);
+                return;
+            }
+
+            // Get user's venue
+            const userVenue = await getUserVenue(user.id);
+
+            if (userVenue) {
+                setVenues([userVenue]);
+                setCurrentVenueId(userVenue.id);
             }
         } catch (error) {
-            console.error('Failed to load venues:', error);
+            console.error('Failed to load user venue:', error);
         } finally {
             setIsLoading(false);
         }
@@ -47,7 +61,8 @@ export function VenueProvider({ children }: { children: React.ReactNode }) {
             setCurrentVenueId,
             venues,
             currentVenue,
-            isLoading
+            isLoading,
+            refreshVenue: loadUserVenue
         }}>
             {children}
         </VenueContext.Provider>

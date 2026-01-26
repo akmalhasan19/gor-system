@@ -28,8 +28,8 @@ export default function RootLayout({
     <html lang="id">
       <body className={`min-h-screen bg-gray-900 flex justify-center font-sans`}>
         <div className="w-full max-w-[480px] min-h-screen bg-gray-100 shadow-2xl relative font-sans text-black">
-          <DataSyncProvider>
-            <VenueProvider>
+          <VenueProvider>
+            <DataSyncProvider>
               {children}
               <Toaster
                 position="top-center"
@@ -42,8 +42,8 @@ export default function RootLayout({
                   }
                 }}
               />
-            </VenueProvider>
-          </DataSyncProvider>
+            </DataSyncProvider>
+          </VenueProvider>
         </div>
       </body>
     </html>

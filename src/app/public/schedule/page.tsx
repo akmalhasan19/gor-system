@@ -4,15 +4,23 @@ import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { Scheduler } from '@/components/scheduler';
 import { useAppStore } from '@/lib/store';
-import { COURTS } from '@/lib/constants';
+import { useVenue } from '@/lib/venue-context';
 
 export default function PublicSchedulePage() {
-    const { bookings } = useAppStore();
+    const { bookings, courts, syncCourts } = useAppStore();
+    const { currentVenueId } = useVenue();
     const [isHydrated, setIsHydrated] = useState(false);
 
     useEffect(() => {
         setIsHydrated(true);
     }, []);
+
+    // Sync courts when venue is loaded
+    useEffect(() => {
+        if (currentVenueId && currentVenueId.trim() !== '') {
+            syncCourts(currentVenueId);
+        }
+    }, [currentVenueId, syncCourts]);
 
     if (!isHydrated) return <div className="min-h-screen flex items-center justify-center font-black uppercase text-xl animate-pulse">Loading Schedule...</div>;
 
@@ -50,7 +58,7 @@ export default function PublicSchedulePage() {
                 <div className="mb-8">
                     <Scheduler
                         bookings={bookings}
-                        courts={COURTS}
+                        courts={courts}
                         readOnly={true}
                     />
                 </div>

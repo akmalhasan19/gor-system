@@ -104,14 +104,30 @@ export default function LoginPage() {
         }
     };
 
-    const handlePhoneVerificationComplete = () => {
-        setRegistrationStep('complete');
-        setRegistrationComplete(true);
-        // Auto redirect after 3 seconds
-        setTimeout(() => {
+    const handlePhoneVerificationComplete = async () => {
+        // Check if user has completed onboarding
+        try {
+            const response = await fetch('/api/onboarding/status');
+            const { hasCompletedOnboarding } = await response.json();
+
+            if (!hasCompletedOnboarding) {
+                // Redirect to onboarding if not completed
+                router.push('/onboarding');
+            } else {
+                // Show completion screen then redirect to dashboard
+                setRegistrationStep('complete');
+                setRegistrationComplete(true);
+                setTimeout(() => {
+                    router.push('/');
+                    router.refresh();
+                }, 3000);
+            }
+        } catch (error) {
+            console.error('Error checking onboarding status:', error);
+            // Default to dashboard if check fails
             router.push('/');
             router.refresh();
-        }, 3000);
+        }
     };
 
     const handleBackToCredentials = () => {

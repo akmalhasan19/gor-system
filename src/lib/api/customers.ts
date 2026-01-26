@@ -1,13 +1,11 @@
 import { supabase } from '../supabase';
 import { Customer } from '../constants';
 
-const VENUE_ID = '00000000-0000-0000-0000-000000000001';
-
-export async function getCustomers(): Promise<Customer[]> {
+export async function getCustomers(venueId: string): Promise<Customer[]> {
     const { data, error } = await supabase
         .from('customers')
         .select('*')
-        .eq('venue_id', VENUE_ID)
+        .eq('venue_id', venueId)
         .order('name', { ascending: true });
 
     if (error) throw error;
@@ -22,11 +20,11 @@ export async function getCustomers(): Promise<Customer[]> {
     }));
 }
 
-export async function createCustomer(customer: Omit<Customer, 'id'>): Promise<Customer> {
+export async function createCustomer(venueId: string, customer: Omit<Customer, 'id'>): Promise<Customer> {
     const { data, error } = await supabase
         .from('customers')
         .insert({
-            venue_id: VENUE_ID,
+            venue_id: venueId,
             name: customer.name,
             phone: customer.phone,
             is_member: customer.isMember,

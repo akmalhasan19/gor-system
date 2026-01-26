@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import {
   Plus,
@@ -18,8 +18,9 @@ import { useRouter } from "next/navigation";
 import { NeoButton } from "@/components/ui/neo-button";
 import { Scheduler } from "@/components/scheduler";
 import { BookingModal } from "@/components/booking-modal";
-import { COURTS, Booking } from "@/lib/constants";
+import { Booking } from "@/lib/constants";
 import { useAppStore } from "@/lib/store";
+import { useVenue } from "@/lib/venue-context";
 import { ProductList } from "@/components/pos/product-list";
 import { CartSidebar } from "@/components/pos/cart-sidebar";
 // import { DailyReport } from "@/components/reports/daily-report";
@@ -41,7 +42,16 @@ export default function Home() {
   const [isStockModalOpen, setIsStockModalOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(true);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { bookings, addBooking, transactions, cart } = useAppStore();
+  const { bookings, addBooking, transactions, cart, courts, syncCourts, syncBookings } = useAppStore();
+  const { currentVenueId, currentVenue } = useVenue();
+
+  // Sync courts and bookings when venue is loaded
+  useEffect(() => {
+    if (currentVenueId && currentVenueId.trim() !== '') {
+      syncCourts(currentVenueId);
+      syncBookings(currentVenueId);
+    }
+  }, [currentVenueId, syncCourts, syncBookings]);
 
   const [bookingInitialData, setBookingInitialData] = useState<{ courtId: string; time: number } | null>(null);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
@@ -67,7 +77,11 @@ export default function Home() {
         // Let's implement Delete logic first and foremost.
       }
 
-      await addBooking(newBooking);
+      if (!currentVenueId) {
+        toast.error('No venue selected');
+        return;
+      }
+      await addBooking(currentVenueId, newBooking);
       toast.success('Booking berhasil disimpan!');
       handleCloseModal();
     } catch (error) {
@@ -211,9 +225,11 @@ export default function Home() {
             </div>
             <Scheduler
               bookings={bookings}
-              courts={COURTS}
+              courts={courts}
               onSlotClick={handleSlotClick}
               onBookingClick={handleBookingClick}
+              operatingHoursStart={currentVenue?.operatingHoursStart}
+              operatingHoursEnd={currentVenue?.operatingHoursEnd}
             />
           </div>
         )}

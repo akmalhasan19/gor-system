@@ -1,9 +1,8 @@
 import { supabase } from '../supabase';
 import { Transaction, CartItem } from '../constants';
 
-const VENUE_ID = '00000000-0000-0000-0000-000000000001';
-
 export async function createTransaction(
+    venueId: string,
     items: CartItem[],
     paidAmount: number,
     paymentMethod: string,
@@ -15,7 +14,7 @@ export async function createTransaction(
     const { data: transactionData, error: transactionError } = await supabase
         .from('transactions')
         .insert({
-            venue_id: VENUE_ID,
+            venue_id: venueId,
             total_amount: totalAmount,
             paid_amount: paidAmount,
             payment_method: paymentMethod,
@@ -88,14 +87,14 @@ export async function createTransaction(
     };
 }
 
-export async function getTransactions(limit: number = 50): Promise<Transaction[]> {
+export async function getTransactions(venueId: string, limit: number = 50): Promise<Transaction[]> {
     const { data, error } = await supabase
         .from('transactions')
         .select(`
             *,
             transaction_items (*)
         `)
-        .eq('venue_id', VENUE_ID)
+        .eq('venue_id', venueId)
         .order('created_at', { ascending: false })
         .limit(limit);
 
@@ -121,7 +120,7 @@ export async function getTransactions(limit: number = 50): Promise<Transaction[]
     }));
 }
 
-export async function getDailyReport(date?: string): Promise<{
+export async function getDailyReport(venueId: string, date?: string): Promise<{
     totalRevenue: number;
     totalTransactions: number;
     cashAmount: number;
@@ -132,7 +131,7 @@ export async function getDailyReport(date?: string): Promise<{
     const { data, error } = await supabase
         .from('transactions')
         .select('*')
-        .eq('venue_id', VENUE_ID)
+        .eq('venue_id', venueId)
         .gte('created_at', `${targetDate}T00:00:00`)
         .lt('created_at', `${targetDate}T23:59:59`);
 

@@ -12,9 +12,11 @@ export async function middleware(request: NextRequest) {
     // Allow /login, /public, /_next, /favicon.ico, /api/public, /api/phone-verification, /api/auth
     const isPublicRoute =
         request.nextUrl.pathname.startsWith('/login') ||
+        request.nextUrl.pathname.startsWith('/onboarding') ||
         request.nextUrl.pathname.startsWith('/public') ||
         request.nextUrl.pathname.startsWith('/api/public') ||
         request.nextUrl.pathname.startsWith('/api/phone-verification') ||
+        request.nextUrl.pathname.startsWith('/api/onboarding') ||
         request.nextUrl.pathname.startsWith('/api/auth');
 
     const isSystemRoute =
@@ -99,6 +101,37 @@ export async function middleware(request: NextRequest) {
                     return NextResponse.redirect(loginUrl);
                 }
             }
+
+            // Check if user has completed onboarding
+            // Skip for /onboarding route itself and API routes
+            if (!request.nextUrl.pathname.startsWith('/onboarding')) {
+                const { data: userVenue } = await supabase
+                    .from('user_venues')
+                    .select('venue_id')
+                    .eq('user_id', user.id)
+                    .limit(1)
+                    .single();
+
+                if (!userVenue?.venue_id) {
+                    // User has no venue, redirect to onboarding
+                    return NextResponse.redirect(new URL('/onboarding', request.url));
+                }
+            }
+        }
+    }
+
+    // If user is logged in and tries to access /onboarding but already completed it, redirect to dashboard
+    if (user && request.nextUrl.pathname.startsWith('/onboarding') && !request.nextUrl.pathname.startsWith('/api')) {
+        const { data: userVenue } = await supabase
+            .from('user_venues')
+            .select('venue_id')
+            .eq('user_id', user.id)
+            .limit(1)
+            .single();
+
+        if (userVenue?.venue_id) {
+            // User already has a venue, redirect to dashboard
+            return NextResponse.redirect(new URL('/', request.url));
         }
     }
 

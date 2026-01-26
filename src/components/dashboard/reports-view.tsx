@@ -1,6 +1,7 @@
 'use client';
 
 import { useAppStore } from "@/lib/store";
+import { useVenue } from "@/lib/venue-context";
 import { useMemo, useEffect, useState } from "react";
 import {
     BarChart,
@@ -19,17 +20,20 @@ import { getBookingsRange } from "@/lib/api/bookings";
 import { Booking } from "@/lib/constants";
 
 export function ReportsView() {
+    const { currentVenueId } = useVenue();
     const [bookings, setBookings] = useState<Booking[]>([]);
     const [loading, setLoading] = useState(true);
 
     // Fetch last 30 days data for reports
     useEffect(() => {
         async function fetchData() {
+            if (!currentVenueId) return;
+
             try {
                 const today = new Date();
                 const startDate = format(subDays(today, 30), 'yyyy-MM-dd');
                 const endDate = format(today, 'yyyy-MM-dd');
-                const data = await getBookingsRange(startDate, endDate);
+                const data = await getBookingsRange(currentVenueId, startDate, endDate);
                 setBookings(data);
             } catch (e) {
                 console.error(e);
@@ -38,7 +42,7 @@ export function ReportsView() {
             }
         }
         fetchData();
-    }, []);
+    }, [currentVenueId]);
 
     // 1. Calculate Revenue per Day (Last 7 Days)
     const revenueData = useMemo(() => {

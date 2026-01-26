@@ -10,7 +10,7 @@ interface StockModalProps {
 }
 
 export const StockModal: React.FC<StockModalProps> = ({ isOpen, onClose }) => {
-    const { products, updateProductStock, addProduct, removeProduct } = useAppStore();
+    const { products, updateProductStock, addProduct, removeProduct, currentVenueId } = useAppStore();
     const [mode, setMode] = useState<'EXISTING' | 'NEW'>('EXISTING');
 
     // Existing Product State
@@ -63,7 +63,7 @@ export const StockModal: React.FC<StockModalProps> = ({ isOpen, onClose }) => {
                         category: newCategory as any,
                         stock: numAmount
                     };
-                    await addProduct(newProduct);
+                    await addProduct(currentVenueId, newProduct);
                     alert('Produk baru berhasil ditambahkan!');
                     onClose();
                     resetForm();

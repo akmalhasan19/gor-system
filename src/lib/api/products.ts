@@ -1,13 +1,11 @@
 import { supabase } from '../supabase';
 import { Product } from '../constants';
 
-const VENUE_ID = '00000000-0000-0000-0000-000000000001';
-
-export async function getProducts(): Promise<Product[]> {
+export async function getProducts(venueId: string): Promise<Product[]> {
     const { data, error } = await supabase
         .from('products')
         .select('*')
-        .eq('venue_id', VENUE_ID)
+        .eq('venue_id', venueId)
         .order('name', { ascending: true });
 
     if (error) throw error;
@@ -21,11 +19,11 @@ export async function getProducts(): Promise<Product[]> {
     }));
 }
 
-export async function createProduct(product: Omit<Product, 'id'>): Promise<Product> {
+export async function createProduct(venueId: string, product: Omit<Product, 'id'>): Promise<Product> {
     const { data, error } = await supabase
         .from('products')
         .insert({
-            venue_id: VENUE_ID,
+            venue_id: venueId,
             name: product.name,
             selling_price: product.price,
             stock_quantity: product.stock,

@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { toast } from "sonner";
 import { Booking, Court, OPERATIONAL_HOURS } from "@/lib/constants";
 import { useAppStore } from "@/lib/store";
+import { useVenue } from "@/lib/venue-context";
 import { NeoBadge } from "@/components/ui/neo-badge";
 import { MessageSquare, Trash2 } from "lucide-react";
 import { AlertDialog } from "@/components/ui/alert-dialog";
@@ -14,10 +15,27 @@ interface SchedulerProps {
     onSlotClick?: (courtId: string, hour: number) => void;
     onBookingClick?: (booking: Booking) => void;
     readOnly?: boolean;
+    operatingHoursStart?: number;
+    operatingHoursEnd?: number;
 }
 
-export const Scheduler: React.FC<SchedulerProps> = ({ bookings, courts, onSlotClick, onBookingClick, readOnly = false }) => {
+export const Scheduler: React.FC<SchedulerProps> = ({
+    bookings,
+    courts,
+    onSlotClick,
+    onBookingClick,
+    readOnly = false,
+    operatingHoursStart = 8,
+    operatingHoursEnd = 23
+}) => {
     const { addToCart } = useAppStore();
+    const { currentVenueId } = useVenue();
+
+    // Generate hours based on props
+    const hours = Array.from(
+        { length: operatingHoursEnd - operatingHoursStart + 1 },
+        (_, i) => i + operatingHoursStart
+    );
 
     const handleWhatsApp = (e: React.MouseEvent, booking: Booking, courtName: string) => {
         e.stopPropagation();
@@ -111,8 +129,9 @@ export const Scheduler: React.FC<SchedulerProps> = ({ bookings, courts, onSlotCl
         const { bookingId, courtId, hour } = moveTarget;
 
         try {
+            if (!currentVenueId) throw new Error("Venue not found");
             const newStartTime = `${hour.toString().padStart(2, '0')}:00:00`;
-            await updateBooking(bookingId, {
+            await updateBooking(currentVenueId, bookingId, {
                 courtId: courtId,
                 startTime: newStartTime
             });
@@ -143,17 +162,17 @@ export const Scheduler: React.FC<SchedulerProps> = ({ bookings, courts, onSlotCl
     };
 
     return (
-        <div className="overflow-x-auto pb-2 no-scrollbar">
-            <div className="min-w-[500px] border-2 border-black bg-white shadow-neo">
+        <div className="overflow-x-auto pb-2">
+            <div className="min-w-fit border-2 border-black bg-white shadow-neo">
                 {/* Header Row */}
-                <div className="grid grid-cols-[50px_1fr_1fr_1fr] border-b-2 border-black bg-black text-white">
-                    <div className="p-1.5 font-black uppercase text-center border-r-2 border-white text-[10px]">
+                <div className="flex border-b-2 border-black bg-black text-white">
+                    <div className="sticky left-0 z-20 w-[60px] min-w-[60px] p-1.5 font-black uppercase text-center border-r-2 border-white text-[10px] bg-black">
                         JAM
                     </div>
                     {courts.map((court) => (
                         <div
                             key={court.id}
-                            className="p-1.5 font-black uppercase text-center border-r-2 border-white last:border-0 text-[10px]"
+                            className="min-w-[150px] flex-1 p-1.5 font-black uppercase text-center border-r-2 border-white last:border-0 text-[10px]"
                         >
                             {court.name}
                         </div>
@@ -161,13 +180,13 @@ export const Scheduler: React.FC<SchedulerProps> = ({ bookings, courts, onSlotCl
                 </div>
 
                 {/* Grid Body */}
-                {OPERATIONAL_HOURS.map((hour) => (
+                {hours.map((hour) => (
                     <div
                         key={hour}
-                        className="grid grid-cols-[50px_1fr_1fr_1fr] border-b-2 border-black last:border-0"
+                        className="flex border-b-2 border-black last:border-0"
                     >
                         {/* Time Column */}
-                        <div className="p-1 font-bold text-[10px] text-center border-r-2 border-black bg-gray-100 flex items-center justify-center">
+                        <div className="sticky left-0 z-10 w-[60px] min-w-[60px] p-1 font-bold text-[10px] text-center border-r-2 border-black bg-gray-100 flex items-center justify-center">
                             {hour}:00
                         </div>
 
@@ -194,7 +213,7 @@ export const Scheduler: React.FC<SchedulerProps> = ({ bookings, courts, onSlotCl
                                     return (
                                         <div
                                             key={court.id}
-                                            className="border-r-2 border-black last:border-r-0 p-1 bg-white h-auto min-h-[50px] cursor-grab active:cursor-grabbing hover:brightness-95 transition-all"
+                                            className="min-w-[150px] flex-1 border-r-2 border-black last:border-r-0 p-1 bg-white h-auto min-h-[50px] cursor-grab active:cursor-grabbing hover:brightness-95 transition-all"
                                             draggable={!readOnly}
                                             onDragStart={(e) => handleDragStart(e, booking)}
                                             onDragEnd={handleDragEnd}
@@ -260,7 +279,7 @@ export const Scheduler: React.FC<SchedulerProps> = ({ bookings, courts, onSlotCl
                                     return (
                                         <div
                                             key={court.id}
-                                            className="border-r-2 border-black last:border-r-0 relative bg-gray-50 flex flex-col items-center justify-center p-1"
+                                            className="min-w-[150px] flex-1 border-r-2 border-black last:border-r-0 relative bg-gray-50 flex flex-col items-center justify-center p-1"
                                             onClick={(e) => {
                                                 if (!readOnly) {
                                                     e.stopPropagation();
@@ -281,7 +300,7 @@ export const Scheduler: React.FC<SchedulerProps> = ({ bookings, courts, onSlotCl
                                 return (
                                     <div
                                         key={court.id}
-                                        className="border-r-2 border-black last:border-r-0 p-1 min-h-[50px] bg-gray-50 flex items-center justify-center"
+                                        className="min-w-[150px] flex-1 border-r-2 border-black last:border-r-0 p-1 min-h-[50px] bg-gray-50 flex items-center justify-center"
                                     >
                                         <span className="text-[10px] text-gray-400 font-bold">KOSONG</span>
                                     </div>
@@ -294,7 +313,7 @@ export const Scheduler: React.FC<SchedulerProps> = ({ bookings, courts, onSlotCl
                                     onClick={() => onSlotClick?.(court.id, hour)}
                                     onDragOver={handleDragOver}
                                     onDrop={(e) => handleDrop(e, court.id, hour)}
-                                    className="border-r-2 border-black last:border-r-0 p-1 min-h-[50px] hover:bg-gray-50 transition-colors cursor-pointer flex items-center justify-center group"
+                                    className="min-w-[150px] flex-1 border-r-2 border-black last:border-r-0 p-1 min-h-[50px] hover:bg-gray-50 transition-colors cursor-pointer flex items-center justify-center group"
                                 >
                                     <span className="opacity-0 group-hover:opacity-100 font-bold text-gray-300 text-xl">
                                         +

@@ -20,10 +20,13 @@ import { CartSidebar } from "@/components/pos/cart-sidebar";
 import { DailyReport } from "@/components/reports/daily-report";
 import { Receipt as ReceiptComponent } from "@/components/pos/receipt";
 import { DashboardView } from "@/components/dashboard/dashboard-view";
+import { StockModal } from "@/components/pos/stock-modal";
+import { PackagePlus } from "lucide-react";
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<"dashboard" | "scheduler" | "pos" | "reports">("scheduler");
+  const [activeTab, setActiveTab] = useState<"dashboard" | "scheduler" | "pos" | "reports">("dashboard");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isStockModalOpen, setIsStockModalOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(true);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { bookings, addBooking, transactions } = useAppStore();
@@ -119,7 +122,16 @@ export default function Home() {
           <div className="flex-1 flex flex-col md:flex-row h-full overflow-hidden relative">
             <div className={`flex-1 overflow-y-auto bg-gray-50 border-r-0 md:border-r-2 border-gray-200 transition-all duration-300 ${isCartOpen ? 'md:blur-[1px] md:pointer-events-none md:select-none' : ''}`}>
               <div className="p-4">
-                <h1 className="text-2xl font-black uppercase italic mb-4">Kantin & Shop</h1>
+                <div className="flex justify-between items-center mb-4">
+                  <h1 className="text-2xl font-black uppercase italic">Kantin & Shop</h1>
+                  <button
+                    onClick={() => setIsStockModalOpen(true)}
+                    className="flex items-center gap-1 text-xs font-bold uppercase bg-white border-2 border-black px-2 py-1 shadow-neo-sm hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all"
+                  >
+                    <PackagePlus size={14} />
+                    Tambah Stok
+                  </button>
+                </div>
                 <ProductList />
               </div>
             </div>
@@ -182,6 +194,11 @@ export default function Home() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSave={handleSaveBooking}
+      />
+
+      <StockModal
+        isOpen={isStockModalOpen}
+        onClose={() => setIsStockModalOpen(false)}
       />
     </div>
   );

@@ -14,6 +14,9 @@ interface AppState {
     removeFromCart: (itemId: string) => void;
     clearCart: () => void;
     processTransaction: (transaction: Transaction) => void;
+    updateProductStock: (id: string, amount: number) => void;
+    addProduct: (product: Product) => void;
+    removeProduct: (id: string) => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -72,7 +75,6 @@ export const useAppStore = create<AppState>((set) => ({
             }
             return b;
         });
-
         return {
             transactions: [transaction, ...state.transactions],
             products: newProducts,
@@ -80,4 +82,18 @@ export const useAppStore = create<AppState>((set) => ({
             cart: [] // Clear cart after successful transaction
         };
     }),
+
+    updateProductStock: (id, amount) => set((state) => ({
+        products: state.products.map((p) =>
+            p.id === id ? { ...p, stock: p.stock + amount } : p
+        )
+    })),
+
+    addProduct: (product) => set((state) => ({
+        products: [...state.products, product]
+    })),
+
+    removeProduct: (id) => set((state) => ({
+        products: state.products.filter((p) => p.id !== id)
+    })),
 }));

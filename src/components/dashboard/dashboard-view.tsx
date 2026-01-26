@@ -20,7 +20,7 @@ export const DashboardView = () => {
     return (
         <div className="flex flex-col gap-6">
             {/* KPI Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 gap-4">
                 <div className="bg-white border-2 border-black p-4 shadow-neo flex items-center justify-between">
                     <div>
                         <div className="text-sm font-bold text-gray-500 uppercase">Total Booking</div>
@@ -54,7 +54,7 @@ export const DashboardView = () => {
 
             {/* Recent Activity or Welcome Message */}
             <div className="bg-brand-lilac/20 border-2 border-black p-6 rounded-lg text-center">
-                <h2 className="text-2xl font-black italic uppercase mb-2">Selamat Datang di Smash System!</h2>
+                <h2 className="text-2xl font-black italic uppercase mb-2">Selamat Datang di Smash Partner!</h2>
                 <p className="font-bold text-gray-600">
                     Pilih menu di pojok kanan atas untuk navigasi ke Jadwal, POS, atau Laporan.
                 </p>

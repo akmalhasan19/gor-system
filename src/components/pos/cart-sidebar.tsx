@@ -53,9 +53,9 @@ export const CartSidebar: React.FC<CartSidebarProps> = ({ onClose }) => {
                                 </span>
                                 <button
                                     onClick={() => removeFromCart(item.id)}
-                                    className="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-red-100 text-red-500 rounded transition-all"
+                                    className="p-1 text-red-500 hover:bg-red-50 rounded transition-all active:scale-95 border border-transparent hover:border-red-200"
                                 >
-                                    <Trash2 size={12} />
+                                    <Trash2 size={14} />
                                 </button>
                             </div>
                         </div>

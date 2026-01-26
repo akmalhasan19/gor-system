@@ -2,14 +2,27 @@
 
 import React from "react";
 import { Booking, Court, OPERATIONAL_HOURS } from "@/lib/constants";
+import { useAppStore } from "@/lib/store";
 import { NeoBadge } from "@/components/ui/neo-badge";
+import { MessageSquare } from "lucide-react";
 
 interface SchedulerProps {
     bookings: Booking[];
     courts: Court[];
+    onSlotClick?: (courtId: number, hour: number) => void;
+    readOnly?: boolean;
 }
 
-export const Scheduler: React.FC<SchedulerProps> = ({ bookings, courts }) => {
+export const Scheduler: React.FC<SchedulerProps> = ({ bookings, courts, onSlotClick, readOnly = false }) => {
+    const { addToCart } = useAppStore();
+
+    const handleWhatsApp = (e: React.MouseEvent, booking: Booking, courtName: string) => {
+        e.stopPropagation();
+        const text = `Halo Kak ${booking.customerName}, konfirmasi booking lapangan ${courtName} untuk jam ${booking.startTime}:00 selama ${booking.duration} jam. Status: ${booking.status}. Terima kasih!`;
+        const url = `https://wa.me/${booking.phone.replace(/^0/, '62')}?text=${encodeURIComponent(text)}`;
+        window.open(url, '_blank');
+    };
+
     const getBookingAt = (courtId: number, hour: number) => {
         return bookings.find((b) => {
             const start = b.startTime;
@@ -18,18 +31,31 @@ export const Scheduler: React.FC<SchedulerProps> = ({ bookings, courts }) => {
         });
     };
 
+    const handlePayClick = (e: React.MouseEvent, booking: Booking) => {
+        e.stopPropagation();
+        const remainingPrice = booking.price - (booking.paidAmount || 0);
+        addToCart({
+            id: `booking-${booking.id}`,
+            type: 'BOOKING',
+            name: `Sewa ${booking.duration} Jam (${booking.customerName}) ${booking.status === 'DP' ? '(Pelunasan)' : ''}`,
+            price: remainingPrice,
+            quantity: 1,
+            referenceId: booking.id
+        });
+    };
+
     return (
-        <div className="overflow-x-auto pb-4 no-scrollbar">
+        <div className="overflow-x-auto pb-2 no-scrollbar">
             <div className="min-w-[500px] border-2 border-black bg-white shadow-neo">
                 {/* Header Row */}
-                <div className="grid grid-cols-[60px_1fr_1fr_1fr] border-b-2 border-black bg-black text-white">
-                    <div className="p-2 font-black uppercase text-center border-r-2 border-white text-xs">
+                <div className="grid grid-cols-[50px_1fr_1fr_1fr] border-b-2 border-black bg-black text-white">
+                    <div className="p-1.5 font-black uppercase text-center border-r-2 border-white text-[10px]">
                         JAM
                     </div>
                     {courts.map((court) => (
                         <div
                             key={court.id}
-                            className="p-2 font-black uppercase text-center border-r-2 border-white last:border-0 text-xs"
+                            className="p-1.5 font-black uppercase text-center border-r-2 border-white last:border-0 text-[10px]"
                         >
                             {court.name}
                         </div>
@@ -40,10 +66,10 @@ export const Scheduler: React.FC<SchedulerProps> = ({ bookings, courts }) => {
                 {OPERATIONAL_HOURS.map((hour) => (
                     <div
                         key={hour}
-                        className="grid grid-cols-[60px_1fr_1fr_1fr] border-b-2 border-black last:border-0"
+                        className="grid grid-cols-[50px_1fr_1fr_1fr] border-b-2 border-black last:border-0"
                     >
                         {/* Time Column */}
-                        <div className="p-2 font-bold text-xs text-center border-r-2 border-black bg-gray-100 flex items-center justify-center">
+                        <div className="p-1 font-bold text-[10px] text-center border-r-2 border-black bg-gray-100 flex items-center justify-center">
                             {hour}:00
                         </div>
 
@@ -63,26 +89,46 @@ export const Scheduler: React.FC<SchedulerProps> = ({ bookings, courts }) => {
                                     return (
                                         <div
                                             key={court.id}
-                                            className="border-r-2 border-black last:border-r-0 p-1 bg-white h-auto min-h-[60px]"
+                                            className="border-r-2 border-black last:border-r-0 p-1 bg-white h-auto min-h-[50px]"
                                         >
                                             <div
-                                                className={`w-full h-full border-2 border-black shadow-sm flex flex-col justify-between p-2 gap-2 ${bgColor} ${patternClass}`}
+                                                className={`w-full h-full border-2 border-black shadow-sm flex flex-col justify-between p-1.5 gap-1 ${bgColor} ${patternClass}`}
                                             >
                                                 <div className="flex flex-col gap-0.5">
                                                     <div className="font-black text-[10px] leading-snug uppercase break-words">
-                                                        {booking.customerName}
+                                                        {readOnly ? booking.customerName.charAt(0) + "***" : booking.customerName}
                                                     </div>
-                                                    <div className="text-[10px] font-bold opacity-80 leading-none">
-                                                        {booking.phone}
-                                                    </div>
+                                                    {!readOnly && (
+                                                        <div className="text-[9px] font-bold opacity-80 leading-none">
+                                                            {booking.phone}
+                                                        </div>
+                                                    )}
                                                     {booking.duration > 1 && (
-                                                        <div className="text-[9px] font-bold italic mt-0.5">
+                                                        <div className="text-[8px] font-bold italic mt-0.5">
                                                             {booking.duration} Jam
                                                         </div>
                                                     )}
                                                 </div>
-                                                <div className="mt-auto">
-                                                    <NeoBadge status={booking.status} />
+                                                <div className="mt-auto flex flex-wrap justify-between items-end gap-1">
+                                                    <div className="flex gap-1 items-end">
+                                                        {!readOnly && (
+                                                            <button
+                                                                onClick={(e) => handleWhatsApp(e, booking, court.name)}
+                                                                className="bg-green-500 border border-black p-0.5 text-white hover:bg-green-600 shadow-[1px_1px_0px_black] active:translate-x-[0.5px] active:translate-y-[0.5px] active:shadow-none"
+                                                                title="Kirim ke WhatsApp"
+                                                            >
+                                                                <MessageSquare size={10} strokeWidth={3} />
+                                                            </button>
+                                                        )}
+                                                        {!isPaid && !readOnly && (
+                                                            <button
+                                                                onClick={(e) => handlePayClick(e, booking)}
+                                                                className="bg-brand-orange border border-black px-1 py-0.5 text-[8px] font-black uppercase text-black hover:bg-orange-400 shadow-[1px_1px_0px_black] active:translate-x-[0.5px] active:translate-y-[0.5px] active:shadow-none whitespace-nowrap"
+                                                            >
+                                                                {booking.status === 'DP' ? 'Lunasi' : 'Bayar'}
+                                                            </button>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -92,20 +138,41 @@ export const Scheduler: React.FC<SchedulerProps> = ({ bookings, courts }) => {
                                     return (
                                         <div
                                             key={court.id}
-                                            className="border-r-2 border-black last:border-r-0 relative bg-gray-50/50 flex items-center justify-center -z-10"
+                                            className="border-r-2 border-black last:border-r-0 relative bg-gray-50 flex flex-col items-center justify-center p-1"
+                                            onClick={(e) => {
+                                                if (!readOnly) {
+                                                    e.stopPropagation();
+                                                    alert("Slot ini sedang dipakai oleh booking dari jam sebelumnya.");
+                                                }
+                                            }}
                                         >
-                                            <div className="w-0.5 h-4 bg-gray-300 rounded-full"></div>
+                                            <div className="w-0.5 h-full bg-gray-300 absolute left-1/2 -translate-x-1/2 top-0 pointer-events-none"></div>
+                                            <div className="relative z-10 bg-white border border-gray-300 px-1.5 py-0.5 rounded-full text-[8px] font-bold text-gray-400 uppercase shadow-sm">
+                                                (Lanjut)
+                                            </div>
                                         </div>
                                     );
                                 }
                             }
 
+                            if (readOnly) {
+                                return (
+                                    <div
+                                        key={court.id}
+                                        className="border-r-2 border-black last:border-r-0 p-1 min-h-[50px] bg-gray-50 flex items-center justify-center"
+                                    >
+                                        <span className="text-[10px] text-gray-400 font-bold">KOSONG</span>
+                                    </div>
+                                );
+                            }
+
                             return (
                                 <div
                                     key={court.id}
-                                    className="border-r-2 border-black last:border-r-0 p-1 min-h-[60px] hover:bg-gray-50 transition-colors cursor-pointer flex items-center justify-center group"
+                                    onClick={() => onSlotClick?.(court.id, hour)}
+                                    className="border-r-2 border-black last:border-r-0 p-1 min-h-[50px] hover:bg-gray-50 transition-colors cursor-pointer flex items-center justify-center group"
                                 >
-                                    <span className="opacity-0 group-hover:opacity-100 font-bold text-gray-300 text-2xl">
+                                    <span className="opacity-0 group-hover:opacity-100 font-bold text-gray-300 text-xl">
                                         +
                                     </span>
                                 </div>

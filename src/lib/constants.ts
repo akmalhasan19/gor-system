@@ -12,6 +12,7 @@ export interface Booking {
     courtId: number;
     status: 'LUNAS' | 'DP' | 'BELUM_BAYAR' | 'BELUM';
     price: number;
+    paidAmount: number;
 }
 
 // Operational hours 08:00 - 23:00
@@ -32,7 +33,8 @@ export const INITIAL_BOOKINGS: Booking[] = [
         duration: 1,
         courtId: 1,
         status: 'LUNAS',
-        price: 50000
+        price: 50000,
+        paidAmount: 50000
     },
     {
         id: '2',
@@ -42,7 +44,8 @@ export const INITIAL_BOOKINGS: Booking[] = [
         duration: 2,
         courtId: 2,
         status: 'BELUM_BAYAR',
-        price: 100000
+        price: 100000,
+        paidAmount: 0
     },
 ];
 
@@ -60,6 +63,32 @@ export const INITIAL_PRODUCTS: Product[] = [
     { id: '3', name: 'SEWA RAKET', price: 15000, category: 'RENTAL', stock: 10 },
     { id: '4', name: 'SHUTTLECOCK (1 PCS)', price: 12000, category: 'EQUIPMENT', stock: 100 },
     { id: '5', name: 'SHUTTLECOCK (SLOP)', price: 110000, category: 'EQUIPMENT', stock: 10 },
+];
+
+export interface Customer {
+    id: string;
+    name: string;
+    phone: string;
+    isMember: boolean;
+    membershipExpiry?: string; // ISO Date String
+    quota?: number; // Jatah main left
+}
+
+export const INITIAL_CUSTOMERS: Customer[] = [
+    {
+        id: '1',
+        name: 'PAK BUDI',
+        phone: '08123456789',
+        isMember: true,
+        membershipExpiry: '2026-12-31',
+        quota: 4
+    },
+    {
+        id: '2',
+        name: 'BU SITI',
+        phone: '08129876543',
+        isMember: false
+    }
 ];
 
 export interface CartItem {

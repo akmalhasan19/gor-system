@@ -60,18 +60,18 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, tot
     const quickMoney = [5000, 10000, 20000, 50000, 100000];
 
     return (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-            <div className="bg-white border-4 border-black shadow-neo-lg w-full max-w-md flex flex-col max-h-[90vh]">
-                <div className="bg-black text-white p-4 flex justify-between items-center border-b-4 border-black">
-                    <h2 className="font-black text-xl uppercase">Pembayaran</h2>
-                    <button onClick={onClose} className="hover:text-brand-orange font-bold">X</button>
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center md:items-center p-0 md:p-4">
+            <div className="bg-white border-t-2 border-x-2 md:border-2 border-black shadow-neo w-full max-w-sm flex flex-col max-h-[85dvh] md:max-h-[90vh]">
+                <div className="bg-black text-white p-3 flex justify-between items-center border-b-2 border-black">
+                    <h2 className="font-black text-sm uppercase">Pembayaran</h2>
+                    <button onClick={onClose} className="hover:text-brand-orange font-bold text-sm">X</button>
                 </div>
 
-                <div className="p-6 flex flex-col gap-6 overflow-y-auto">
+                <div className="p-4 flex flex-col gap-4 overflow-y-auto min-h-0 flex-1">
                     {/* Total Display */}
                     <div className="text-center">
-                        <div className="text-sm font-bold text-gray-500 uppercase">Total Tagihan</div>
-                        <div className="text-4xl font-black">Rp {totalAmount.toLocaleString()}</div>
+                        <div className="text-[10px] font-bold text-gray-500 uppercase">Total Tagihan</div>
+                        <div className="text-3xl font-black">Rp {totalAmount.toLocaleString()}</div>
                     </div>
 
                     {/* Payment Method */}
@@ -80,7 +80,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, tot
                             <button
                                 key={method}
                                 onClick={() => setPaymentMethod(method)}
-                                className={`border-2 border-black p-2 font-black text-sm uppercase transition-all ${paymentMethod === method
+                                className={`border border-black p-1.5 font-bold text-[10px] uppercase transition-all ${paymentMethod === method
                                     ? "bg-black text-white"
                                     : "bg-white hover:bg-gray-100"
                                     }`}
@@ -92,20 +92,20 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, tot
 
                     {/* Amount Input */}
                     <div className="flex flex-col gap-2">
-                        <label className="font-bold text-sm">Jumlah Bayar</label>
+                        <label className="font-bold text-[10px] uppercase">Jumlah Bayar</label>
                         <NeoInput
                             type="number"
                             placeholder="0"
                             value={paidAmount}
                             onChange={(e) => setPaidAmount(e.target.value)}
-                            className="text-right text-xl"
+                            className="text-right text-lg p-2 h-10"
                         />
-                        <div className="flex gap-2 flex-wrap">
+                        <div className="flex gap-1.5 flex-wrap">
                             {quickMoney.map((amount) => (
                                 <button
                                     key={amount}
                                     onClick={() => setPaidAmount(amount.toString())}
-                                    className="border border-black px-2 py-1 text-xs font-bold bg-gray-100 hover:bg-white"
+                                    className="border border-black px-2 py-1 text-[10px] font-bold bg-gray-50 hover:bg-white"
                                 >
                                     {amount / 1000}k
                                 </button>
@@ -114,18 +114,18 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, tot
                     </div>
 
                     {/* Change Display */}
-                    <div className={`p-4 border-2 border-black ${change >= 0 ? 'bg-brand-lime' : 'bg-red-100'}`}>
+                    <div className={`p-3 border-2 border-black ${change >= 0 ? 'bg-brand-lime' : 'bg-red-100'}`}>
                         <div className="flex justify-between items-center">
-                            <span className="font-bold uppercase text-sm">Kembalian</span>
-                            <span className="font-black text-xl">Rp {change > 0 ? change.toLocaleString() : 0}</span>
+                            <span className="font-bold uppercase text-[10px]">Kembalian</span>
+                            <span className="font-black text-lg">Rp {change > 0 ? change.toLocaleString() : 0}</span>
                         </div>
                     </div>
                 </div>
 
-                <div className="p-4 border-t-4 border-black bg-gray-50">
+                <div className="p-3 border-t-2 border-black bg-gray-50">
                     <button
                         onClick={handleProcess}
-                        className="w-full bg-black text-white font-black py-4 text-xl uppercase hover:bg-brand-orange hover:text-black border-2 border-transparent hover:border-black transition-all"
+                        className="w-full bg-black text-white font-black py-3 text-sm uppercase hover:bg-brand-orange hover:text-black border-2 border-transparent hover:border-black transition-all"
                     >
                         Proses & Cetak
                     </button>

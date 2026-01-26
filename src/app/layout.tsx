@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
+import { StoreInitializer } from "@/components/store-initializer";
+
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
@@ -23,6 +25,7 @@ export default function RootLayout({
     <html lang="id">
       <body className={`min-h-screen bg-gray-900 flex justify-center font-sans`}>
         <div className="w-full max-w-[480px] min-h-screen bg-gray-100 shadow-2xl relative font-sans text-black">
+          <StoreInitializer />
           {children}
         </div>
       </body>

@@ -8,7 +8,9 @@ import {
   LayoutDashboard,
   ShoppingCart,
   Menu,
+  Users,
   Receipt,
+  Share2,
 } from "lucide-react";
 import { NeoButton } from "@/components/ui/neo-button";
 import { Scheduler } from "@/components/scheduler";
@@ -18,18 +20,21 @@ import { useAppStore } from "@/lib/store";
 import { ProductList } from "@/components/pos/product-list";
 import { CartSidebar } from "@/components/pos/cart-sidebar";
 import { DailyReport } from "@/components/reports/daily-report";
+import { MemberList } from "@/components/members/member-list";
 import { Receipt as ReceiptComponent } from "@/components/pos/receipt";
 import { DashboardView } from "@/components/dashboard/dashboard-view";
 import { StockModal } from "@/components/pos/stock-modal";
 import { PackagePlus } from "lucide-react";
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<"dashboard" | "scheduler" | "pos" | "reports">("dashboard");
+  const [activeTab, setActiveTab] = useState<"dashboard" | "scheduler" | "pos" | "reports" | "members">("dashboard");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isStockModalOpen, setIsStockModalOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(true);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { bookings, addBooking, transactions } = useAppStore();
+  const { bookings, addBooking, transactions, cart } = useAppStore();
+
+  const [bookingInitialData, setBookingInitialData] = useState<{ courtId: number; time: number } | null>(null);
 
   const handleSaveBooking = (newBooking: Omit<Booking, "id">) => {
     const booking: Booking = {
@@ -37,6 +42,22 @@ export default function Home() {
       id: Math.random().toString(36).substr(2, 9),
     };
     addBooking(booking);
+  };
+
+  const handleCopyPublicLink = () => {
+    const link = `${window.location.origin}/public/schedule`;
+    navigator.clipboard.writeText(link);
+    alert('Link Jadwal Publik berhasil disalin! Kirim link ini ke pelanggan Anda.');
+  };
+
+  const handleSlotClick = (courtId: number, hour: number) => {
+    setBookingInitialData({ courtId, time: hour });
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setBookingInitialData(null);
   };
 
   // Latest Transaction for printing
@@ -78,9 +99,10 @@ export default function Home() {
               <div className="absolute right-0 top-full mt-2 w-48 bg-white border-2 border-black shadow-neo-lg z-50 animate-in fade-in slide-in-from-top-2 origin-top-right">
                 <div className="flex flex-col p-1">
                   {[
+                    { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
                     { id: 'scheduler', icon: CalendarDays, label: 'Jadwal' },
                     { id: 'pos', icon: ShoppingCart, label: 'Kantin/POS' },
-                    { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+                    { id: 'members', icon: Users, label: 'Member' },
                     { id: 'reports', icon: Receipt, label: 'Laporan' },
                   ].map((tab) => (
                     <button
@@ -109,12 +131,25 @@ export default function Home() {
         {activeTab === "scheduler" && (
           <div className="flex-1 p-4 overflow-y-auto">
             <div className="mb-4 flex justify-between items-center">
-              <h1 className="text-2xl font-black uppercase italic">Jadwal Lapangan</h1>
-              <NeoButton onClick={() => setIsModalOpen(true)}>
-                <Plus size={20} strokeWidth={3} className="mr-2" /> Input Booking
-              </NeoButton>
+              <h1 className="text-lg font-black uppercase italic">Jadwal Lapangan</h1>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleCopyPublicLink}
+                  className="flex items-center gap-2 bg-white text-black border-2 border-black px-3 py-2 text-xs font-bold uppercase hover:bg-gray-100 shadow-neo-sm active:shadow-none active:translate-x-[1px] active:translate-y-[1px]"
+                >
+                  <Share2 size={16} strokeWidth={2.5} />
+                  Public Link
+                </button>
+                <NeoButton onClick={() => setIsModalOpen(true)} className="px-3 py-2 text-xs">
+                  <Plus size={16} strokeWidth={3} className="mr-2" /> Input Booking
+                </NeoButton>
+              </div>
             </div>
-            <Scheduler bookings={bookings} courts={COURTS} />
+            <Scheduler
+              bookings={bookings}
+              courts={COURTS}
+              onSlotClick={handleSlotClick}
+            />
           </div>
         )}
 
@@ -135,20 +170,6 @@ export default function Home() {
                 <ProductList />
               </div>
             </div>
-
-            {/* Floating Open Button (visible when closed) */}
-            {!isCartOpen && (
-              <button
-                onClick={() => setIsCartOpen(true)}
-                className="absolute bottom-6 right-6 z-30 bg-black text-white p-4 shadow-neo hover:scale-110 transition-transform border-2 border-white"
-              >
-                <ShoppingCart size={24} />
-                {/* Badge */}
-                <div className="absolute -top-2 -right-2 bg-brand-orange text-black text-xs font-black px-2 py-0.5 border-2 border-black">
-                  {useAppStore.getState().cart.length}
-                </div>
-              </button>
-            )}
 
             {/* Click-outside overlay for Desktop */}
             {isCartOpen && (
@@ -173,6 +194,28 @@ export default function Home() {
         )}
 
 
+        {/* Global Floating Cart Button */}
+        {(!isCartOpen || activeTab !== 'pos') && (
+          <button
+            onClick={() => {
+              if (activeTab !== 'pos') {
+                setActiveTab('pos');
+              }
+              setIsCartOpen(true);
+            }}
+            className="fixed bottom-6 right-6 z-50 bg-black text-white p-4 shadow-neo hover:scale-110 transition-transform border-2 border-white"
+          >
+            <ShoppingCart size={24} />
+            {/* Badge */}
+            {cart.length > 0 && (
+              <div className="absolute -top-2 -right-2 bg-brand-orange text-black text-xs font-black px-2 py-0.5 border-2 border-black animate-bounce">
+                {cart.length}
+              </div>
+            )}
+          </button>
+        )}
+
+
         {activeTab === "dashboard" && (
           <div className="flex-1 p-4 overflow-y-auto">
             <h1 className="text-2xl font-black uppercase italic mb-4">Dashboard</h1>
@@ -187,13 +230,20 @@ export default function Home() {
           </div>
         )}
 
+        {activeTab === "members" && (
+          <div className="flex-1 p-0 overflow-y-auto">
+            <MemberList />
+          </div>
+        )}
+
       </main>
 
       {/* Booking Modal */}
       <BookingModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={handleCloseModal}
         onSave={handleSaveBooking}
+        initialData={bookingInitialData}
       />
 
       <StockModal

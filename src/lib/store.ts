@@ -5,6 +5,7 @@ import * as productsApi from './api/products';
 import * as customersApi from './api/customers';
 import * as transactionsApi from './api/transactions';
 import * as courtsApi from './api/courts';
+import type { Court } from './api/courts';
 
 interface AppState {
     bookings: Booking[];

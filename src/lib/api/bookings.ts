@@ -6,7 +6,12 @@ const VENUE_ID = '00000000-0000-0000-0000-000000000001'; // Default venue ID
 export async function getBookings(date?: string): Promise<Booking[]> {
     const { data, error } = await supabase
         .from('bookings')
-        .select('*')
+        .select(`
+            *,
+            courts!inner (
+                court_number
+            )
+        `)
         .eq('venue_id', VENUE_ID)
         .eq('booking_date', date || new Date().toISOString().split('T')[0])
         .order('start_time', { ascending: true });
@@ -16,7 +21,7 @@ export async function getBookings(date?: string): Promise<Booking[]> {
     // Transform database format to app format
     return (data || []).map(row => ({
         id: row.id,
-        courtId: String(row.court_id || '1'),
+        courtId: String((row.courts as any)?.court_number || '1'), // Use court number, not UUID
         startTime: row.start_time,
         duration: row.duration,
         customerName: row.customer_name,
@@ -31,7 +36,12 @@ export async function getBookings(date?: string): Promise<Booking[]> {
 export async function getBookingsRange(startDate: string, endDate: string): Promise<Booking[]> {
     const { data, error } = await supabase
         .from('bookings')
-        .select('*')
+        .select(`
+            *,
+            courts!inner (
+                court_number
+            )
+        `)
         .eq('venue_id', VENUE_ID)
         .gte('booking_date', startDate)
         .lte('booking_date', endDate)
@@ -41,7 +51,7 @@ export async function getBookingsRange(startDate: string, endDate: string): Prom
 
     return (data || []).map(row => ({
         id: row.id,
-        courtId: String(row.court_id || '1'),
+        courtId: String((row.courts as any)?.court_number || '1'), // Use court number, not UUID
         startTime: row.start_time,
         duration: row.duration,
         customerName: row.customer_name,
@@ -54,11 +64,33 @@ export async function getBookingsRange(startDate: string, endDate: string): Prom
 }
 
 export async function createBooking(booking: Omit<Booking, 'id' | 'bookingDate'>): Promise<Booking> {
+    // First, convert courtId (could be a number like "1") to actual court UUID
+    let courtUuid = booking.courtId;
+
+    // If courtId looks like a number, query the courts table to get the UUID
+    if (!booking.courtId.includes('-')) {
+        // It's likely a court number, not a UUID
+        const courtNumber = parseInt(booking.courtId, 10);
+
+        const { data: court, error: courtError } = await supabase
+            .from('courts')
+            .select('id')
+            .eq('venue_id', VENUE_ID)
+            .eq('court_number', courtNumber)
+            .single();
+
+        if (courtError || !court) {
+            throw new Error(`Court with number ${courtNumber} not found`);
+        }
+
+        courtUuid = court.id;
+    }
+
     const { data, error } = await supabase
         .from('bookings')
         .insert({
             venue_id: VENUE_ID,
-            court_id: booking.courtId,
+            court_id: courtUuid,
             customer_name: booking.customerName,
             phone: booking.phone,
             start_time: booking.startTime,

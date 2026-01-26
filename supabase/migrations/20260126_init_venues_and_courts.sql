@@ -110,6 +110,14 @@ ALTER TABLE courts DROP CONSTRAINT IF EXISTS unique_venue_court_number;
 ALTER TABLE courts ADD CONSTRAINT unique_venue_court_number 
     UNIQUE(venue_id, court_number);
 
+-- Insert default courts
+INSERT INTO courts (venue_id, name, court_number, is_active, hourly_rate) VALUES
+    ('00000000-0000-0000-0000-000000000001', 'Court 1', 1, true, 50000),
+    ('00000000-0000-0000-0000-000000000001', 'Court 2', 2, true, 50000),
+    ('00000000-0000-0000-0000-000000000001', 'Court 3', 3, true, 50000),
+    ('00000000-0000-0000-0000-000000000001', 'Court 4', 4, true, 50000)
+ON CONFLICT (venue_id, court_number) DO NOTHING;
+
 -- Enable RLS for courts
 ALTER TABLE courts ENABLE ROW LEVEL SECURITY;
 

@@ -11,7 +11,10 @@ import {
   Users,
   Receipt,
   Share2,
+  LogOut,
 } from "lucide-react";
+import { signOut } from "@/lib/auth";
+import { useRouter } from "next/navigation";
 import { NeoButton } from "@/components/ui/neo-button";
 import { Scheduler } from "@/components/scheduler";
 import { BookingModal } from "@/components/booking-modal";
@@ -125,6 +128,19 @@ export default function Home() {
                       {tab.label}
                     </button>
                   ))}
+
+                  <div className="border-t border-gray-100 my-1"></div>
+
+                  <button
+                    onClick={async () => {
+                      await signOut();
+                      window.location.href = '/login';
+                    }}
+                    className="flex w-full items-center gap-3 px-4 py-3 font-bold text-sm uppercase text-red-600 hover:bg-red-50 text-left"
+                  >
+                    <LogOut size={18} />
+                    Keluar
+                  </button>
                 </div>
               </div>
             )}

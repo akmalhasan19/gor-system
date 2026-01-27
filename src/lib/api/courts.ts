@@ -7,6 +7,7 @@ export interface Court {
     courtNumber: number;
     isActive: boolean;
     hourlyRate: number;
+    memberHourlyRate?: number;
     notes?: string;
 }
 
@@ -27,6 +28,7 @@ export async function getCourts(venueId: string): Promise<Court[]> {
         courtNumber: row.court_number,
         isActive: row.is_active,
         hourlyRate: row.hourly_rate,
+        memberHourlyRate: row.member_hourly_rate,
         notes: row.notes,
     }));
 }
@@ -43,6 +45,7 @@ export async function createCourt(
             court_number: court.courtNumber,
             is_active: court.isActive,
             hourly_rate: court.hourlyRate,
+            member_hourly_rate: court.memberHourlyRate,
             notes: court.notes,
         })
         .select()
@@ -96,6 +99,7 @@ export async function createMultipleCourts(
         courtNumber: row.court_number,
         isActive: row.is_active,
         hourlyRate: row.hourly_rate,
+        member_hourly_rate: row.member_hourly_rate,
         notes: row.notes,
     }));
 }
@@ -107,6 +111,7 @@ export async function updateCourt(id: string, updates: Partial<Court>): Promise<
     if (updates.courtNumber !== undefined) dbUpdates.court_number = updates.courtNumber;
     if (updates.isActive !== undefined) dbUpdates.is_active = updates.isActive;
     if (updates.hourlyRate !== undefined) dbUpdates.hourly_rate = updates.hourlyRate;
+    if (updates.memberHourlyRate !== undefined) dbUpdates.member_hourly_rate = updates.memberHourlyRate;
     if (updates.notes !== undefined) dbUpdates.notes = updates.notes;
 
     const { error } = await supabase

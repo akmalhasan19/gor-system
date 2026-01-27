@@ -11,7 +11,8 @@ export async function getBookings(venueId: string, date?: string): Promise<Booki
             )
         `)
         .eq('venue_id', venueId)
-        .eq('booking_date', date || new Date().toISOString().split('T')[0])
+        // Use local date (YYYY-MM-DD) instead of UTC to avoid "yesterday" issues
+        .eq('booking_date', date || new Date().toLocaleDateString('en-CA'))
         .order('start_time', { ascending: true });
 
     if (error) throw error;
@@ -19,7 +20,7 @@ export async function getBookings(venueId: string, date?: string): Promise<Booki
     // Transform database format to app format
     return (data || []).map(row => ({
         id: row.id,
-        courtId: String((row.courts as any)?.court_number || '1'), // Use court number, not UUID
+        courtId: row.court_id, // Use court UUID for consistent comparison with Scheduler
         startTime: row.start_time,
         duration: row.duration,
         customerName: row.customer_name,
@@ -50,7 +51,7 @@ export async function getBookingsRange(venueId: string, startDate: string, endDa
 
     return (data || []).map(row => ({
         id: row.id,
-        courtId: String((row.courts as any)?.court_number || '1'), // Use court number, not UUID
+        courtId: row.court_id, // Use court UUID for consistent comparison with Scheduler
         startTime: row.start_time,
         duration: row.duration,
         customerName: row.customer_name,
@@ -98,7 +99,8 @@ export async function createBooking(venueId: string, booking: Omit<Booking, 'id'
             price: booking.price,
             paid_amount: booking.paidAmount || 0,
             status: booking.status,
-            booking_date: new Date().toISOString().split('T')[0],
+            // Use local date for creation too
+            booking_date: new Date().toLocaleDateString('en-CA'),
         })
         .select()
         .single();

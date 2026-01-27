@@ -204,8 +204,15 @@ export const Scheduler: React.FC<SchedulerProps> = ({
                                     const isPaid = booking.status === "LUNAS";
                                     const isStale = isBookingStale(booking);
 
+                                    // Check if booking is finished but not paid
+                                    const now = new Date();
+                                    const currentHour = now.getHours();
+                                    const isToday = booking.bookingDate === now.toLocaleDateString('en-CA');
+                                    const endHour = startHour + booking.duration;
+                                    const isFinishedAndUnpaid = isToday && endHour <= currentHour && !isPaid;
+
                                     // Determine background color based on payment and stale status
-                                    const bgColor = isPaid ? "bg-brand-lime" : isStale ? "bg-red-400" : "bg-white";
+                                    const bgColor = isPaid ? "bg-brand-lime" : isFinishedAndUnpaid ? "bg-red-200" : isStale ? "bg-red-400" : "bg-white";
                                     const patternClass = !isPaid
                                         ? "bg-[linear-gradient(45deg,#00000010_25%,transparent_25%,transparent_50%,#00000010_50%,#00000010_75%,transparent_75%,transparent)] bg-[length:20px_20px]"
                                         : "";
@@ -236,6 +243,14 @@ export const Scheduler: React.FC<SchedulerProps> = ({
                                                                 title="Booking lebih dari 1 jam, belum bayar"
                                                             >
                                                                 ⚠️ STALE
+                                                            </div>
+                                                        )}
+                                                        {isFinishedAndUnpaid && !readOnly && (
+                                                            <div
+                                                                className="bg-brand-orange border border-black px-1 py-0.5 text-[7px] font-black text-black shadow-[1px_1px_0px_black] whitespace-nowrap flex-shrink-0 animate-pulse"
+                                                                title="Main selesai tapi belum lunas!"
+                                                            >
+                                                                TAGIH!
                                                             </div>
                                                         )}
                                                     </div>

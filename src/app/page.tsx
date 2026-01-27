@@ -12,6 +12,7 @@ import {
   Receipt,
   Share2,
   LogOut,
+  Settings,
 } from "lucide-react";
 import { signOut } from "@/lib/auth";
 import { useRouter } from "next/navigation";
@@ -29,6 +30,7 @@ import { Receipt as ReceiptComponent } from "@/components/pos/receipt";
 import { DashboardView } from "@/components/dashboard/dashboard-view";
 import { ReportsView } from "@/components/dashboard/reports-view";
 import { StockModal } from "@/components/pos/stock-modal";
+import { CourtSettings } from "@/components/settings/court-settings";
 import { PackagePlus } from "lucide-react";
 import { toast } from "sonner";
 import { useRealtimeSubscription } from "@/lib/hooks/use-realtime-subscription";
@@ -37,12 +39,14 @@ export default function Home() {
   // Enable realtime subscriptions
   useRealtimeSubscription();
 
-  const [activeTab, setActiveTab] = useState<"dashboard" | "scheduler" | "pos" | "reports" | "members">("dashboard");
+
+
+  const [activeTab, setActiveTab] = useState<"dashboard" | "scheduler" | "pos" | "reports" | "members" | "settings">("dashboard");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isStockModalOpen, setIsStockModalOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(true);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { bookings, addBooking, transactions, cart, courts, syncCourts, syncBookings } = useAppStore();
+  const { bookings, addBooking, transactions, cart, courts, syncCourts, syncBookings, customers, updateCustomer } = useAppStore();
   const { currentVenueId, currentVenue } = useVenue();
 
   // Sync courts and bookings when venue is loaded
@@ -56,7 +60,7 @@ export default function Home() {
   const [bookingInitialData, setBookingInitialData] = useState<{ courtId: string; time: number } | null>(null);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
 
-  const handleSaveBooking = async (newBooking: Omit<Booking, "id">) => {
+  const handleSaveBooking = async (newBooking: Omit<Booking, "id">, customerId?: string, useQuota?: boolean) => {
     try {
       if (selectedBooking) {
         // Edit mode (delete old then create new "update" logic, simplistic but works for now as API replace)
@@ -81,7 +85,27 @@ export default function Home() {
         toast.error('No venue selected');
         return;
       }
-      await addBooking(currentVenueId, newBooking);
+
+      // Handle Quota Usage
+      let finalBooking = { ...newBooking };
+      if (useQuota && customerId) {
+        const customer = customers.find(c => c.id === customerId);
+        if (customer && customer.quota && customer.quota > 0) {
+          // Decrement quota
+          await updateCustomer(customerId, { quota: customer.quota - 1 });
+
+          // Mark as Paid
+          finalBooking.status = 'LUNAS';
+          finalBooking.paidAmount = finalBooking.price;
+
+          toast.success(`Menggunakan 1 Jatah Member. Sisa: ${customer.quota - 1}`);
+        } else {
+          toast.error("Gagal menggunakan jatah member. Kuota habis atau tidak valid.");
+          return;
+        }
+      }
+
+      await addBooking(currentVenueId, finalBooking);
       toast.success('Booking berhasil disimpan!');
       handleCloseModal();
     } catch (error) {
@@ -168,7 +192,9 @@ export default function Home() {
                     { id: 'scheduler', icon: CalendarDays, label: 'Jadwal' },
                     { id: 'pos', icon: ShoppingCart, label: 'Kantin/POS' },
                     { id: 'members', icon: Users, label: 'Member' },
+
                     { id: 'reports', icon: Receipt, label: 'Laporan' },
+                    { id: 'settings', icon: Settings, label: 'Pengaturan' },
                   ].map((tab) => (
                     <button
                       key={tab.id}
@@ -306,9 +332,16 @@ export default function Home() {
 
         {activeTab === "reports" && <ReportsView />}
 
+
         {activeTab === "members" && (
           <div className="flex-1 p-0 overflow-y-auto">
             <MemberList />
+          </div>
+        )}
+
+        {activeTab === "settings" && (
+          <div className="flex-1 p-4 overflow-y-auto">
+            <CourtSettings />
           </div>
         )}
 

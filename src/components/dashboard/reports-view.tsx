@@ -20,9 +20,14 @@ import { getBookingsRange } from "@/lib/api/bookings";
 import { Booking } from "@/lib/constants";
 
 export function ReportsView() {
-    const { currentVenueId } = useVenue();
+    const { currentVenueId, currentVenue } = useVenue();
     const [bookings, setBookings] = useState<Booking[]>([]);
     const [loading, setLoading] = useState(true);
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     // Fetch last 30 days data for reports
     useEffect(() => {
@@ -55,7 +60,7 @@ export function ReportsView() {
         return last7Days.map((date) => {
             const dateStr = format(date, "yyyy-MM-dd");
             const dayBookings = bookings.filter(b => b.bookingDate === dateStr && b.status !== 'cancelled');
-            const totalRevenue = dayBookings.reduce((sum, b) => sum + (b.price || 0), 0);
+            const totalRevenue = dayBookings.reduce((sum, b) => sum + (b.paidAmount || 0), 0);
 
             return {
                 name: format(date, "EEE", { locale: id }), // e.g. Sen, Sel
@@ -66,7 +71,9 @@ export function ReportsView() {
 
     // 2. Calculate Peak Hours (Heatmap logic, simplified to bar chart of hours)
     const peakHoursData = useMemo(() => {
-        const hours = Array.from({ length: 16 }, (_, i) => i + 8); // 08:00 to 23:00
+        const startHour = currentVenue?.operatingHoursStart || 8;
+        const endHour = currentVenue?.operatingHoursEnd || 23;
+        const hours = Array.from({ length: endHour - startHour + 1 }, (_, i) => i + startHour);
 
         return hours.map(hour => {
             // Count bookings that cover this hour
@@ -84,10 +91,10 @@ export function ReportsView() {
                 bookings: count,
             };
         });
-    }, [bookings]);
+    }, [bookings, currentVenue]);
 
     // KPIs
-    const totalRevenue = bookings.filter(b => b.status !== 'cancelled').reduce((acc, curr) => acc + (curr.price || 0), 0);
+    const totalRevenue = bookings.filter(b => b.status !== 'cancelled').reduce((acc, curr) => acc + (curr.paidAmount || 0), 0);
     const totalBookingsCount = bookings.filter(b => b.status !== 'cancelled').length;
 
     if (loading) return <div className="p-8">Loading reports...</div>;
@@ -120,37 +127,46 @@ export function ReportsView() {
                 {/* Revenue Chart */}
                 <div className="bg-white p-4 border-2 border-black shadow-neo rounded-sm">
                     <h3 className="text-sm font-bold uppercase mb-4">Tren Pendapatan (7 Hari Terakhir)</h3>
-                    <div className="h-[200px] w-full">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={revenueData}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                                <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-                                <YAxis tick={{ fontSize: 10 }} width={60} tickFormatter={(value) => `Rp${value / 1000}k`} />
-                                <Tooltip
-                                    cursor={{ fill: '#f3f4f6' }}
-                                    contentStyle={{ border: '2px solid black', borderRadius: '0px', boxShadow: '4px 4px 0px 0px rgba(0,0,0,1)' }}
-                                />
-                                <Bar dataKey="total" fill="#BEF264" stroke="#000" strokeWidth={2} radius={[4, 4, 0, 0]} />
-                            </BarChart>
-                        </ResponsiveContainer>
+                    <div className="w-full" style={{ height: 200 }}>
+                        {mounted && (
+                            <ResponsiveContainer width="100%" height="100%" minWidth={100} minHeight={100}>
+                                <BarChart data={revenueData}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                    <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                                    <YAxis
+                                        tick={{ fontSize: 10 }}
+                                        width={80}
+                                        tickFormatter={(value) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0, notation: 'compact', compactDisplay: 'short' }).format(value)}
+                                    />
+                                    <Tooltip
+                                        cursor={{ fill: '#f3f4f6' }}
+                                        contentStyle={{ border: '2px solid black', borderRadius: '0px', boxShadow: '4px 4px 0px 0px rgba(0,0,0,1)' }}
+                                        formatter={(value: number | undefined) => (value !== undefined) ? new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(value) : ''}
+                                    />
+                                    <Bar dataKey="total" fill="#BEF264" stroke="#000" strokeWidth={2} radius={[4, 4, 0, 0]} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        )}
                     </div>
                 </div>
 
                 {/* Peak Hours Chart */}
                 <div className="bg-white p-4 border-2 border-black shadow-neo rounded-sm">
                     <h3 className="text-sm font-bold uppercase mb-4">Jam Tersibuk (Sepanjang Waktu)</h3>
-                    <div className="h-[200px] w-full">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <LineChart data={peakHoursData}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                                <XAxis dataKey="name" tick={{ fontSize: 10 }} interval={2} />
-                                <YAxis tick={{ fontSize: 10 }} width={30} allowDecimals={false} />
-                                <Tooltip
-                                    contentStyle={{ border: '2px solid black', borderRadius: '0px', boxShadow: '4px 4px 0px 0px rgba(0,0,0,1)' }}
-                                />
-                                <Line type="monotone" dataKey="bookings" stroke="#F97316" strokeWidth={3} dot={{ r: 4, fill: '#000' }} activeDot={{ r: 6 }} />
-                            </LineChart>
-                        </ResponsiveContainer>
+                    <div className="w-full" style={{ height: 200 }}>
+                        {mounted && (
+                            <ResponsiveContainer width="100%" height="100%" minWidth={100} minHeight={100}>
+                                <LineChart data={peakHoursData}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                    <XAxis dataKey="name" tick={{ fontSize: 10 }} interval={2} />
+                                    <YAxis tick={{ fontSize: 10 }} width={30} allowDecimals={false} />
+                                    <Tooltip
+                                        contentStyle={{ border: '2px solid black', borderRadius: '0px', boxShadow: '4px 4px 0px 0px rgba(0,0,0,1)' }}
+                                    />
+                                    <Line type="monotone" dataKey="bookings" stroke="#F97316" strokeWidth={3} dot={{ r: 4, fill: '#000' }} activeDot={{ r: 6 }} />
+                                </LineChart>
+                            </ResponsiveContainer>
+                        )}
                     </div>
                 </div>
             </div>

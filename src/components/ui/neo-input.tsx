@@ -23,6 +23,7 @@ export const NeoInput = React.forwardRef<HTMLInputElement, NeoInputProps>(
                         "focus:outline-none focus:neo-shadow active:translate-y-[2px]",
                         className
                     )}
+                    onWheel={(e) => e.currentTarget.blur()}
                     {...props}
                 />
             </div>

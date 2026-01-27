@@ -17,11 +17,16 @@ import {
 import { format, subDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay } from "date-fns";
 import { id } from "date-fns/locale";
 import { getBookingsRange } from "@/lib/api/bookings";
-import { Booking } from "@/lib/constants";
+import { getTransactionsRange } from "@/lib/api/transactions";
+import { Booking, Transaction } from "@/lib/constants";
+import { exportTransactionsToCSV } from "@/lib/utils/csv-export";
+import { toast } from "sonner";
+import { Download } from "lucide-react";
 
 export function ReportsView() {
     const { currentVenueId, currentVenue } = useVenue();
     const [bookings, setBookings] = useState<Booking[]>([]);
+    const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [loading, setLoading] = useState(true);
     const [mounted, setMounted] = useState(false);
 
@@ -39,7 +44,10 @@ export function ReportsView() {
                 const startDate = format(subDays(today, 30), 'yyyy-MM-dd');
                 const endDate = format(today, 'yyyy-MM-dd');
                 const data = await getBookingsRange(currentVenueId, startDate, endDate);
+                const txData = await getTransactionsRange(currentVenueId, startDate, endDate);
+
                 setBookings(data);
+                setTransactions(txData);
             } catch (e) {
                 console.error(e);
             } finally {
@@ -59,15 +67,20 @@ export function ReportsView() {
 
         return last7Days.map((date) => {
             const dateStr = format(date, "yyyy-MM-dd");
-            const dayBookings = bookings.filter(b => b.bookingDate === dateStr && b.status !== 'cancelled');
-            const totalRevenue = dayBookings.reduce((sum, b) => sum + (b.paidAmount || 0), 0);
+            // Use transactions for accurate revenue (Sales Value)
+            const dayTransactions = transactions.filter(t => {
+                const tDate = new Date(t.date).toLocaleDateString('en-CA'); // Extract YYYY-MM-DD
+                return tDate === dateStr && t.status === 'PAID';
+            });
+
+            const totalRevenue = dayTransactions.reduce((sum, t) => sum + (t.totalAmount || 0), 0);
 
             return {
                 name: format(date, "EEE", { locale: id }), // e.g. Sen, Sel
                 total: totalRevenue,
             };
         });
-    }, [bookings]);
+    }, [bookings, transactions]);
 
     // 2. Calculate Peak Hours (Heatmap logic, simplified to bar chart of hours)
     const peakHoursData = useMemo(() => {
@@ -94,7 +107,8 @@ export function ReportsView() {
     }, [bookings, currentVenue]);
 
     // KPIs
-    const totalRevenue = bookings.filter(b => b.status !== 'cancelled').reduce((acc, curr) => acc + (curr.paidAmount || 0), 0);
+    // Total Revenue from Transactions (Sales Value)
+    const totalRevenue = transactions.filter(t => t.status === 'PAID').reduce((acc, curr) => acc + (curr.totalAmount || 0), 0);
     const totalBookingsCount = bookings.filter(b => b.status !== 'cancelled').length;
 
     if (loading) return <div className="p-8">Loading reports...</div>;
@@ -102,7 +116,24 @@ export function ReportsView() {
     return (
         <div className="h-full overflow-y-auto bg-gray-100 p-4 space-y-6 pb-24">
             <div className="flex flex-col gap-2">
-                <h2 className="text-2xl font-black italic uppercase tracking-tighter">Laporan & Analitik</h2>
+                <div className="flex justify-between items-center">
+                    <h2 className="text-2xl font-black italic uppercase tracking-tighter">Laporan & Analitik</h2>
+                    <button
+                        onClick={() => {
+                            if (transactions.length === 0) {
+                                toast.error("Tidak ada data untuk diexport");
+                                return;
+                            }
+                            exportTransactionsToCSV(transactions);
+                            toast.success("Laporan berhasil didownload!");
+                        }}
+                        className="bg-black text-white px-4 py-2 text-sm font-bold uppercase hover:bg-brand-orange hover:text-black transition-colors flex items-center gap-2"
+                        disabled={loading}
+                    >
+                        <Download size={16} />
+                        Export CSV
+                    </button>
+                </div>
                 <p className="text-sm text-gray-500 font-bold">Ringkasan performa 30 Hari Terakhir</p>
             </div>
 

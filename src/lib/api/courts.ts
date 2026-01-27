@@ -25,10 +25,10 @@ export async function getCourts(venueId: string): Promise<Court[]> {
         id: row.id,
         venueId: row.venue_id,
         name: row.name,
-        courtNumber: row.court_number,
+        courtNumber: Number(row.court_number) || 1,
         isActive: row.is_active,
-        hourlyRate: row.hourly_rate,
-        memberHourlyRate: row.member_hourly_rate,
+        hourlyRate: Number(row.hourly_rate) || 0,  // Supabase DECIMAL returns string
+        memberHourlyRate: Number(row.member_hourly_rate) || undefined,
         notes: row.notes,
     }));
 }
@@ -57,9 +57,10 @@ export async function createCourt(
         id: data.id,
         venueId: data.venue_id,
         name: data.name,
-        courtNumber: data.court_number,
+        courtNumber: Number(data.court_number) || 1,
         isActive: data.is_active,
-        hourlyRate: data.hourly_rate,
+        hourlyRate: Number(data.hourly_rate) || 0,  // Supabase DECIMAL returns string
+        memberHourlyRate: Number(data.member_hourly_rate) || undefined,
         notes: data.notes,
     };
 }
@@ -96,10 +97,10 @@ export async function createMultipleCourts(
         id: row.id,
         venueId: row.venue_id,
         name: row.name,
-        courtNumber: row.court_number,
+        courtNumber: Number(row.court_number) || 1,
         isActive: row.is_active,
-        hourlyRate: row.hourly_rate,
-        member_hourly_rate: row.member_hourly_rate,
+        hourlyRate: Number(row.hourly_rate) || 0,  // Supabase DECIMAL returns string
+        memberHourlyRate: Number(row.member_hourly_rate) || undefined,
         notes: row.notes,
     }));
 }

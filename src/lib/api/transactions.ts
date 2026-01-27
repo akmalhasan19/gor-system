@@ -107,13 +107,51 @@ export async function getTransactions(venueId: string, limit: number = 50): Prom
             id: item.id,
             type: item.type,
             name: item.name,
-            price: item.price_at_moment,
-            quantity: item.quantity,
+            price: Number(item.price_at_moment) || 0, // Supabase DECIMAL returns string
+            quantity: Number(item.quantity) || 0,
             referenceId: item.product_id || item.booking_id,
         })),
-        totalAmount: row.total_amount,
-        paidAmount: row.paid_amount,
-        changeAmount: row.paid_amount >= row.total_amount ? row.paid_amount - row.total_amount : 0,
+        totalAmount: Number(row.total_amount) || 0, // Supabase DECIMAL returns string
+        paidAmount: Number(row.paid_amount) || 0,   // Supabase DECIMAL returns string
+        changeAmount: Number(row.paid_amount) >= Number(row.total_amount)
+            ? Number(row.paid_amount) - Number(row.total_amount)
+            : 0,
+        paymentMethod: row.payment_method as any,
+        status: row.status,
+        cashierName: 'Admin',
+    }));
+}
+
+export async function getTransactionsRange(venueId: string, startDate: string, endDate: string): Promise<Transaction[]> {
+    const { data, error } = await supabase
+        .from('transactions')
+        .select(`
+            *,
+            transaction_items (*)
+        `)
+        .eq('venue_id', venueId)
+        .gte('created_at', `${startDate}T00:00:00`)
+        .lte('created_at', `${endDate}T23:59:59`)
+        .order('created_at', { ascending: true });
+
+    if (error) throw error;
+
+    return (data || []).map(row => ({
+        id: row.id,
+        date: row.created_at,
+        items: (row.transaction_items || []).map((item: any) => ({
+            id: item.id,
+            type: item.type,
+            name: item.name,
+            price: Number(item.price_at_moment) || 0, // Supabase DECIMAL returns string
+            quantity: Number(item.quantity) || 0,
+            referenceId: item.product_id || item.booking_id,
+        })),
+        totalAmount: Number(row.total_amount) || 0, // Supabase DECIMAL returns string
+        paidAmount: Number(row.paid_amount) || 0,   // Supabase DECIMAL returns string
+        changeAmount: Number(row.paid_amount) >= Number(row.total_amount)
+            ? Number(row.paid_amount) - Number(row.total_amount)
+            : 0,
         paymentMethod: row.payment_method as any,
         status: row.status,
         cashierName: 'Admin',
@@ -137,9 +175,9 @@ export async function getDailyReport(venueId: string, date?: string): Promise<{
 
     if (error) throw error;
 
-    const totalRevenue = (data || []).reduce((sum, t) => sum + t.paid_amount, 0);
-    const cashAmount = (data || []).filter(t => t.payment_method === 'cash').reduce((sum, t) => sum + t.paid_amount, 0);
-    const transferAmount = (data || []).filter(t => t.payment_method === 'transfer').reduce((sum, t) => sum + t.paid_amount, 0);
+    const totalRevenue = (data || []).reduce((sum, t) => sum + Number(t.total_amount), 0);
+    const cashAmount = (data || []).filter(t => t.payment_method === 'cash' || t.payment_method === 'CASH').reduce((sum, t) => sum + Number(t.paid_amount), 0);
+    const transferAmount = (data || []).filter(t => t.payment_method === 'transfer' || t.payment_method === 'TRANSFER').reduce((sum, t) => sum + Number(t.paid_amount), 0);
 
     return {
         totalRevenue,

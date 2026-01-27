@@ -22,11 +22,11 @@ export async function getBookings(venueId: string, date?: string): Promise<Booki
         id: row.id,
         courtId: row.court_id, // Use court UUID for consistent comparison with Scheduler
         startTime: row.start_time,
-        duration: row.duration,
+        duration: Number(row.duration) || 1,
         customerName: row.customer_name,
         phone: row.phone,
-        price: row.price,
-        paidAmount: row.paid_amount,
+        price: Number(row.price) || 0,           // Supabase DECIMAL returns string
+        paidAmount: Number(row.paid_amount) || 0, // Supabase DECIMAL returns string
         status: row.status as any,
         bookingDate: row.booking_date,
         createdAt: row.created_at,
@@ -55,11 +55,11 @@ export async function getBookingsRange(venueId: string, startDate: string, endDa
         id: row.id,
         courtId: row.court_id, // Use court UUID for consistent comparison with Scheduler
         startTime: row.start_time,
-        duration: row.duration,
+        duration: Number(row.duration) || 1,
         customerName: row.customer_name,
         phone: row.phone,
-        price: row.price,
-        paidAmount: row.paid_amount,
+        price: Number(row.price) || 0,           // Supabase DECIMAL returns string
+        paidAmount: Number(row.paid_amount) || 0, // Supabase DECIMAL returns string
         status: row.status as any,
         bookingDate: row.booking_date,
         createdAt: row.created_at,
@@ -115,11 +115,11 @@ export async function createBooking(venueId: string, booking: Omit<Booking, 'id'
         id: data.id,
         courtId: String(data.court_id),
         startTime: data.start_time,
-        duration: data.duration,
+        duration: Number(data.duration) || 1,
         customerName: data.customer_name,
         phone: data.phone,
-        price: data.price,
-        paidAmount: data.paid_amount,
+        price: Number(data.price) || 0,           // Supabase DECIMAL returns string
+        paidAmount: Number(data.paid_amount) || 0, // Supabase DECIMAL returns string
         status: data.status,
         bookingDate: data.booking_date,
     };

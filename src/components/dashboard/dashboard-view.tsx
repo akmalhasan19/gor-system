@@ -10,12 +10,20 @@ import {
 } from "lucide-react";
 
 export const DashboardView = () => {
-    const { bookings, products, transactions } = useAppStore();
+    const { bookings, products, transactions, selectedDate } = useAppStore();
 
     // Stats
     const todayBookings = bookings.length;
     const lowStockItems = products.filter(p => p.stock < 10);
-    const totalRevenue = transactions.reduce((sum, t) => sum + t.paidAmount, 0);
+
+    // Filter transactions for the selected date (or today)
+    const activeDate = selectedDate || new Date().toLocaleDateString('en-CA');
+    const todayTransactions = transactions.filter(t => {
+        const tDate = new Date(t.date).toLocaleDateString('en-CA');
+        return tDate === activeDate;
+    });
+
+    const totalRevenue = todayTransactions.reduce((sum, t) => sum + t.totalAmount, 0);
 
     return (
         <div className="flex flex-col gap-6">

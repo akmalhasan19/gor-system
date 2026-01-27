@@ -3,13 +3,31 @@
 import React from "react";
 import { useAppStore } from "@/lib/store";
 import { NeoBadge } from "@/components/ui/neo-badge";
+import { exportTransactionsToCSV } from "@/lib/utils/csv-export";
+import { toast } from "sonner";
 
 export const DailyReport = () => {
     const { transactions } = useAppStore();
 
+    const handleExportCSV = () => {
+        if (transactions.length === 0) {
+            toast.warning('Belum ada transaksi untuk di-export.');
+            return;
+        }
+
+        try {
+            const today = new Date().toISOString().split('T')[0];
+            exportTransactionsToCSV(transactions, `Transaksi_${today}.csv`);
+            toast.success(`Berhasil export ${transactions.length} transaksi!`);
+        } catch (error) {
+            console.error('Export CSV error:', error);
+            toast.error('Gagal export CSV. Silakan coba lagi.');
+        }
+    };
+
     // Calculate Summary
     const totalTransactions = transactions.length;
-    const totalRevenue = transactions.reduce((sum, t) => sum + t.paidAmount, 0);
+    const totalRevenue = transactions.reduce((sum, t) => sum + t.totalAmount, 0);
     const cashTotal = transactions.filter(t => t.paymentMethod === 'CASH').reduce((sum, t) => sum + t.paidAmount, 0);
     const qrisTotal = transactions.filter(t => t.paymentMethod === 'QRIS').reduce((sum, t) => sum + t.paidAmount, 0);
     const transferTotal = transactions.filter(t => t.paymentMethod === 'TRANSFER').reduce((sum, t) => sum + t.paidAmount, 0);
@@ -40,7 +58,10 @@ export const DailyReport = () => {
             <div className="border-2 border-black bg-white shadow-neo-sm">
                 <div className="bg-gray-100 p-2 border-b-2 border-black font-black uppercase text-xs flex justify-between">
                     <span>Riwayat Transaksi Hari Ini</span>
-                    <button className="text-[10px] bg-black text-white px-2 py-1 rounded hover:opacity-80">
+                    <button
+                        onClick={handleExportCSV}
+                        className="text-[10px] bg-black text-white px-2 py-1 rounded hover:opacity-80 transition-all active:scale-95"
+                    >
                         Export CSV
                     </button>
                 </div>

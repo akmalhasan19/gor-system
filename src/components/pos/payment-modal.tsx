@@ -20,14 +20,14 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, tot
     const [change, setChange] = useState(0);
 
     useEffect(() => {
-        const numPaid = parseInt(paidAmount) || 0;
+        const numPaid = Number(paidAmount);
         setChange(numPaid - totalAmount);
     }, [paidAmount, totalAmount]);
 
     if (!isOpen) return null;
 
     const handleProcess = async () => {
-        const numPaid = parseInt(paidAmount) || 0;
+        const numPaid = Number(paidAmount);
 
         if (!currentVenueId) {
             alert('Tidak ada venue yang dipilih');

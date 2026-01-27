@@ -17,6 +17,12 @@ export interface Venue {
     operatingHoursStart: number;
     operatingHoursEnd: number;
     isActive: boolean;
+    // Operational Settings
+    bookingTolerance?: number; // minutes
+    overtimePolicy?: 'allow' | 'charge' | 'strict';
+    waNotificationTime?: string; // "HH:MM"
+    fonnteToken?: string;
+    waTemplateReminder?: string;
 }
 
 export async function getVenues(): Promise<Venue[]> {
@@ -37,6 +43,11 @@ export async function getVenues(): Promise<Venue[]> {
         operatingHoursStart: row.operating_hours_start,
         operatingHoursEnd: row.operating_hours_end,
         isActive: row.is_active,
+        bookingTolerance: row.booking_tolerance,
+        overtimePolicy: row.overtime_policy,
+        waNotificationTime: row.wa_notification_time,
+        fonnteToken: row.fonnte_token,
+        waTemplateReminder: row.wa_template_reminder,
     }));
 }
 
@@ -58,6 +69,11 @@ export async function getVenueById(id: string): Promise<Venue | null> {
         operatingHoursStart: data.operating_hours_start,
         operatingHoursEnd: data.operating_hours_end,
         isActive: data.is_active,
+        bookingTolerance: data.booking_tolerance,
+        overtimePolicy: data.overtime_policy,
+        waNotificationTime: data.wa_notification_time,
+        fonnteToken: data.fonnte_token,
+        waTemplateReminder: data.wa_template_reminder,
     };
 }
 
@@ -72,6 +88,11 @@ export async function createVenue(venue: Omit<Venue, 'id'>): Promise<Venue> {
             operating_hours_start: venue.operatingHoursStart,
             operating_hours_end: venue.operatingHoursEnd,
             is_active: venue.isActive,
+            booking_tolerance: venue.bookingTolerance,
+            overtime_policy: venue.overtimePolicy,
+            wa_notification_time: venue.waNotificationTime,
+            fonnte_token: venue.fonnteToken,
+            wa_template_reminder: venue.waTemplateReminder,
         })
         .select()
         .single();
@@ -87,6 +108,11 @@ export async function createVenue(venue: Omit<Venue, 'id'>): Promise<Venue> {
         operatingHoursStart: data.operating_hours_start,
         operatingHoursEnd: data.operating_hours_end,
         isActive: data.is_active,
+        bookingTolerance: data.booking_tolerance,
+        overtimePolicy: data.overtime_policy,
+        waNotificationTime: data.wa_notification_time,
+        fonnteToken: data.fonnte_token,
+        waTemplateReminder: data.wa_template_reminder,
     };
 }
 
@@ -103,6 +129,13 @@ export async function updateVenue(id: string, updates: Partial<Venue>): Promise<
         dbUpdates.operating_hours_end = updates.operatingHoursEnd;
     if (updates.isActive !== undefined) dbUpdates.is_active = updates.isActive;
 
+    // Operational Updates
+    if (updates.bookingTolerance !== undefined) dbUpdates.booking_tolerance = updates.bookingTolerance;
+    if (updates.overtimePolicy !== undefined) dbUpdates.overtime_policy = updates.overtimePolicy;
+    if (updates.waNotificationTime !== undefined) dbUpdates.wa_notification_time = updates.waNotificationTime;
+    if (updates.fonnteToken !== undefined) dbUpdates.fonnte_token = updates.fonnteToken;
+    if (updates.waTemplateReminder !== undefined) dbUpdates.wa_template_reminder = updates.waTemplateReminder;
+
     const { error } = await supabase
         .from('venues')
         .update(dbUpdates)
@@ -111,10 +144,6 @@ export async function updateVenue(id: string, updates: Partial<Venue>): Promise<
     if (error) throw error;
 }
 
-/**
- * Create a new venue and associate it with the user as owner
- * This is used during onboarding flow
- */
 export async function createVenueWithOwner(
     userId: string,
     venueData: {
@@ -137,6 +166,9 @@ export async function createVenueWithOwner(
             operating_hours_start: venueData.operatingHoursStart,
             operating_hours_end: venueData.operatingHoursEnd,
             is_active: true,
+            // Defaults
+            booking_tolerance: 15,
+            wa_notification_time: '07:00'
         })
         .select()
         .single();
@@ -167,13 +199,12 @@ export async function createVenueWithOwner(
         operatingHoursStart: venueRow.operating_hours_start,
         operatingHoursEnd: venueRow.operating_hours_end,
         isActive: venueRow.is_active,
+        bookingTolerance: venueRow.booking_tolerance,
+        overtimePolicy: venueRow.overtime_policy,
+        waNotificationTime: venueRow.wa_notification_time,
     };
 }
 
-/**
- * Get the user's primary venue
- * Returns the first venue associated with the user (usually their own GOR)
- */
 export async function getUserVenue(userId: string): Promise<Venue | null> {
     const { data, error } = await supabase
         .from('user_venues')
@@ -187,7 +218,12 @@ export async function getUserVenue(userId: string): Promise<Venue | null> {
                 email,
                 operating_hours_start,
                 operating_hours_end,
-                is_active
+                is_active,
+                booking_tolerance,
+                overtime_policy,
+                wa_notification_time,
+                fonnte_token,
+                wa_template_reminder
             )
         `)
         .eq('user_id', userId)
@@ -208,5 +244,10 @@ export async function getUserVenue(userId: string): Promise<Venue | null> {
         operatingHoursStart: venue.operating_hours_start,
         operatingHoursEnd: venue.operating_hours_end,
         isActive: venue.is_active,
+        bookingTolerance: venue.booking_tolerance,
+        overtimePolicy: venue.overtime_policy,
+        waNotificationTime: venue.wa_notification_time,
+        fonnteToken: venue.fonnte_token,
+        waTemplateReminder: venue.wa_template_reminder,
     };
 }

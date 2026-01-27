@@ -17,9 +17,12 @@ interface AppState {
     isLoading: boolean;
     error: string | null;
     currentVenueId: string;
+    selectedDate: string; // YYYY-MM-DD
+
+    setSelectedDate: (date: string) => void;
 
     // Sync actions (fetch from DB)
-    syncBookings: (venueId: string) => Promise<void>;
+    syncBookings: (venueId: string, date?: string) => Promise<void>;
     syncProducts: (venueId: string) => Promise<void>;
     syncCustomers: (venueId: string) => Promise<void>;
     syncTransactions: (venueId: string) => Promise<void>;
@@ -31,6 +34,7 @@ interface AppState {
     deleteBooking: (id: string) => Promise<void>;
     updateBooking: (venueId: string, id: string, updates: Partial<Booking>) => Promise<void>;
     setBookings: (bookings: Booking[]) => void;
+    checkIn: (id: string) => Promise<void>;
 
     // Cart actions
     addToCart: (item: CartItem) => void;
@@ -69,12 +73,15 @@ export const useAppStore = create<AppState>((set, get) => ({
     isLoading: false,
     error: null,
     currentVenueId: '',
+    selectedDate: new Date().toLocaleDateString('en-CA'),
+
+    setSelectedDate: (date: string) => set({ selectedDate: date }),
 
     // Sync methods
-    syncBookings: async (venueId: string) => {
+    syncBookings: async (venueId: string, date?: string) => {
         set({ isLoading: true, error: null });
         try {
-            const bookings = await bookingsApi.getBookings(venueId);
+            const bookings = await bookingsApi.getBookings(venueId, date);
             set({ bookings, isLoading: false });
         } catch (error: any) {
             set({ error: error.message, isLoading: false });
@@ -192,6 +199,20 @@ export const useAppStore = create<AppState>((set, get) => ({
             }));
         } catch (error: any) {
             set({ error: error.message, isLoading: false });
+            throw error;
+        }
+    },
+
+    checkIn: async (id: string) => {
+        try {
+            await bookingsApi.checkInBooking(id);
+            set((state) => ({
+                bookings: state.bookings.map((b) =>
+                    b.id === id ? { ...b, checkInTime: new Date().toISOString() } : b
+                )
+            }));
+        } catch (error: any) {
+            set({ error: error.message });
             throw error;
         }
     },

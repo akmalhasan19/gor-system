@@ -37,7 +37,9 @@ export function useRealtimeSubscription() {
                 },
                 async (payload) => {
                     console.log('📦 Product updated:', payload);
-                    await syncProducts();
+                    if (currentVenueId) {
+                        await syncProducts(currentVenueId);
+                    }
                 }
             )
             .on(
@@ -49,7 +51,9 @@ export function useRealtimeSubscription() {
                 },
                 async (payload) => {
                     console.log('👥 Customer updated:', payload);
-                    await syncCustomers();
+                    if (currentVenueId) {
+                        await syncCustomers(currentVenueId);
+                    }
                 }
             )
             .on(
@@ -61,7 +65,9 @@ export function useRealtimeSubscription() {
                 },
                 async (payload) => {
                     console.log('💰 Transaction updated:', payload);
-                    await syncTransactions();
+                    if (currentVenueId) {
+                        await syncTransactions(currentVenueId);
+                    }
                 }
             )
             .on(

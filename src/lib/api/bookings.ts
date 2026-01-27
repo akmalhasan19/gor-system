@@ -30,6 +30,8 @@ export async function getBookings(venueId: string, date?: string): Promise<Booki
         status: row.status as any,
         bookingDate: row.booking_date,
         createdAt: row.created_at,
+        checkInTime: row.check_in_time,
+        isNoShow: row.is_no_show,
     }));
 }
 
@@ -61,6 +63,8 @@ export async function getBookingsRange(venueId: string, startDate: string, endDa
         status: row.status as any,
         bookingDate: row.booking_date,
         createdAt: row.created_at,
+        checkInTime: row.check_in_time,
+        isNoShow: row.is_no_show,
     }));
 }
 
@@ -128,6 +132,8 @@ export async function updateBooking(venueId: string, id: string, updates: Partia
     if (updates.paidAmount !== undefined) dbUpdates.paid_amount = updates.paidAmount;
     if (updates.startTime !== undefined) dbUpdates.start_time = updates.startTime;
     if (updates.bookingDate !== undefined) dbUpdates.booking_date = updates.bookingDate;
+    if (updates.checkInTime !== undefined) dbUpdates.check_in_time = updates.checkInTime;
+    if (updates.isNoShow !== undefined) dbUpdates.is_no_show = updates.isNoShow;
 
     // Handle courtId update (convert number string to UUID)
     if (updates.courtId !== undefined) {
@@ -164,6 +170,15 @@ export async function deleteBooking(id: string): Promise<void> {
     const { error } = await supabase
         .from('bookings')
         .delete()
+        .eq('id', id);
+
+    if (error) throw error;
+}
+
+export async function checkInBooking(id: string): Promise<void> {
+    const { error } = await supabase
+        .from('bookings')
+        .update({ check_in_time: new Date().toISOString() })
         .eq('id', id);
 
     if (error) throw error;

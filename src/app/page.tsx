@@ -13,6 +13,7 @@ import {
   Share2,
   LogOut,
   Settings,
+  Banknote,
 } from "lucide-react";
 import { signOut } from "@/lib/auth";
 import { useRouter } from "next/navigation";
@@ -31,6 +32,9 @@ import { DashboardView } from "@/components/dashboard/dashboard-view";
 import { ReportsView } from "@/components/dashboard/reports-view";
 import { StockModal } from "@/components/pos/stock-modal";
 import { CourtSettings } from "@/components/settings/court-settings";
+
+import { ShiftManager } from "@/components/financial/shift-manager";
+import { SettingsView } from "@/components/settings/settings-view";
 import { PackagePlus } from "lucide-react";
 import { toast } from "sonner";
 import { useRealtimeSubscription } from "@/lib/hooks/use-realtime-subscription";
@@ -41,23 +45,37 @@ export default function Home() {
 
 
 
-  const [activeTab, setActiveTab] = useState<"dashboard" | "scheduler" | "pos" | "reports" | "members" | "settings">("dashboard");
+  const [activeTab, setActiveTab] = useState<"dashboard" | "scheduler" | "pos" | "reports" | "members" | "settings" | "shift">("dashboard");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isStockModalOpen, setIsStockModalOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(true);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { bookings, addBooking, transactions, cart, courts, syncCourts, syncBookings, customers, updateCustomer } = useAppStore();
+
+  const {
+    bookings, addBooking, transactions, cart, courts,
+    syncCourts, syncBookings, customers, updateCustomer,
+    selectedDate, setSelectedDate
+  } = useAppStore();
   const { currentVenueId, currentVenue } = useVenue();
 
-  // Sync courts and bookings when venue is loaded
+  // Sync courts and bookings when venue or date changes
   useEffect(() => {
     if (currentVenueId && currentVenueId.trim() !== '') {
       syncCourts(currentVenueId);
-      syncBookings(currentVenueId);
+      // Sync bookings for the selected date
+      syncBookings(currentVenueId, selectedDate);
     }
-  }, [currentVenueId, syncCourts, syncBookings]);
+  }, [currentVenueId, selectedDate, syncCourts, syncBookings]);
 
   const [bookingInitialData, setBookingInitialData] = useState<{ courtId: string; time: number } | null>(null);
+
+  const handleDateChange = (days: number) => {
+    const currentDate = new Date(selectedDate);
+    currentDate.setDate(currentDate.getDate() + days);
+    // Format to YYYY-MM-DD
+    const newDateStr = currentDate.toLocaleDateString('en-CA');
+    setSelectedDate(newDateStr);
+  };
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
 
   const handleSaveBooking = async (newBooking: Omit<Booking, "id">, customerId?: string, useQuota?: boolean) => {
@@ -194,6 +212,7 @@ export default function Home() {
                     { id: 'members', icon: Users, label: 'Member' },
 
                     { id: 'reports', icon: Receipt, label: 'Laporan' },
+                    { id: 'shift', icon: Banknote, label: 'Kasir / Shift' },
                     { id: 'settings', icon: Settings, label: 'Pengaturan' },
                   ].map((tab) => (
                     <button
@@ -249,6 +268,31 @@ export default function Home() {
                 </NeoButton>
               </div>
             </div>
+
+            {/* Date Navigator */}
+            <div className="flex items-center justify-between bg-white border-2 border-black p-2 mb-4 shadow-neo-sm">
+              <button
+                onClick={() => handleDateChange(-1)}
+                className="p-1 hover:bg-gray-100 border border-transparent hover:border-black transition-all"
+              >
+                ◀ Prev
+              </button>
+              <div className="flex flex-col items-center">
+                <span className="font-black uppercase text-lg">
+                  {new Date(selectedDate).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                </span>
+                {selectedDate === new Date().toLocaleDateString('en-CA') && (
+                  <span className="text-[10px] font-bold bg-brand-lime px-2 rounded-full border border-black">HARI INI</span>
+                )}
+              </div>
+              <button
+                onClick={() => handleDateChange(1)}
+                className="p-1 hover:bg-gray-100 border border-transparent hover:border-black transition-all"
+              >
+                Next ▶
+              </button>
+            </div>
+
             <Scheduler
               bookings={bookings}
               courts={courts}
@@ -258,97 +302,117 @@ export default function Home() {
               operatingHoursEnd={currentVenue?.operatingHoursEnd}
             />
           </div>
-        )}
+        )
+        }
 
-        {activeTab === "pos" && (
-          <div className="flex-1 flex flex-col md:flex-row h-full overflow-hidden relative">
-            <div className={`flex-1 overflow-y-auto bg-gray-50 border-r-0 md:border-r-2 border-gray-200 transition-all duration-300 ${isCartOpen ? 'md:blur-[1px] md:pointer-events-none md:select-none' : ''}`}>
-              <div className="p-4">
-                <div className="flex justify-between items-center mb-4">
-                  <h1 className="text-2xl font-black uppercase italic">Kantin & Shop</h1>
-                  <button
-                    onClick={() => setIsStockModalOpen(true)}
-                    className="flex items-center gap-1 text-xs font-bold uppercase bg-white border-2 border-black px-2 py-1 shadow-neo-sm hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all"
-                  >
-                    <PackagePlus size={14} />
-                    Tambah Stok
-                  </button>
+        {
+          activeTab === "pos" && (
+            <div className="flex-1 flex flex-col md:flex-row h-full overflow-hidden relative">
+              <div className={`flex-1 overflow-y-auto bg-gray-50 border-r-0 md:border-r-2 border-gray-200 transition-all duration-300 ${isCartOpen ? 'md:blur-[1px] md:pointer-events-none md:select-none' : ''}`}>
+                <div className="p-4">
+                  <div className="flex justify-between items-center mb-4">
+                    <h1 className="text-2xl font-black uppercase italic">Kantin & Shop</h1>
+                    <button
+                      onClick={() => setIsStockModalOpen(true)}
+                      className="flex items-center gap-1 text-xs font-bold uppercase bg-white border-2 border-black px-2 py-1 shadow-neo-sm hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all"
+                    >
+                      <PackagePlus size={14} />
+                      Tambah Stok
+                    </button>
+                  </div>
+                  <ProductList />
                 </div>
-                <ProductList />
               </div>
-            </div>
 
-            {/* Click-outside overlay for Desktop */}
-            {isCartOpen && (
-              <div
-                className="hidden md:block absolute inset-0 z-30 bg-transparent cursor-pointer"
-                onClick={() => setIsCartOpen(false)}
-              />
-            )}
+              {/* Click-outside overlay for Desktop */}
+              {isCartOpen && (
+                <div
+                  className="hidden md:block absolute inset-0 z-30 bg-transparent cursor-pointer"
+                  onClick={() => setIsCartOpen(false)}
+                />
+              )}
 
-            {/* Sidebar: Overlay mode */}
-            <div className={`absolute z-40 bg-white border-black transition-transform duration-300 ease-in-out shadow-2xl
+              {/* Sidebar: Overlay mode */}
+              <div className={`absolute z-40 bg-white border-black transition-transform duration-300 ease-in-out shadow-2xl
                 ${isCartOpen
-                ? "translate-y-0 translate-x-0"
-                : "translate-y-full md:translate-y-0 md:translate-x-full"
-              }
+                  ? "translate-y-0 translate-x-0"
+                  : "translate-y-full md:translate-y-0 md:translate-x-full"
+                }
                 bottom-0 left-0 w-full h-[40vh] border-t-2
                 md:top-0 md:left-auto md:right-0 md:w-[300px] md:h-full md:border-t-0 md:border-l-2
             `}>
-              <CartSidebar onClose={() => setIsCartOpen(false)} />
+                <CartSidebar onClose={() => setIsCartOpen(false)} />
+              </div>
             </div>
-          </div>
-        )}
+          )
+        }
 
 
         {/* Global Floating Cart Button */}
-        {(!isCartOpen || activeTab !== 'pos') && (
-          <button
-            onClick={() => {
-              if (activeTab !== 'pos') {
-                setActiveTab('pos');
-              }
-              setIsCartOpen(true);
-            }}
-            className="fixed bottom-6 right-6 z-50 bg-black text-white p-4 shadow-neo hover:scale-110 transition-transform border-2 border-white"
-          >
-            <ShoppingCart size={24} />
-            {/* Badge */}
-            {cart.length > 0 && (
-              <div className="absolute -top-2 -right-2 bg-brand-orange text-black text-xs font-black px-2 py-0.5 border-2 border-black animate-bounce">
-                {cart.length}
-              </div>
-            )}
-          </button>
-        )}
+        {
+          (!isCartOpen || activeTab !== 'pos') && (
+            <button
+              onClick={() => {
+                if (activeTab !== 'pos') {
+                  setActiveTab('pos');
+                }
+                setIsCartOpen(true);
+              }}
+              className="fixed bottom-6 right-6 z-50 bg-black text-white p-4 shadow-neo hover:scale-110 transition-transform border-2 border-white"
+            >
+              <ShoppingCart size={24} />
+              {/* Badge */}
+              {cart.length > 0 && (
+                <div className="absolute -top-2 -right-2 bg-brand-orange text-black text-xs font-black px-2 py-0.5 border-2 border-black animate-bounce">
+                  {cart.length}
+                </div>
+              )}
+            </button>
+          )
+        }
 
 
-        {activeTab === "dashboard" && (
-          <div className="flex-1 p-4 overflow-y-auto">
-            <h1 className="text-2xl font-black uppercase italic mb-4">Dashboard</h1>
-            <DashboardView />
-          </div>
-        )}
+        {
+          activeTab === "dashboard" && (
+            <div className="flex-1 p-4 overflow-y-auto">
+              <h1 className="text-2xl font-black uppercase italic mb-4">Dashboard</h1>
+              <DashboardView />
+            </div>
+          )
+        }
 
         {activeTab === "reports" && <ReportsView />}
 
 
-        {activeTab === "members" && (
-          <div className="flex-1 p-0 overflow-y-auto">
-            <MemberList />
-          </div>
-        )}
+        {
+          activeTab === "members" && (
+            <div className="flex-1 p-0 overflow-y-auto">
+              <MemberList />
+            </div>
+          )
+        }
 
-        {activeTab === "settings" && (
-          <div className="flex-1 p-4 overflow-y-auto">
-            <CourtSettings />
-          </div>
-        )}
+        {
+          activeTab === "settings" && (
+            <div className="flex-1 p-4 overflow-y-auto">
+              <SettingsView />
+            </div>
+          )
+        }
 
-      </main>
+        {
+          activeTab === "shift" && (
+            <div className="flex-1 p-4 overflow-y-auto">
+              <h1 className="text-2xl font-black uppercase italic mb-4">Shift & Kasir</h1>
+              <ShiftManager />
+            </div>
+          )
+        }
+
+      </main >
 
       {/* Booking Modal */}
-      <BookingModal
+      < BookingModal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
         onSave={handleSaveBooking}
@@ -361,6 +425,6 @@ export default function Home() {
         isOpen={isStockModalOpen}
         onClose={() => setIsStockModalOpen(false)}
       />
-    </div>
+    </div >
   );
 }

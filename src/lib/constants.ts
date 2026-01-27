@@ -19,7 +19,9 @@ export interface Booking {
     price: number;
     paidAmount: number;
     bookingDate: string; // "YYYY-MM-DD"
-    createdAt?: string; // ISO timestamp for stale booking detection
+    createdAt?: string; // ISO timestamp
+    checkInTime?: string; // ISO timestamp
+    isNoShow?: boolean;
 }
 
 // Operational hours 08:00 - 23:00

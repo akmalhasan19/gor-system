@@ -20,7 +20,7 @@ interface BookingModalProps {
 }
 
 export const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, onSave, onDelete, initialData, existingBooking }) => {
-    const { customers, updateCustomer, courts } = useAppStore();
+    const { customers, updateCustomer, courts, checkIn } = useAppStore();
     const { currentVenueId } = useVenue();
 
     const [hourlyRate, setHourlyRate] = useState(50000); // Default fallback
@@ -169,6 +169,18 @@ export const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, onS
         }
     };
 
+    const handleCheckIn = async () => {
+        if (!existingBooking) return;
+        try {
+            await checkIn(existingBooking.id);
+            toast.success("Check-in berhasil!");
+            onClose();
+        } catch (error: any) {
+            console.error("Check-in error:", error);
+            toast.error("Gagal check-in: " + error.message);
+        }
+    };
+
     if (!isOpen) return null;
 
     const selectedCustomer = customers.find(c => c.id === selectedCustomerId);
@@ -186,6 +198,19 @@ export const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, onS
                     </div>
 
                     <div className="p-4 flex flex-col gap-4 overflow-y-auto">
+
+                        {/* Status Check-in Display */}
+                        {existingBooking?.checkInTime && (
+                            <div className="bg-green-100 border-2 border-green-600 p-2 text-center text-green-800 font-bold text-sm uppercase">
+                                ✅ SUDAH CHECK-IN: {new Date(existingBooking.checkInTime).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                            </div>
+                        )}
+                        {existingBooking?.isNoShow && (
+                            <div className="bg-red-100 border-2 border-red-600 p-2 text-center text-red-800 font-bold text-sm uppercase">
+                                ⛔ NO SHOW / TIDAK DATANG
+                            </div>
+                        )}
+
                         {!existingBooking && (
                             <div className="flex flex-col gap-1 border-b-2 border-dashed border-gray-200 pb-3">
                                 <label className="text-xs font-bold uppercase text-gray-500">Pilih Member (Opsional)</label>
@@ -206,6 +231,11 @@ export const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, onS
 
                         {selectedCustomer?.isMember && !existingBooking && (
                             <div className="flex flex-col gap-2">
+                                {selectedCustomer.quota && selectedCustomer.quota <= 1 && selectedCustomer.quota > 0 && (
+                                    <div className="bg-red-100 border-2 border-red-600 p-2 text-red-800 text-xs font-bold uppercase animate-pulse">
+                                        ⚠️ Perhatian: Kuota Member Sisa {selectedCustomer.quota}
+                                    </div>
+                                )}
                                 {selectedCustomer.quota && selectedCustomer.quota > 0 ? (
                                     <div className="bg-brand-lime/20 border-2 border-brand-lime p-2">
                                         <label className="flex items-center gap-2 cursor-pointer select-none">
@@ -214,11 +244,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, onS
                                                 checked={useQuota}
                                                 onChange={(e) => setUseQuota(e.target.checked)}
                                                 className="w-4 h-4 accent-black"
-                                                disabled={duration > 1} // Disable if duration > 1 because quota usually per session (1 hour)? Or allow? Assuming 1 quota = 1 hour for now? Or 1 session? Let's assume 1 Quota = 1 Booking Session regardless of hours? OR 1 Quota = 1 Hour?
-                                            // User said "4 play sessions". Usually session = 1 hour or 1 booking.
-                                            // Let's assume 1 Booking.
-                                            // But usually it's per hour.
-                                            // Let's stick to 1 Quota Point = 1 Booking for now unless specified.
+                                                disabled={duration > 1}
                                             />
                                             <div className="flex flex-col">
                                                 <span className="font-black text-sm uppercase text-black">Gunakan Jatah Member</span>
@@ -333,6 +359,15 @@ export const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, onS
                     </div>
 
                     <div className="p-3 border-t-2 border-black bg-gray-50 flex gap-2">
+                        {existingBooking && !existingBooking.checkInTime && !existingBooking.isNoShow && (
+                            <button
+                                onClick={handleCheckIn}
+                                className="flex-1 bg-blue-600 text-white font-black py-3 text-sm uppercase hover:bg-blue-700 border-2 border-transparent hover:border-black transition-all"
+                            >
+                                Check-In
+                            </button>
+                        )}
+
                         {existingBooking && (
                             <button
                                 onClick={handleDelete}
@@ -345,7 +380,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, onS
                             onClick={handleSave}
                             className="flex-1 bg-black text-white font-black py-3 text-sm uppercase hover:bg-brand-orange hover:text-black border-2 border-transparent hover:border-black transition-all"
                         >
-                            {existingBooking ? 'Simpan Perubahan' : 'Simpan Booking'}
+                            {existingBooking ? 'Simpan' : 'Simpan Booking'}
                         </button>
                     </div>
                 </div>

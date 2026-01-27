@@ -50,7 +50,7 @@ export const Scheduler: React.FC<SchedulerProps> = ({
             let start = typeof b.startTime === 'number' ? b.startTime : parseInt(b.startTime.split(':')[0]);
 
             const end = start + b.duration;
-            return b.courtId === courtId && hour >= start && hour < end;
+            return b.status !== 'cancelled' && b.courtId === courtId && hour >= start && hour < end;
         });
     };
 

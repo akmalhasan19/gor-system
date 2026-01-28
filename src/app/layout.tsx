@@ -5,6 +5,7 @@ import { Space_Grotesk, Syne } from 'next/font/google';
 import { Toaster } from "sonner";
 import { VenueProvider } from "@/lib/venue-context";
 import { DataSyncProvider } from "@/components/data-sync-provider";
+import { NetworkStatus } from "@/components/ui/network-status";
 
 // Load fonts
 const spaceGrotesk = Space_Grotesk({ subsets: ['latin'], variable: '--font-space' });
@@ -36,6 +37,7 @@ export default function RootLayout({
           <VenueProvider>
             <DataSyncProvider>
               {children}
+              <NetworkStatus />
               <Toaster
                 position="top-center"
                 toastOptions={{

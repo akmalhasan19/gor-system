@@ -86,6 +86,24 @@ export async function getShiftHistory(venueId: string, date?: string, limit = 10
     return data || [];
 }
 
+export async function getShiftHistoryRange(
+    venueId: string,
+    startDate: string,
+    endDate: string
+): Promise<Shift[]> {
+    const { data, error } = await supabase
+        .from('shifts')
+        .select('*')
+        .eq('venue_id', venueId)
+        .eq('status', 'closed')
+        .gte('end_time', `${startDate}T00:00:00`)
+        .lte('end_time', `${endDate}T23:59:59`)
+        .order('end_time', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+}
+
 export async function getShiftExpectations(venueId: string, startTime: string): Promise<{
     expectedCash: number;
     totalCash: number;

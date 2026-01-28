@@ -19,10 +19,19 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, tot
     const [paymentMethod, setPaymentMethod] = useState<"CASH" | "QRIS" | "TRANSFER">("CASH");
     const [change, setChange] = useState(0);
 
+    const [isTipEnabled, setIsTipEnabled] = useState(false);
+
     useEffect(() => {
         const numPaid = Number(paidAmount);
         setChange(numPaid - totalAmount);
+
+        // Reset tip toggle if paid amount changes
+        setIsTipEnabled(false);
     }, [paidAmount, totalAmount]);
+
+    // Calculate effective total that will be recorded
+    // If Tip is enabled, Total = Paid Amount (because change becomes tip)
+    const effectiveTotal = isTipEnabled && change > 0 ? Number(paidAmount) : totalAmount;
 
     if (!isOpen) return null;
 
@@ -35,7 +44,20 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, tot
         }
 
         try {
-            await processTransaction(currentVenueId, cart, numPaid, paymentMethod);
+            // Include Tip Item if enabled
+            let finalCart = [...cart];
+            if (isTipEnabled && change > 0) {
+                finalCart.push({
+                    id: `tip-${Date.now()}`,
+                    type: 'TIP',
+                    name: 'Tip / Uang Pas',
+                    price: change,
+                    quantity: 1,
+                    referenceId: 'tip'
+                });
+            }
+
+            await processTransaction(currentVenueId, finalCart, numPaid, paymentMethod);
             onClose();
 
             // Trigger window print for receipt
@@ -105,11 +127,35 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, tot
                     </div>
 
                     {/* Change Display */}
-                    <div className={`p-3 border-2 border-black ${change >= 0 ? 'bg-brand-lime' : 'bg-red-100'}`}>
+                    <div className={`p-3 border-2 border-black ${change >= 0 ? 'bg-brand-lime' : 'bg-red-100'} transition-colors`}>
                         <div className="flex justify-between items-center">
-                            <span className="font-bold uppercase text-[10px]">Kembalian</span>
-                            <span className="font-black text-lg">Rp {change > 0 ? change.toLocaleString() : 0}</span>
+                            <span className="font-bold uppercase text-[10px]">
+                                {isTipEnabled ? 'Tip (Masuk ke Omzet)' : 'Kembalian'}
+                            </span>
+                            <span className={`font-black text-lg ${isTipEnabled ? 'text-brand-orange' : 'text-black'}`}>
+                                Rp {change > 0 ? change.toLocaleString() : 0}
+                            </span>
                         </div>
+
+                        {/* Tip Toggle */}
+                        {change > 0 && paymentMethod === 'CASH' && (
+                            <div className="mt-2 pt-2 border-t border-black/20">
+                                <label className="flex items-center gap-2 cursor-pointer select-none">
+                                    <div className={`w-4 h-4 border-2 border-black flex items-center justify-center transition-colors ${isTipEnabled ? 'bg-black' : 'bg-white'}`}>
+                                        {isTipEnabled && <div className="w-2 h-2 bg-white" />}
+                                    </div>
+                                    <input
+                                        type="checkbox"
+                                        className="hidden"
+                                        checked={isTipEnabled}
+                                        onChange={() => setIsTipEnabled(!isTipEnabled)}
+                                    />
+                                    <span className="text-[10px] font-bold uppercase hover:underline">
+                                        Pelanggan tidak minta kembalian? (Jadikan Tip)
+                                    </span>
+                                </label>
+                            </div>
+                        )}
                     </div>
                 </div>
 

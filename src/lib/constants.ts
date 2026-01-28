@@ -104,7 +104,7 @@ export const INITIAL_CUSTOMERS: Customer[] = [
 
 export interface CartItem {
     id: string;
-    type: 'PRODUCT' | 'BOOKING';
+    type: 'PRODUCT' | 'BOOKING' | 'TIP';
     name: string;
     price: number;
     quantity: number;

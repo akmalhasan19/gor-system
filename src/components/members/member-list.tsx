@@ -5,6 +5,9 @@ import { useAppStore } from "@/lib/store";
 import { Customer } from "@/lib/constants";
 import { NeoBadge } from "@/components/ui/neo-badge";
 import { MemberModal } from "@/components/members/member-modal";
+import { exportMembersToCSV } from "@/lib/utils/csv-export";
+import { toast } from "sonner";
+import { Download } from "lucide-react";
 
 export const MemberList = () => {
     const { customers } = useAppStore();
@@ -30,16 +33,44 @@ export const MemberList = () => {
         setIsModalOpen(true);
     };
 
+    const handleExportCSV = () => {
+        if (filteredCustomers.length === 0) {
+            toast.warning('Tidak ada data pelanggan untuk di-export.');
+            return;
+        }
+
+        try {
+            const today = new Date().toISOString().split('T')[0];
+            const suffix = filterMemberOnly ? '_MemberOnly' : '_Semua';
+            const filename = `Daftar_Pelanggan${suffix}_${today}.csv`;
+
+            exportMembersToCSV(filteredCustomers, filename, false);
+            toast.success(`Berhasil export ${filteredCustomers.length} pelanggan!`);
+        } catch (error) {
+            console.error('Export CSV error:', error);
+            toast.error('Gagal export CSV. Silakan coba lagi.');
+        }
+    };
+
     return (
         <div className="p-2 space-y-2">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-2">
                 <h2 className="text-lg font-black uppercase">Database Pelanggan</h2>
-                <button
-                    onClick={handleAdd}
-                    className="bg-black text-white px-3 py-1 text-xs font-bold uppercase hover:bg-brand-orange hover:text-black border-2 border-transparent hover:border-black transition-all shadow-neo"
-                >
-                    + Tambah Pelanggan
-                </button>
+                <div className="flex gap-2">
+                    <button
+                        onClick={handleExportCSV}
+                        className="flex items-center gap-1.5 bg-gray-100 text-black px-3 py-1 text-xs font-bold uppercase hover:bg-gray-200 border-2 border-black transition-all active:scale-95"
+                    >
+                        <Download size={14} />
+                        Export CSV
+                    </button>
+                    <button
+                        onClick={handleAdd}
+                        className="bg-black text-white px-3 py-1 text-xs font-bold uppercase hover:bg-brand-orange hover:text-black border-2 border-transparent hover:border-black transition-all shadow-neo"
+                    >
+                        + Tambah Pelanggan
+                    </button>
+                </div>
             </div>
 
             <div className="flex gap-2 items-center bg-white p-2 border-2 border-black shadow-sm">

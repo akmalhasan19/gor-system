@@ -21,7 +21,9 @@ import { getTransactionsRange } from "@/lib/api/transactions";
 import { Booking, Transaction } from "@/lib/constants";
 import { exportTransactionsToCSV } from "@/lib/utils/csv-export";
 import { toast } from "sonner";
-import { Download } from "lucide-react";
+import { Download, FileText } from "lucide-react";
+import { DailyReport } from "@/components/reports/daily-report";
+import { BookingHistoryExport } from "@/components/reports/booking-history-export";
 
 export function ReportsView() {
     const { currentVenueId, currentVenue } = useVenue();
@@ -118,21 +120,6 @@ export function ReportsView() {
             <div className="flex flex-col gap-2">
                 <div className="flex justify-between items-center">
                     <h2 className="text-2xl font-black italic uppercase tracking-tighter">Laporan & Analitik</h2>
-                    <button
-                        onClick={() => {
-                            if (transactions.length === 0) {
-                                toast.error("Tidak ada data untuk diexport");
-                                return;
-                            }
-                            exportTransactionsToCSV(transactions);
-                            toast.success("Laporan berhasil didownload!");
-                        }}
-                        className="bg-black text-white px-4 py-2 text-sm font-bold uppercase hover:bg-brand-orange hover:text-black transition-colors flex items-center gap-2"
-                        disabled={loading}
-                    >
-                        <Download size={16} />
-                        Export CSV
-                    </button>
                 </div>
                 <p className="text-sm text-gray-500 font-bold">Ringkasan performa 30 Hari Terakhir</p>
             </div>
@@ -201,6 +188,28 @@ export function ReportsView() {
                     </div>
                 </div>
             </div>
-        </div>
+
+
+            <div className="space-y-6 mt-8 pt-8 border-t-2 border-dashed border-black">
+                <div className="flex items-center gap-2 mb-4">
+                    <FileText size={24} />
+                    <h2 className="text-xl font-black italic uppercase">Export Data Detail</h2>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    {/* Left Check: Daily Report (Transactions) */}
+                    <div>
+                        <h3 className="font-bold uppercase text-lg mb-2">Laporan Transaksi</h3>
+                        <DailyReport />
+                    </div>
+
+                    {/* Right Check: Booking History */}
+                    <div>
+                        <h3 className="font-bold uppercase text-lg mb-2">Laporan Booking</h3>
+                        <BookingHistoryExport />
+                    </div>
+                </div>
+            </div>
+        </div >
     );
 }

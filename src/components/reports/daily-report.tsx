@@ -1,39 +1,130 @@
 "use client";
 
-import React from "react";
+import React, { useState, useMemo } from "react";
 import { useAppStore } from "@/lib/store";
-import { NeoBadge } from "@/components/ui/neo-badge";
 import { exportTransactionsToCSV } from "@/lib/utils/csv-export";
 import { toast } from "sonner";
+import { Download, Calendar } from "lucide-react";
 
 export const DailyReport = () => {
     const { transactions } = useAppStore();
 
+    // Date range filter state
+    const [startDate, setStartDate] = useState<string>('');
+    const [endDate, setEndDate] = useState<string>('');
+    const [useRangeFilter, setUseRangeFilter] = useState(false);
+
+    // Filter transactions by date range and deduplicate
+    const filteredTransactions = useMemo(() => {
+        let result = transactions;
+
+        if (useRangeFilter && startDate && endDate) {
+            result = transactions.filter(t => {
+                const txDate = new Date(t.date).toISOString().split('T')[0];
+                return txDate >= startDate && txDate <= endDate;
+            });
+        }
+
+        // Deduplicate by ID to prevent "duplicate key" errors from potential race conditions in store
+        const uniqueMap = new Map();
+        result.forEach(item => {
+            uniqueMap.set(item.id, item);
+        });
+        return Array.from(uniqueMap.values());
+    }, [transactions, useRangeFilter, startDate, endDate]);
+
     const handleExportCSV = () => {
-        if (transactions.length === 0) {
+        if (filteredTransactions.length === 0) {
             toast.warning('Belum ada transaksi untuk di-export.');
             return;
         }
 
         try {
-            const today = new Date().toISOString().split('T')[0];
-            exportTransactionsToCSV(transactions, `Transaksi_${today}.csv`);
-            toast.success(`Berhasil export ${transactions.length} transaksi!`);
+            let filename: string;
+            if (useRangeFilter && startDate && endDate) {
+                filename = `Transaksi_${startDate}_${endDate}.csv`;
+            } else {
+                const today = new Date().toISOString().split('T')[0];
+                filename = `Transaksi_${today}.csv`;
+            }
+
+            exportTransactionsToCSV(filteredTransactions, filename);
+            toast.success(`Berhasil export ${filteredTransactions.length} transaksi!`);
         } catch (error) {
             console.error('Export CSV error:', error);
             toast.error('Gagal export CSV. Silakan coba lagi.');
         }
     };
 
+    const handleApplyRangeFilter = () => {
+        if (startDate && endDate) {
+            if (new Date(endDate) < new Date(startDate)) {
+                toast.error('Tanggal akhir harus setelah tanggal mulai.');
+                return;
+            }
+            setUseRangeFilter(true);
+        } else {
+            toast.warning('Harap isi tanggal mulai dan tanggal akhir.');
+        }
+    };
+
+    const handleClearFilter = () => {
+        setStartDate('');
+        setEndDate('');
+        setUseRangeFilter(false);
+    };
+
     // Calculate Summary
-    const totalTransactions = transactions.length;
-    const totalRevenue = transactions.reduce((sum, t) => sum + t.totalAmount, 0);
-    const cashTotal = transactions.filter(t => t.paymentMethod === 'CASH').reduce((sum, t) => sum + t.paidAmount, 0);
-    const qrisTotal = transactions.filter(t => t.paymentMethod === 'QRIS').reduce((sum, t) => sum + t.paidAmount, 0);
-    const transferTotal = transactions.filter(t => t.paymentMethod === 'TRANSFER').reduce((sum, t) => sum + t.paidAmount, 0);
+    const totalTransactions = filteredTransactions.length;
+    const totalRevenue = filteredTransactions.reduce((sum, t) => sum + t.totalAmount, 0);
+    const cashTotal = filteredTransactions.filter(t => t.paymentMethod === 'CASH').reduce((sum, t) => sum + Math.min(t.paidAmount, t.totalAmount), 0);
+    const qrisTotal = filteredTransactions.filter(t => t.paymentMethod === 'QRIS').reduce((sum, t) => sum + t.paidAmount, 0);
+    const transferTotal = filteredTransactions.filter(t => t.paymentMethod === 'TRANSFER').reduce((sum, t) => sum + t.paidAmount, 0);
 
     return (
         <div className="flex flex-col gap-4 p-2 max-w-3xl mx-auto">
+            {/* Date Range Filter */}
+            <div className="bg-gray-50 p-3 border-2 border-black">
+                <div className="text-[10px] font-bold uppercase text-gray-500 mb-2 flex items-center gap-1">
+                    <Calendar size={12} />
+                    Filter Rentang Tanggal (Export)
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                    <input
+                        type="date"
+                        value={startDate}
+                        onChange={(e) => setStartDate(e.target.value)}
+                        className="text-xs px-2 py-1.5 border-2 border-black font-medium bg-white"
+                    />
+                    <span className="text-xs font-bold">s/d</span>
+                    <input
+                        type="date"
+                        value={endDate}
+                        onChange={(e) => setEndDate(e.target.value)}
+                        className="text-xs px-2 py-1.5 border-2 border-black font-medium bg-white"
+                    />
+                    <button
+                        onClick={handleApplyRangeFilter}
+                        className="text-xs bg-black text-white px-3 py-1.5 font-bold uppercase hover:bg-gray-800 transition-all"
+                    >
+                        Terapkan
+                    </button>
+                    {useRangeFilter && (
+                        <button
+                            onClick={handleClearFilter}
+                            className="text-xs bg-gray-200 text-black px-3 py-1.5 font-bold uppercase hover:bg-gray-300 transition-all border border-gray-400"
+                        >
+                            Reset
+                        </button>
+                    )}
+                </div>
+                {useRangeFilter && (
+                    <div className="mt-2 text-[10px] font-bold text-green-600">
+                        ✓ Filter aktif: {startDate} s/d {endDate} ({filteredTransactions.length} transaksi)
+                    </div>
+                )}
+            </div>
+
             {/* Header / Summary Cards */}
             <div className="flex flex-col gap-2">
                 <div className="bg-black text-white p-2 border-2 border-black shadow-neo-sm">
@@ -57,11 +148,16 @@ export const DailyReport = () => {
             {/* Transaction List */}
             <div className="border-2 border-black bg-white shadow-neo-sm">
                 <div className="bg-gray-100 p-2 border-b-2 border-black font-black uppercase text-xs flex justify-between">
-                    <span>Riwayat Transaksi Hari Ini</span>
+                    <span>
+                        {useRangeFilter
+                            ? `Riwayat Transaksi (${startDate} - ${endDate})`
+                            : 'Riwayat Transaksi Hari Ini'}
+                    </span>
                     <button
                         onClick={handleExportCSV}
-                        className="text-[10px] bg-black text-white px-2 py-1 rounded hover:opacity-80 transition-all active:scale-95"
+                        className="flex items-center gap-1 text-[10px] bg-black text-white px-2 py-1 rounded hover:opacity-80 transition-all active:scale-95"
                     >
+                        <Download size={12} />
                         Export CSV
                     </button>
                 </div>
@@ -78,22 +174,24 @@ export const DailyReport = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {transactions.length === 0 ? (
+                            {filteredTransactions.length === 0 ? (
                                 <tr>
                                     <td colSpan={5} className="text-center py-6 text-gray-400 italic font-bold">
-                                        Belum ada transaksi hari ini.
+                                        {useRangeFilter
+                                            ? 'Tidak ada transaksi dalam rentang tanggal ini.'
+                                            : 'Belum ada transaksi hari ini.'}
                                     </td>
                                 </tr>
                             ) : (
-                                transactions.map((trx) => (
-                                    <tr key={trx.id} className="bg-white border-b border-gray-100 hover:bg-gray-50">
+                                filteredTransactions.map((trx, index) => (
+                                    <tr key={`${trx.id}-${index}`} className="bg-white border-b border-gray-100 hover:bg-gray-50">
                                         <td className="px-2 py-2 font-mono font-bold text-[10px]">{trx.id.split('-')[1]}</td>
                                         <td className="px-2 py-2">
                                             {new Date(trx.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                         </td>
                                         <td className="px-2 py-2">
                                             <div className="flex flex-col gap-0.5">
-                                                {trx.items.map((item, idx) => (
+                                                {trx.items.map((item: any, idx: number) => (
                                                     <span key={idx} className="text-[10px]">
                                                         {item.quantity}x {item.name}
                                                     </span>

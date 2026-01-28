@@ -11,18 +11,22 @@
 **Tujuan:** Memungkinkan owner/investor export data transaksi untuk analisis eksternal
 
 - [x] Implementasi fungsi export CSV di `DailyReport` component
-- [ ] Tambahkan filter date range untuk export (Future enhancement)
-- [ ] Export shift reconciliation history (Future enhancement)
-- [ ] Export booking history dengan filter status (Future enhancement)
-- [ ] Export member list dengan detail quota & expiry (Future enhancement)
+- [x] Tambahkan filter date range untuk export ✅
+- [x] Export shift reconciliation history ✅
+- [x] Export booking history dengan filter status ✅
+- [x] Export member list dengan detail quota & expiry ✅
 - [x] Format CSV: include headers, format currency properly
 - [x] Testing: download file, verify data accuracy
 
 **File yang Dimodifikasi:**
-- `src/components/reports/daily-report.tsx` ✅
-- `src/lib/utils/csv-export.ts` (NEW) ✅
+- `src/components/reports/daily-report.tsx` ✅ (date range filter added)
+- `src/components/reports/booking-history-export.tsx` (NEW) ✅
+- `src/components/financial/shift-history.tsx` ✅ (export + date range filter added)
+- `src/components/members/member-list.tsx` ✅ (export added)
+- `src/lib/utils/csv-export.ts` ✅ (enhanced with 3 new export functions)
+- `src/lib/api/shifts.ts` ✅ (getShiftHistoryRange added)
 
-**Status:** ✅ **SELESAI** - Basic export functionality implemented and tested
+**Status:** ✅ **SELESAI** - All export features implemented (28 Jan 2026)
 
 ---
 
@@ -307,5 +311,5 @@
 
 ---
 
-**Last Updated:** 27 Januari 2026  
+**Last Updated:** 28 Januari 2026  
 **Total Tasks:** 100+ checkboxes

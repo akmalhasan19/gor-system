@@ -15,7 +15,8 @@ $$;
 
 -- 1. COURTS
 DROP POLICY IF EXISTS "Admins can do everything on courts" ON courts;
-DROP POLICY IF EXISTS "Public can view active courts" ON courts; -- Optional: Keep public view if needed, but usually redundant for staff
+DROP POLICY IF EXISTS "Public can view active courts" ON courts;
+DROP POLICY IF EXISTS "Venue Members Access Courts" ON courts;
 
 CREATE POLICY "Venue Members Access Courts"
     ON courts FOR ALL
@@ -31,23 +32,27 @@ DROP POLICY IF EXISTS "Public can view bookings" ON bookings;
 DROP POLICY IF EXISTS "Public can create bookings" ON bookings;
 DROP POLICY IF EXISTS "Public can update bookings" ON bookings;
 DROP POLICY IF EXISTS "Public can delete bookings" ON bookings;
+DROP POLICY IF EXISTS "Venue Members Access Bookings" ON bookings;
 
 CREATE POLICY "Venue Members Access Bookings"
     ON bookings FOR ALL
     USING (venue_id IN (SELECT get_my_venue_ids()));
 
 -- Re-add Public CREATE (for external booking forms)
+DROP POLICY IF EXISTS "Public Create Bookings" ON bookings;
 CREATE POLICY "Public Create Bookings"
     ON bookings FOR INSERT
     WITH CHECK (true); 
 
 -- Re-add Public READ (for public schedule)
+DROP POLICY IF EXISTS "Public View Bookings" ON bookings;
 CREATE POLICY "Public View Bookings"
     ON bookings FOR SELECT
     USING (true);
 
 -- 3. CUSTOMERS
 DROP POLICY IF EXISTS "Admins can do everything on customers" ON customers;
+DROP POLICY IF EXISTS "Venue Members Access Customers" ON customers;
 
 CREATE POLICY "Venue Members Access Customers"
     ON customers FOR ALL
@@ -55,6 +60,7 @@ CREATE POLICY "Venue Members Access Customers"
 
 -- 4. PRODUCTS
 DROP POLICY IF EXISTS "Admins can do everything on products" ON products;
+DROP POLICY IF EXISTS "Venue Members Access Products" ON products;
 
 CREATE POLICY "Venue Members Access Products"
     ON products FOR ALL
@@ -62,6 +68,7 @@ CREATE POLICY "Venue Members Access Products"
 
 -- 5. TRANSACTIONS
 DROP POLICY IF EXISTS "Admins can do everything on transactions" ON transactions;
+DROP POLICY IF EXISTS "Venue Members Access Transactions" ON transactions;
 
 CREATE POLICY "Venue Members Access Transactions"
     ON transactions FOR ALL
@@ -69,6 +76,7 @@ CREATE POLICY "Venue Members Access Transactions"
 
 -- 6. TRANSACTION ITEMS
 DROP POLICY IF EXISTS "Admins can do everything on transaction_items" ON transaction_items;
+DROP POLICY IF EXISTS "Venue Members Access Transaction Items" ON transaction_items;
 
 CREATE POLICY "Venue Members Access Transaction Items"
     ON transaction_items FOR ALL
@@ -81,11 +89,13 @@ CREATE POLICY "Venue Members Access Transaction Items"
 -- 7. VENUES (Read Access)
 DROP POLICY IF EXISTS "Admins can do everything on venues" ON venues;
 DROP POLICY IF EXISTS "Public can view active venues" ON venues;
+DROP POLICY IF EXISTS "Venue Members View Venue" ON venues;
 
 CREATE POLICY "Venue Members View Venue"
     ON venues FOR SELECT
     USING (id IN (SELECT get_my_venue_ids()));
 
+DROP POLICY IF EXISTS "Public View Active Venues" ON venues;
 CREATE POLICY "Public View Active Venues"
     ON venues FOR SELECT
     USING (is_active = true);

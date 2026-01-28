@@ -22,6 +22,20 @@ export function VenueProvider({ children }: { children: React.ReactNode }) {
 
     useEffect(() => {
         loadUserVenue();
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+            if (event === 'SIGNED_IN') {
+                loadUserVenue();
+            } else if (event === 'SIGNED_OUT') {
+                setVenues([]);
+                setCurrentVenueId('');
+                setIsLoading(false);
+            }
+        });
+
+        return () => {
+            subscription.unsubscribe();
+        };
     }, []);
 
     const loadUserVenue = async () => {

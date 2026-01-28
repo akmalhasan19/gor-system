@@ -167,18 +167,23 @@
   - [x] Frequency menurun >50% dari average ✅
   - [x] Quota tidak terpakai mendekati expiry ✅
 - [x] Dashboard "At-Risk Members" (Menu **Member** → Tab baru) ✅
-- [ ] Send win-back promo otomatis (Future Enhancement)
-- [ ] Exit survey saat membership tidak di-renew (Future Enhancement)
+- [x] Send win-back promo otomatis (Manual trigger implemented via "Kirim Promo" button) ✅
+- [x] Exit survey saat membership tidak di-renew (Manual link sharing & public page implemented) ✅
 
 **File Baru:**
 - `src/components/members/at-risk-members.tsx` ✅ (NEW) — *Tab di Menu Member*
 - `src/lib/api/churn-prediction.ts` ✅ (NEW)
+- `src/lib/api/exit-survey.ts` ✅ (NEW)
+- `src/components/members/exit-survey-stats.tsx` ✅ (NEW)
+- `src/app/survey/[venueId]/[customerId]/page.tsx` ✅ (NEW)
 - `supabase/migrations/20260128150000_churn_analysis.sql` ✅ (NEW)
+- `supabase/migrations/20260128160000_winback_exit_survey.sql` ✅ (NEW)
 
 **File yang Dimodifikasi:**
-- `src/components/members/member-list.tsx` ✅ (Tab system added)
+- `src/components/members/member-list.tsx` ✅ (Tab system updated)
+- `src/components/settings/operational-settings.tsx` ✅ (Win-back settings added)
 
-**Status:** ✅ **SELESAI** - Core churn prediction implemented (28 Jan 2026)
+**Status:** ✅ **SELESAI** - Core churn prediction and retention features implemented (28 Jan 2026)
 
 ---
 
@@ -190,30 +195,37 @@
 
 #### Database Schema
 
-- [ ] Create table `court_maintenance_schedules`
+- [ ] Create table `court_maintenance_schedules` (Deferred - recurring schedules)
   - [ ] id, court_id, maintenance_type (floor_wax, net_replace, lighting, etc)
   - [ ] last_done_date, next_due_date, frequency_days
   - [ ] status (pending, in_progress, completed)
   - [ ] notes, cost
-- [ ] Create table `maintenance_tasks`
-  - [ ] id, court_id, task_date, duration_hours
-  - [ ] type, technician_name, cost, notes
+- [x] Create table `maintenance_tasks` ✅
+  - [x] id, court_id, task_date, duration_hours ✅
+  - [x] type, technician_name, cost, notes ✅
 
 **Database Migration:**
-- `supabase/migrations/xxxx_maintenance_system.sql` (NEW)
+- `supabase/migrations/20260128170000_maintenance_system.sql` ✅ (NEW)
 
 #### Frontend
 
-- [ ] Settings untuk define maintenance schedule per court (Menu **Pengaturan** → Tab baru)
-- [ ] Calendar view untuk maintenance tasks (Menu **Jadwal** → Panel/Modal)
-- [ ] Auto-block booking slots saat maintenance
-- [ ] Reminder notification 7 days before due
-- [ ] Maintenance history & cost tracking
+- [x] Settings untuk define maintenance schedule per court (Menu **Pengaturan** → Tab baru "Maintenance") ✅
+- [x] Modal untuk menambah maintenance tasks ✅
+- [x] Auto-block booking slots saat maintenance ✅
+- [ ] Reminder notification 7 days before due (Future Enhancement)
+- [x] Maintenance history & status tracking ✅
 
 **File Baru:**
-- `src/components/settings/maintenance-settings.tsx` (NEW) — *Tab di Menu Pengaturan*
-- `src/components/maintenance/schedule-calendar.tsx` (NEW)
-- `src/components/maintenance/maintenance-form.tsx` (NEW)
+- `src/lib/api/maintenance.ts` ✅ (NEW)
+- `src/components/settings/maintenance-settings.tsx` ✅ (NEW) — *Tab di Menu Pengaturan*
+- `src/components/maintenance/maintenance-modal.tsx` ✅ (NEW)
+
+**File yang Dimodifikasi:**
+- `src/components/scheduler.tsx` ✅ (Maintenance block rendering)
+- `src/components/settings/settings-view.tsx` ✅ (Maintenance tab added)
+- `src/app/page.tsx` ✅ (Maintenance tasks fetching)
+
+**Status:** ✅ **SELESAI** - Core maintenance scheduler implemented (28 Jan 2026)
 
 ---
 

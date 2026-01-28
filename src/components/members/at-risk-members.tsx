@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { useVenue } from "@/lib/venue-context";
-import { getAtRiskMembers, AtRiskMember } from "@/lib/api/churn-prediction";
+import { getAtRiskMembers, AtRiskMember, sendWinbackPromo } from "@/lib/api/churn-prediction";
 import { sendManualReminder } from "@/lib/api/reminders";
 import { toast } from "sonner";
 import {
@@ -17,6 +17,7 @@ import {
     Flame,
     AlertCircle,
     Info,
+    Gift,
 } from "lucide-react";
 
 // Neo-brutalist No Booking Icon Component
@@ -37,6 +38,7 @@ export function AtRiskMembers() {
     const [members, setMembers] = useState<AtRiskMember[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [sendingReminder, setSendingReminder] = useState<string | null>(null);
+    const [sendingPromo, setSendingPromo] = useState<string | null>(null);
 
     const fetchAtRiskMembers = async () => {
         if (!currentVenueId) return;
@@ -136,6 +138,106 @@ export function AtRiskMembers() {
             toast.error("Gagal mengirim reminder");
         } finally {
             setSendingReminder(null);
+        }
+    };
+
+    const handleSendPromo = async (member: AtRiskMember) => {
+        if (!currentVenueId || !currentVenue) return;
+
+        // Check if Fonnte token is configured
+        if (!currentVenue.fonnteToken) {
+            toast.custom((t) => (
+                <div className="bg-yellow-400 border-[3px] border-black p-4 shadow-neo max-w-sm">
+                    <div className="flex items-start gap-3">
+                        <div className="bg-black text-yellow-400 p-2 border-2 border-black flex-shrink-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                                <line x1="12" y1="9" x2="12" y2="13" />
+                                <line x1="12" y1="17" x2="12.01" y2="17" />
+                            </svg>
+                        </div>
+                        <div className="flex-1">
+                            <h4 className="font-black text-black uppercase text-sm mb-1">Token Fonnte Belum Diatur!</h4>
+                            <p className="text-xs text-black font-medium mb-3">
+                                Silakan masukkan Token Fonnte di menu <b>Pengaturan → Operasional</b> untuk mengaktifkan fitur kirim WhatsApp otomatis.
+                            </p>
+                            <button
+                                onClick={() => toast.dismiss(t)}
+                                className="bg-black text-yellow-400 px-3 py-1 text-xs font-black uppercase border-2 border-black hover:bg-gray-800 transition-colors"
+                            >
+                                Mengerti
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            ), { duration: 8000 });
+            return;
+        }
+
+        setSendingPromo(member.id);
+        try {
+            const result = await sendWinbackPromo(
+                currentVenueId,
+                member,
+                currentVenue.name
+            );
+
+            if (result.success) {
+                toast.custom((t) => (
+                    <div className="bg-green-500 border-[3px] border-black p-4 shadow-neo max-w-sm">
+                        <div className="flex items-start gap-3">
+                            <div className="bg-black text-green-500 p-2 border-2 border-black flex-shrink-0">
+                                <Gift className="w-5 h-5" />
+                            </div>
+                            <div className="flex-1">
+                                <h4 className="font-black text-white uppercase text-sm mb-1">Promo Terkirim! 🎉</h4>
+                                <p className="text-xs text-white font-medium mb-1">
+                                    Kode: <span className="font-black bg-white text-black px-2 py-0.5">{result.promoCode}</span>
+                                </p>
+                                <p className="text-xs text-white/80">
+                                    Terkirim ke {member.name}
+                                </p>
+                                <button
+                                    onClick={() => toast.dismiss(t)}
+                                    className="mt-2 bg-black text-green-500 px-3 py-1 text-xs font-black uppercase border-2 border-black hover:bg-gray-800 transition-colors"
+                                >
+                                    Tutup
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                ), { duration: 8000 });
+            } else {
+                toast.custom((t) => (
+                    <div className="bg-red-500 border-[3px] border-black p-4 shadow-neo max-w-sm">
+                        <div className="flex items-start gap-3">
+                            <div className="bg-black text-red-500 p-2 border-2 border-black flex-shrink-0">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                    <circle cx="12" cy="12" r="10" />
+                                    <line x1="15" y1="9" x2="9" y2="15" />
+                                    <line x1="9" y1="9" x2="15" y2="15" />
+                                </svg>
+                            </div>
+                            <div className="flex-1">
+                                <h4 className="font-black text-white uppercase text-sm mb-1">Gagal Kirim Promo</h4>
+                                <p className="text-xs text-white font-medium mb-3">
+                                    {result.error || 'Terjadi kesalahan saat mengirim promo.'}
+                                </p>
+                                <button
+                                    onClick={() => toast.dismiss(t)}
+                                    className="bg-black text-red-500 px-3 py-1 text-xs font-black uppercase border-2 border-black hover:bg-gray-800 transition-colors"
+                                >
+                                    Tutup
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                ), { duration: 6000 });
+            }
+        } catch (error) {
+            toast.error("Gagal mengirim promo win-back");
+        } finally {
+            setSendingPromo(null);
         }
     };
 
@@ -321,19 +423,33 @@ export function AtRiskMembers() {
                                 </div>
                             </div>
 
-                            {/* Action Button */}
-                            <button
-                                onClick={() => handleSendReminder(member)}
-                                disabled={sendingReminder === member.id}
-                                className="flex-shrink-0 flex items-center gap-2 bg-brand-lime text-black border-[3px] border-black px-4 py-3 text-xs font-black uppercase hover:bg-black hover:text-brand-lime transition-colors disabled:opacity-50 shadow-neo active:shadow-none active:translate-x-[3px] active:translate-y-[3px]"
-                            >
-                                {sendingReminder === member.id ? (
-                                    <RefreshCw className="w-4 h-4 animate-spin" />
-                                ) : (
-                                    <MessageCircle className="w-4 h-4" />
-                                )}
-                                <span className="hidden sm:inline">Kirim Reminder</span>
-                            </button>
+                            {/* Action Buttons */}
+                            <div className="flex flex-col gap-2 flex-shrink-0">
+                                <button
+                                    onClick={() => handleSendPromo(member)}
+                                    disabled={sendingPromo === member.id}
+                                    className="flex items-center gap-2 bg-purple-500 text-white border-[3px] border-black px-3 py-2 text-xs font-black uppercase hover:bg-black hover:text-purple-400 transition-colors disabled:opacity-50 shadow-neo-sm active:shadow-none active:translate-x-[2px] active:translate-y-[2px]"
+                                >
+                                    {sendingPromo === member.id ? (
+                                        <RefreshCw className="w-4 h-4 animate-spin" />
+                                    ) : (
+                                        <Gift className="w-4 h-4" />
+                                    )}
+                                    <span className="hidden sm:inline">Kirim Promo</span>
+                                </button>
+                                <button
+                                    onClick={() => handleSendReminder(member)}
+                                    disabled={sendingReminder === member.id}
+                                    className="flex items-center gap-2 bg-brand-lime text-black border-[3px] border-black px-3 py-2 text-xs font-black uppercase hover:bg-black hover:text-brand-lime transition-colors disabled:opacity-50 shadow-neo-sm active:shadow-none active:translate-x-[2px] active:translate-y-[2px]"
+                                >
+                                    {sendingReminder === member.id ? (
+                                        <RefreshCw className="w-4 h-4 animate-spin" />
+                                    ) : (
+                                        <MessageCircle className="w-4 h-4" />
+                                    )}
+                                    <span className="hidden sm:inline">Reminder</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 ))}

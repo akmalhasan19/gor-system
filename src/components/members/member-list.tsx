@@ -7,11 +7,12 @@ import { NeoBadge } from "@/components/ui/neo-badge";
 import { MemberModal } from "@/components/members/member-modal";
 import { QRDisplay } from "@/components/members/qr-display";
 import { AtRiskMembers } from "@/components/members/at-risk-members";
+import { ExitSurveyStats } from "@/components/members/exit-survey-stats";
 import { exportMembersToCSV } from "@/lib/utils/csv-export";
 import { toast } from "sonner";
-import { Download, QrCode, Users, AlertTriangle } from "lucide-react";
+import { Download, QrCode, Users, AlertTriangle, ClipboardList } from "lucide-react";
 
-type MemberTab = 'list' | 'at-risk';
+type MemberTab = 'list' | 'at-risk' | 'exit-survey';
 
 export const MemberList = () => {
     const { customers } = useAppStore();
@@ -61,6 +62,7 @@ export const MemberList = () => {
     const tabs = [
         { id: 'list' as MemberTab, label: 'Daftar Member', icon: Users },
         { id: 'at-risk' as MemberTab, label: 'Member Berisiko', icon: AlertTriangle },
+        { id: 'exit-survey' as MemberTab, label: 'Exit Survey', icon: ClipboardList },
     ];
 
     return (
@@ -72,8 +74,8 @@ export const MemberList = () => {
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
                         className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 text-xs font-bold uppercase transition-all ${activeTab === tab.id
-                                ? 'bg-black text-white shadow-neo-sm'
-                                : 'bg-white text-gray-600 hover:bg-gray-50 border-2 border-transparent hover:border-gray-300'
+                            ? 'bg-black text-white shadow-neo-sm'
+                            : 'bg-white text-gray-600 hover:bg-gray-50 border-2 border-transparent hover:border-gray-300'
                             }`}
                     >
                         <tab.icon size={14} />
@@ -191,6 +193,8 @@ export const MemberList = () => {
             )}
 
             {activeTab === 'at-risk' && <AtRiskMembers />}
+
+            {activeTab === 'exit-survey' && <ExitSurveyStats />}
 
             <MemberModal
                 isOpen={isModalOpen}

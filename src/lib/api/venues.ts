@@ -8,6 +8,16 @@ export interface UserVenue {
     createdAt: string;
 }
 
+export interface WinbackConfiguration {
+    enabled?: boolean;
+    promo_code_prefix?: string;
+    promo_code_suffix_length?: number;
+    default_discount_percent?: number;
+    validity_days?: number;
+    auto_send_enabled?: boolean;
+    message_template?: string;
+}
+
 export interface Venue {
     id: string;
     name: string;
@@ -23,6 +33,8 @@ export interface Venue {
     waNotificationTime?: string; // "HH:MM"
     fonnteToken?: string;
     waTemplateReminder?: string;
+    // Win-back Promo Configuration
+    winbackConfiguration?: WinbackConfiguration;
 }
 
 export async function getVenues(): Promise<Venue[]> {
@@ -48,6 +60,7 @@ export async function getVenues(): Promise<Venue[]> {
         waNotificationTime: row.wa_notification_time,
         fonnteToken: row.fonnte_token,
         waTemplateReminder: row.wa_template_reminder,
+        winbackConfiguration: row.winback_configuration,
     }));
 }
 
@@ -74,6 +87,7 @@ export async function getVenueById(id: string): Promise<Venue | null> {
         waNotificationTime: data.wa_notification_time,
         fonnteToken: data.fonnte_token,
         waTemplateReminder: data.wa_template_reminder,
+        winbackConfiguration: data.winback_configuration,
     };
 }
 
@@ -135,6 +149,7 @@ export async function updateVenue(id: string, updates: Partial<Venue>): Promise<
     if (updates.waNotificationTime !== undefined) dbUpdates.wa_notification_time = updates.waNotificationTime;
     if (updates.fonnteToken !== undefined) dbUpdates.fonnte_token = updates.fonnteToken;
     if (updates.waTemplateReminder !== undefined) dbUpdates.wa_template_reminder = updates.waTemplateReminder;
+    if (updates.winbackConfiguration !== undefined) dbUpdates.winback_configuration = updates.winbackConfiguration;
 
     const { error } = await supabase
         .from('venues')
@@ -249,5 +264,6 @@ export async function getUserVenue(userId: string): Promise<Venue | null> {
         waNotificationTime: venue.wa_notification_time,
         fonnteToken: venue.fonnte_token,
         waTemplateReminder: venue.wa_template_reminder,
+        winbackConfiguration: venue.winback_configuration,
     };
 }

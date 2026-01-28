@@ -252,3 +252,231 @@ export async function getMemberActivityStats(
         averageMonthlyBookings: Math.round((bookingsLast90Days / 3) * 10) / 10,
     };
 }
+
+// ============================================
+// Win-back Promo Functions
+// ============================================
+
+export interface WinbackConfig {
+    enabled: boolean;
+    promo_code_prefix: string;
+    promo_code_suffix_length: number;
+    default_discount_percent: number;
+    validity_days: number;
+    auto_send_enabled: boolean;
+    message_template: string;
+}
+
+export interface WinbackPromoLog {
+    id: string;
+    venue_id: string;
+    customer_id: string;
+    risk_level: 'high' | 'medium' | 'low';
+    promo_code: string;
+    discount_percent: number;
+    valid_until: string;
+    message_content: string;
+    phone_number: string;
+    status: 'SENT' | 'FAILED' | 'REDEEMED' | 'EXPIRED';
+    sent_at: string;
+    redeemed_at?: string;
+    customer?: {
+        name: string;
+        phone: string;
+    };
+}
+
+/**
+ * Generate a promo code based on venue configuration
+ */
+export function generatePromoCode(config: WinbackConfig): string {
+    const prefix = config.promo_code_prefix || 'COMEBACK';
+    const suffixLength = config.promo_code_suffix_length || 6;
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Exclude confusing chars (0, O, 1, I)
+    let suffix = '';
+    for (let i = 0; i < suffixLength; i++) {
+        suffix += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return `${prefix}-${suffix}`;
+}
+
+/**
+ * Get venue's win-back configuration
+ */
+export async function getWinbackConfig(venueId: string): Promise<WinbackConfig | null> {
+    const { data, error } = await supabase
+        .from('venues')
+        .select('winback_configuration')
+        .eq('id', venueId)
+        .single();
+
+    if (error || !data) return null;
+    return data.winback_configuration as WinbackConfig;
+}
+
+/**
+ * Update venue's win-back configuration
+ */
+export async function updateWinbackConfig(
+    venueId: string,
+    config: Partial<WinbackConfig>
+): Promise<{ success: boolean; error?: string }> {
+    // Get current config first
+    const current = await getWinbackConfig(venueId);
+    const updatedConfig = { ...current, ...config };
+
+    const { error } = await supabase
+        .from('venues')
+        .update({ winback_configuration: updatedConfig })
+        .eq('id', venueId);
+
+    if (error) {
+        return { success: false, error: error.message };
+    }
+    return { success: true };
+}
+
+/**
+ * Send win-back promo to an at-risk member
+ */
+export async function sendWinbackPromo(
+    venueId: string,
+    member: AtRiskMember,
+    venueName: string,
+    config?: WinbackConfig
+): Promise<{ success: boolean; promoCode?: string; error?: string }> {
+    try {
+        // Get config if not provided
+        const winbackConfig = config || await getWinbackConfig(venueId);
+        if (!winbackConfig) {
+            return { success: false, error: 'Win-back configuration not found' };
+        }
+
+        // Generate promo code
+        const promoCode = generatePromoCode(winbackConfig);
+        const discountPercent = winbackConfig.default_discount_percent || 15;
+        const validityDays = winbackConfig.validity_days || 7;
+
+        // Calculate valid until date
+        const validUntil = new Date();
+        validUntil.setDate(validUntil.getDate() + validityDays);
+        const validUntilStr = format(validUntil, 'yyyy-MM-dd');
+        const validUntilFormatted = format(validUntil, 'dd MMMM yyyy');
+
+        // Generate message from template
+        let message = winbackConfig.message_template ||
+            'Halo {name}! 👋\n\nKami kangen sama kamu di {venue}! 🏸\n\nGunakan kode promo *{promo_code}* untuk dapat diskon *{discount}%* booking lapangan.\n\nBerlaku sampai {valid_until}.\n\nYuk main lagi! 💪';
+
+        message = message
+            .replace(/{name}/g, member.name)
+            .replace(/{venue}/g, venueName)
+            .replace(/{promo_code}/g, promoCode)
+            .replace(/{discount}/g, discountPercent.toString())
+            .replace(/{valid_until}/g, validUntilFormatted);
+
+        // Send WhatsApp message
+        const { sendWhatsAppMessage } = await import('./whatsapp');
+        const sendResult = await sendWhatsAppMessage({
+            phone: member.phone,
+            message,
+        });
+
+        // Log the promo
+        await supabase.from('winback_promo_logs').insert({
+            venue_id: venueId,
+            customer_id: member.id,
+            risk_level: member.riskLevel,
+            promo_code: promoCode,
+            discount_percent: discountPercent,
+            valid_until: validUntilStr,
+            message_content: message,
+            phone_number: member.phone,
+            status: sendResult.success ? 'SENT' : 'FAILED',
+            external_message_id: sendResult.messageId,
+            error_message: sendResult.error,
+            sent_at: sendResult.success ? new Date().toISOString() : null,
+        });
+
+        if (!sendResult.success) {
+            return { success: false, error: sendResult.error };
+        }
+
+        return { success: true, promoCode };
+    } catch (error) {
+        console.error('Failed to send win-back promo:', error);
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Unknown error',
+        };
+    }
+}
+
+/**
+ * Get win-back promo logs for a venue
+ */
+export async function getWinbackPromoLogs(
+    venueId: string,
+    limit: number = 50,
+    offset: number = 0
+): Promise<{ data: WinbackPromoLog[] | null; error: Error | null; count: number }> {
+    const { data, error, count } = await supabase
+        .from('winback_promo_logs')
+        .select(`
+            *,
+            customer:customers(name, phone)
+        `, { count: 'exact' })
+        .eq('venue_id', venueId)
+        .order('sent_at', { ascending: false })
+        .range(offset, offset + limit - 1);
+
+    return {
+        data: data as WinbackPromoLog[] | null,
+        error: error ? new Error(error.message) : null,
+        count: count || 0,
+    };
+}
+
+/**
+ * Mark a promo code as redeemed
+ */
+export async function redeemPromoCode(
+    promoCode: string,
+    venueId: string
+): Promise<{ success: boolean; discount_percent?: number; error?: string }> {
+    // Find the promo
+    const { data: promo, error: findError } = await supabase
+        .from('winback_promo_logs')
+        .select('*')
+        .eq('promo_code', promoCode)
+        .eq('venue_id', venueId)
+        .eq('status', 'SENT')
+        .single();
+
+    if (findError || !promo) {
+        return { success: false, error: 'Promo code not found or already used' };
+    }
+
+    // Check if expired
+    if (new Date(promo.valid_until) < new Date()) {
+        await supabase
+            .from('winback_promo_logs')
+            .update({ status: 'EXPIRED' })
+            .eq('id', promo.id);
+        return { success: false, error: 'Promo code has expired' };
+    }
+
+    // Mark as redeemed
+    const { error: updateError } = await supabase
+        .from('winback_promo_logs')
+        .update({
+            status: 'REDEEMED',
+            redeemed_at: new Date().toISOString(),
+        })
+        .eq('id', promo.id);
+
+    if (updateError) {
+        return { success: false, error: updateError.message };
+    }
+
+    return { success: true, discount_percent: promo.discount_percent };
+}

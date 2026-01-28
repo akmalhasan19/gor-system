@@ -3,12 +3,13 @@
 import React, { useState } from "react";
 import { CourtSettings } from "./court-settings";
 import { OperationalSettings } from "./operational-settings";
-import { Settings as SettingsIcon, LayoutGrid, Clock } from "lucide-react";
+import { MaintenanceSettings } from "./maintenance-settings";
+import { Settings as SettingsIcon, LayoutGrid, Clock, Wrench } from "lucide-react";
 
 import { ReminderSettingsForm } from "./reminder-settings-form";
 
 export const SettingsView = () => {
-    const [tab, setTab] = useState<'courts' | 'operational' | 'reminders'>('operational');
+    const [tab, setTab] = useState<'courts' | 'operational' | 'reminders' | 'maintenance'>('operational');
 
     return (
         <div className="flex flex-col gap-4">
@@ -43,6 +44,16 @@ export const SettingsView = () => {
                     <Clock size={16} />
                     Reminder
                 </button>
+                <button
+                    onClick={() => setTab('maintenance')}
+                    className={`px-4 py-2 font-black uppercase text-sm flex items-center gap-2 border-b-2 transition-all whitespace-nowrap ${tab === 'maintenance'
+                        ? 'border-black text-black'
+                        : 'border-transparent text-gray-400 hover:text-gray-600'
+                        }`}
+                >
+                    <Wrench size={16} />
+                    Maintenance
+                </button>
             </div>
 
             <div className="mt-2 text-sm">
@@ -57,7 +68,9 @@ export const SettingsView = () => {
                         <ReminderSettingsForm />
                     </div>
                 )}
+                {tab === 'maintenance' && <MaintenanceSettings />}
             </div>
         </div>
     );
 };
+

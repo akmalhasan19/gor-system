@@ -137,6 +137,90 @@ export const OperationalSettings = () => {
                         </div>
                     </div>
                 </div>
+
+                {/* Win-back Promo Settings */}
+                <div className="bg-white border-2 border-black p-4 shadow-neo flex flex-col gap-4">
+                    <div className="flex items-center gap-3 border-b-2 border-gray-100 pb-2">
+                        <div className="bg-purple-100 p-2 rounded-full border-2 border-black">
+                            <ShieldAlert size={20} className="text-purple-600" />
+                        </div>
+                        <h3 className="text-lg font-black uppercase">Win-back Promo</h3>
+                    </div>
+                    <div className="flex flex-col gap-4">
+                        <p className="text-xs text-gray-500 font-bold">
+                            Konfigurasi promo untuk menarik kembali member yang berisiko churn.
+                        </p>
+
+                        {/* Promo Code Prefix */}
+                        <div className="flex flex-col gap-1">
+                            <label className="text-xs font-bold uppercase text-gray-600">Prefix Kode Promo</label>
+                            <input
+                                type="text"
+                                placeholder="COMEBACK"
+                                defaultValue={currentVenue.winbackConfiguration?.promo_code_prefix || 'COMEBACK'}
+                                onBlur={(e) => handleUpdate('winbackConfiguration', {
+                                    ...currentVenue.winbackConfiguration,
+                                    promo_code_prefix: e.target.value
+                                })}
+                                className="border-2 border-black p-2 font-bold text-sm"
+                            />
+                            <p className="text-[10px] text-gray-400 italic">
+                                Contoh hasil: COMEBACK-ABC123
+                            </p>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            {/* Default Discount */}
+                            <div className="flex flex-col gap-1">
+                                <label className="text-xs font-bold uppercase text-gray-600">Diskon (%)</label>
+                                <input
+                                    type="number"
+                                    min="5"
+                                    max="50"
+                                    defaultValue={currentVenue.winbackConfiguration?.default_discount_percent || 15}
+                                    onBlur={(e) => handleUpdate('winbackConfiguration', {
+                                        ...currentVenue.winbackConfiguration,
+                                        default_discount_percent: parseInt(e.target.value)
+                                    })}
+                                    className="border-2 border-black p-2 font-bold text-sm"
+                                />
+                            </div>
+
+                            {/* Validity Days */}
+                            <div className="flex flex-col gap-1">
+                                <label className="text-xs font-bold uppercase text-gray-600">Berlaku (Hari)</label>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    max="30"
+                                    defaultValue={currentVenue.winbackConfiguration?.validity_days || 7}
+                                    onBlur={(e) => handleUpdate('winbackConfiguration', {
+                                        ...currentVenue.winbackConfiguration,
+                                        validity_days: parseInt(e.target.value)
+                                    })}
+                                    className="border-2 border-black p-2 font-bold text-sm"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Message Template */}
+                        <div className="flex flex-col gap-1">
+                            <label className="text-xs font-bold uppercase text-gray-600">Template Pesan Win-back</label>
+                            <textarea
+                                placeholder="Halo {name}! 👋 Gunakan kode promo *{promo_code}*..."
+                                defaultValue={currentVenue.winbackConfiguration?.message_template || 'Halo {name}! 👋\n\nKami kangen sama kamu di {venue}! 🏸\n\nGunakan kode promo *{promo_code}* untuk dapat diskon *{discount}%* booking lapangan.\n\nBerlaku sampai {valid_until}.\n\nYuk main lagi! 💪'}
+                                onBlur={(e) => handleUpdate('winbackConfiguration', {
+                                    ...currentVenue.winbackConfiguration,
+                                    message_template: e.target.value
+                                })}
+                                className="border-2 border-black p-2 font-bold w-full text-sm h-32"
+                            />
+                            <p className="text-[10px] text-gray-400 italic">
+                                Variable: <b>{'{name}'}</b>, <b>{'{venue}'}</b>, <b>{'{promo_code}'}</b>, <b>{'{discount}'}</b>, <b>{'{valid_until}'}</b>
+                            </p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     );

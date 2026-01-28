@@ -40,6 +40,7 @@ import { SettingsView } from "@/components/settings/settings-view";
 import { PackagePlus } from "lucide-react";
 import { toast } from "sonner";
 import { useRealtimeSubscription } from "@/lib/hooks/use-realtime-subscription";
+import { getMaintenanceTasks, MaintenanceTask } from "@/lib/api/maintenance";
 
 export default function Home() {
   // Enable realtime subscriptions
@@ -68,6 +69,23 @@ export default function Home() {
       syncBookings(currentVenueId, selectedDate);
     }
   }, [currentVenueId, selectedDate, syncCourts, syncBookings]);
+
+  // State for maintenance tasks
+  const [maintenanceTasks, setMaintenanceTasks] = useState<MaintenanceTask[]>([]);
+
+  // Fetch maintenance tasks when venue or date changes
+  useEffect(() => {
+    const fetchMaintenance = async () => {
+      if (!currentVenueId) return;
+      try {
+        const tasks = await getMaintenanceTasks(currentVenueId, selectedDate);
+        setMaintenanceTasks(tasks);
+      } catch (error) {
+        console.error('Failed to fetch maintenance tasks:', error);
+      }
+    };
+    fetchMaintenance();
+  }, [currentVenueId, selectedDate]);
 
   const [bookingInitialData, setBookingInitialData] = useState<{ courtId: string; time: number } | null>(null);
 
@@ -302,6 +320,7 @@ export default function Home() {
             <Scheduler
               bookings={bookings}
               courts={courts}
+              maintenanceTasks={maintenanceTasks}
               onSlotClick={handleSlotClick}
               onBookingClick={handleBookingClick}
               operatingHoursStart={currentVenue?.operatingHoursStart}

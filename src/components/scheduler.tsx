@@ -6,12 +6,14 @@ import { Booking, Court, OPERATIONAL_HOURS } from "@/lib/constants";
 import { useAppStore } from "@/lib/store";
 import { useVenue } from "@/lib/venue-context";
 import { NeoBadge } from "@/components/ui/neo-badge";
-import { MessageSquare, Trash2 } from "lucide-react";
+import { MessageSquare, Trash2, Wrench } from "lucide-react";
 import { AlertDialog } from "@/components/ui/alert-dialog";
+import { MaintenanceTask, isSlotBlockedByMaintenance } from "@/lib/api/maintenance";
 
 interface SchedulerProps {
     bookings: Booking[];
     courts: Court[];
+    maintenanceTasks?: MaintenanceTask[];
     onSlotClick?: (courtId: string, hour: number) => void;
     onBookingClick?: (booking: Booking) => void;
     readOnly?: boolean;
@@ -22,6 +24,7 @@ interface SchedulerProps {
 export const Scheduler: React.FC<SchedulerProps> = ({
     bookings,
     courts,
+    maintenanceTasks = [],
     onSlotClick,
     onBookingClick,
     readOnly = false,
@@ -318,6 +321,21 @@ export const Scheduler: React.FC<SchedulerProps> = ({
                                         className="min-w-[150px] flex-1 border-r-2 border-black last:border-r-0 p-1 min-h-[50px] bg-gray-50 flex items-center justify-center"
                                     >
                                         <span className="text-[10px] text-gray-400 font-bold">KOSONG</span>
+                                    </div>
+                                );
+                            }
+
+                            // Check for maintenance block
+                            const maintenanceBlock = isSlotBlockedByMaintenance(maintenanceTasks, court.id, hour);
+                            if (maintenanceBlock) {
+                                return (
+                                    <div
+                                        key={court.id}
+                                        className="min-w-[150px] flex-1 border-r-2 border-black last:border-r-0 p-1 min-h-[50px] bg-gray-300 bg-[linear-gradient(45deg,#00000015_25%,transparent_25%,transparent_50%,#00000015_50%,#00000015_75%,transparent_75%,transparent)] bg-[length:10px_10px] flex flex-col items-center justify-center cursor-not-allowed"
+                                        title={`Maintenance: ${maintenanceBlock.maintenanceType}`}
+                                    >
+                                        <Wrench size={14} className="text-gray-600" />
+                                        <span className="text-[8px] font-bold text-gray-600 uppercase mt-0.5">Maintenance</span>
                                     </div>
                                 );
                             }

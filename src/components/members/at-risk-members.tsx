@@ -60,6 +60,36 @@ export function AtRiskMembers() {
     const handleSendReminder = async (member: AtRiskMember) => {
         if (!currentVenueId || !currentVenue) return;
 
+        // Check if Fonnte token is configured
+        if (!currentVenue.fonnteToken) {
+            toast.custom((t) => (
+                <div className="bg-yellow-400 border-[3px] border-black p-4 shadow-neo max-w-sm">
+                    <div className="flex items-start gap-3">
+                        <div className="bg-black text-yellow-400 p-2 border-2 border-black flex-shrink-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                                <line x1="12" y1="9" x2="12" y2="13" />
+                                <line x1="12" y1="17" x2="12.01" y2="17" />
+                            </svg>
+                        </div>
+                        <div className="flex-1">
+                            <h4 className="font-black text-black uppercase text-sm mb-1">Token Fonnte Belum Diatur!</h4>
+                            <p className="text-xs text-black font-medium mb-3">
+                                Silakan masukkan Token Fonnte di menu <b>Pengaturan → Operasional</b> untuk mengaktifkan fitur kirim WhatsApp otomatis.
+                            </p>
+                            <button
+                                onClick={() => toast.dismiss(t)}
+                                className="bg-black text-yellow-400 px-3 py-1 text-xs font-black uppercase border-2 border-black hover:bg-gray-800 transition-colors"
+                            >
+                                Mengerti
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            ), { duration: 8000 });
+            return;
+        }
+
         setSendingReminder(member.id);
         try {
             const result = await sendManualReminder(
@@ -75,7 +105,32 @@ export function AtRiskMembers() {
             if (result.success) {
                 toast.success(`Reminder terkirim ke ${member.name}`);
             } else {
-                toast.error(`Gagal kirim reminder: ${result.error}`);
+                // Show Neo-brutalist error for other failures
+                toast.custom((t) => (
+                    <div className="bg-red-500 border-[3px] border-black p-4 shadow-neo max-w-sm">
+                        <div className="flex items-start gap-3">
+                            <div className="bg-black text-red-500 p-2 border-2 border-black flex-shrink-0">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                    <circle cx="12" cy="12" r="10" />
+                                    <line x1="15" y1="9" x2="9" y2="15" />
+                                    <line x1="9" y1="9" x2="15" y2="15" />
+                                </svg>
+                            </div>
+                            <div className="flex-1">
+                                <h4 className="font-black text-white uppercase text-sm mb-1">Gagal Kirim Reminder</h4>
+                                <p className="text-xs text-white font-medium mb-3">
+                                    {result.error || 'Terjadi kesalahan saat mengirim pesan.'}
+                                </p>
+                                <button
+                                    onClick={() => toast.dismiss(t)}
+                                    className="bg-black text-red-500 px-3 py-1 text-xs font-black uppercase border-2 border-black hover:bg-gray-800 transition-colors"
+                                >
+                                    Tutup
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                ), { duration: 6000 });
             }
         } catch (error) {
             toast.error("Gagal mengirim reminder");

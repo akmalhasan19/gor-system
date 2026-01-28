@@ -50,11 +50,13 @@ DROP POLICY IF EXISTS "Owners can delete venue associations" ON user_venues;
 
 -- SELECT: 
 -- A. View Own Rows (Always allowed)
+DROP POLICY IF EXISTS "View Own Rows" ON user_venues;
 CREATE POLICY "View Own Rows"
     ON user_venues FOR SELECT
     USING (auth.uid() = user_id);
 
 -- B. View Teammates (Allowed if we share a venue)
+DROP POLICY IF EXISTS "View Teammates" ON user_venues;
 CREATE POLICY "View Teammates"
     ON user_venues FOR SELECT
     USING (venue_id IN (SELECT get_my_venue_ids()));
@@ -62,6 +64,7 @@ CREATE POLICY "View Teammates"
 -- INSERT: 
 -- A. Onboarding (Adding self)
 -- B. Inviting (Owner adding others)
+DROP POLICY IF EXISTS "Insert Membership" ON user_venues;
 CREATE POLICY "Insert Membership"
     ON user_venues FOR INSERT
     WITH CHECK (
@@ -72,12 +75,14 @@ CREATE POLICY "Insert Membership"
 
 -- UPDATE:
 -- Only Owners can update members in their venue
+DROP POLICY IF EXISTS "Update Membership" ON user_venues;
 CREATE POLICY "Update Membership"
     ON user_venues FOR UPDATE
     USING (is_venue_owner(venue_id)); -- Security Definer check
 
 -- DELETE:
 -- Only Owners can delete members in their venue
+DROP POLICY IF EXISTS "Delete Membership" ON user_venues;
 CREATE POLICY "Delete Membership"
     ON user_venues FOR DELETE
     USING (is_venue_owner(venue_id)); -- Security Definer check

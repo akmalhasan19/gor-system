@@ -31,6 +31,53 @@ export interface ReminderStats {
     pending: number;
 }
 
+export interface ReminderConfig {
+    warnings: {
+        days_before: number;
+        enabled: boolean;
+    }[];
+    expired_message_enabled: boolean;
+}
+
+/**
+ * Get venue reminder settings
+ */
+export async function getVenueSettings(venueId: string): Promise<{ data: ReminderConfig | null; error: Error | null }> {
+    const { data, error } = await supabase
+        .from('venues')
+        .select('reminder_configuration')
+        .eq('id', venueId)
+        .single();
+
+    if (error) {
+        return { data: null, error: new Error(error.message) };
+    }
+
+    return {
+        data: data.reminder_configuration as ReminderConfig,
+        error: null
+    };
+}
+
+/**
+ * Update venue reminder settings
+ */
+export async function updateVenueSettings(
+    venueId: string,
+    settings: ReminderConfig
+): Promise<{ success: boolean; error: Error | null }> {
+    const { error } = await supabase
+        .from('venues')
+        .update({ reminder_configuration: settings })
+        .eq('id', venueId);
+
+    if (error) {
+        return { success: false, error: new Error(error.message) };
+    }
+
+    return { success: true, error: null };
+}
+
 /**
  * Get reminder logs for a venue
  */

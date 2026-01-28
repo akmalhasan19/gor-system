@@ -139,6 +139,8 @@ export const OperationalSettings = () => {
                     </div>
                 </div>
 
+
+
                 {/* Manual Triggers (For Testing) */}
                 <div className="bg-white border-2 border-black p-4 shadow-neo flex flex-col gap-4">
                     <div className="flex items-center gap-3 border-b-2 border-gray-100 pb-2">

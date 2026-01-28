@@ -34,11 +34,12 @@ interface ReminderResult {
 
 // Generate message based on reminder type
 function generateMessage(
-    type: '30_DAYS' | '7_DAYS' | 'EXPIRED',
+    type: 'WARNING' | 'EXPIRED' | '30_DAYS' | '7_DAYS', // Backward compatibility
     customerName: string,
     expiryDate: string,
     venueName: string,
-    quotaRemaining: number
+    quotaRemaining: number,
+    daysBefore: number = 0
 ): string {
     const formattedDate = new Date(expiryDate).toLocaleDateString('id-ID', {
         weekday: 'long',
@@ -47,19 +48,12 @@ function generateMessage(
         day: 'numeric'
     })
 
-    switch (type) {
-        case '30_DAYS':
-            return `Halo ${customerName}! 👋\n\nIni adalah pengingat bahwa membership Anda di *${venueName}* akan berakhir pada *${formattedDate}*.\n\n${quotaRemaining > 0 ? `Anda masih memiliki *${quotaRemaining} sisa quota*.` : ''}\n\nPerpanjang sekarang untuk terus menikmati harga khusus member! 🏸\n\nTerima kasih! 🙏`
-
-        case '7_DAYS':
-            return `⏰ *PENGINGAT PENTING* ⏰\n\nHalo ${customerName}!\n\nMembership Anda di *${venueName}* akan berakhir dalam *7 HARI* (${formattedDate}).\n\n${quotaRemaining > 0 ? `⚠️ Anda masih memiliki *${quotaRemaining} sisa quota* yang AKAN HANGUS!` : ''}\n\nJangan sampai kelewatan! Perpanjang sekarang! 📞`
-
-        case 'EXPIRED':
-            return `Halo ${customerName},\n\nMembership Anda di *${venueName}* sudah *BERAKHIR* pada ${formattedDate}.\n\nKami sangat berharap Anda bisa kembali bergabung! 🏸\n\nHubungi kami untuk info perpanjangan dan promo khusus member lama.\n\nSampai jumpa kembali! 👋`
-
-        default:
-            return `Halo ${customerName}, ini adalah pengingat dari ${venueName}.`
+    if (type === 'EXPIRED') {
+        return `Halo ${customerName},\n\nMembership Anda di *${venueName}* sudah *BERAKHIR* pada ${formattedDate}.\n\nKami sangat berharap Anda bisa kembali bergabung! 🏸\n\nHubungi kami untuk info perpanjangan dan promo khusus member lama.\n\nSampai jumpa kembali! 👋`
     }
+
+    // Generic warning message
+    return `⏰ *PENGINGAT MEMBER* ⏰\n\nHalo ${customerName}!\n\nMembership Anda di *${venueName}* akan berakhir dalam *${daysBefore} HARI* (${formattedDate}).\n\n${quotaRemaining > 0 ? `⚠️ Anda masih memiliki *${quotaRemaining} sisa quota*.\n` : ''}\nPerpanjang sekarang sebelum harga naik! 🏸\n\nTerima kasih! 🙏`
 }
 
 // Format phone number to international format
@@ -141,138 +135,128 @@ Deno.serve(async (req) => {
 
         const results: ReminderResult[] = []
 
-        // Get all venues
+        // Query 1: Get all venues with their settings
         const { data: venues, error: venuesError } = await supabase
             .from('venues')
-            .select('id, name')
+            .select('id, name, reminder_configuration')
+            .eq('is_active', true)
 
-        if (venuesError) {
-            throw venuesError
-        }
+        if (venuesError) throw venuesError
 
-        const venueMap = new Map<string, string>()
-        venues?.forEach((v: Venue) => venueMap.set(v.id, v.name))
+        for (const venue of venues) {
+            const config = venue.reminder_configuration as {
+                warnings?: { days_before: number, enabled: boolean }[],
+                expired_message_enabled?: boolean
+            } || { warnings: [], expired_message_enabled: true } // Default fallback
 
-        // Query 1: Members expiring in exactly 30 days
-        const { data: expiring30, error: error30 } = await supabase
-            .from('customers')
-            .select('*')
-            .eq('is_member', true)
-            .eq('membership_expiry', in30DaysStr)
+            // 1. Process Warnings (e.g. 30 days, 7 days before)
+            if (config.warnings && Array.isArray(config.warnings)) {
+                for (const warning of config.warnings) {
+                    if (!warning.enabled) continue
 
-        if (!error30 && expiring30) {
-            for (const customer of expiring30) {
-                const venueName = venueMap.get(customer.venue_id) || 'Venue Anda'
-                const message = generateMessage('30_DAYS', customer.name, customer.membership_expiry, venueName, customer.quota || 0)
+                    const targetDate = new Date(today)
+                    targetDate.setDate(targetDate.getDate() + warning.days_before)
+                    const targetDateStr = targetDate.toISOString().split('T')[0]
 
-                const sendResult = await sendWhatsApp(customer.phone, message, fonnteToken)
+                    // Find members expiring on this specific date
+                    const { data: expiringMembers, error: memberError } = await supabase
+                        .from('customers')
+                        .select('*')
+                        .eq('venue_id', venue.id)
+                        .eq('is_member', true)
+                        .eq('membership_expiry', targetDateStr)
 
-                // Log to reminder_logs
-                await supabase.from('reminder_logs').insert({
-                    venue_id: customer.venue_id,
-                    customer_id: customer.id,
-                    reminder_type: '30_DAYS',
-                    channel: 'WHATSAPP',
-                    message_content: message,
-                    phone_number: customer.phone,
-                    status: sendResult.success ? 'SENT' : 'FAILED',
-                    external_message_id: sendResult.messageId,
-                    error_message: sendResult.error,
-                    sent_at: sendResult.success ? new Date().toISOString() : null
-                })
+                    if (!memberError && expiringMembers && expiringMembers.length > 0) {
+                        for (const customer of expiringMembers) {
+                            const message = generateMessage(
+                                'WARNING',
+                                customer.name,
+                                customer.membership_expiry,
+                                venue.name,
+                                customer.quota || 0,
+                                warning.days_before
+                            )
 
-                results.push({
-                    customerId: customer.id,
-                    customerName: customer.name,
-                    reminderType: '30_DAYS',
-                    status: sendResult.success ? 'SENT' : 'FAILED',
-                    error: sendResult.error
-                })
+                            const sendResult = await sendWhatsApp(customer.phone, message, fonnteToken)
 
-                // Rate limiting delay
-                await new Promise(resolve => setTimeout(resolve, 1000))
+                            // Log
+                            await supabase.from('reminder_logs').insert({
+                                venue_id: venue.id,
+                                customer_id: customer.id,
+                                reminder_type: `${warning.days_before}_DAYS`,
+                                channel: 'WHATSAPP',
+                                message_content: message,
+                                phone_number: customer.phone,
+                                status: sendResult.success ? 'SENT' : 'FAILED',
+                                external_message_id: sendResult.messageId,
+                                error_message: sendResult.error,
+                                sent_at: sendResult.success ? new Date().toISOString() : null
+                            })
+
+                            results.push({
+                                customerId: customer.id,
+                                customerName: customer.name,
+                                reminderType: `${warning.days_before}_DAYS` as any,
+                                status: sendResult.success ? 'SENT' : 'FAILED',
+                                error: sendResult.error
+                            })
+
+                            // Rate limit
+                            await new Promise(resolve => setTimeout(resolve, 1000))
+                        }
+                    }
+                }
             }
-        }
 
-        // Query 2: Members expiring in exactly 7 days
-        const { data: expiring7, error: error7 } = await supabase
-            .from('customers')
-            .select('*')
-            .eq('is_member', true)
-            .eq('membership_expiry', in7DaysStr)
+            // 2. Process Expired (Yesterday)
+            if (config.expired_message_enabled !== false) {
+                const yesterday = new Date(today)
+                yesterday.setDate(yesterday.getDate() - 1)
+                const yesterdayStr = yesterday.toISOString().split('T')[0]
 
-        if (!error7 && expiring7) {
-            for (const customer of expiring7) {
-                const venueName = venueMap.get(customer.venue_id) || 'Venue Anda'
-                const message = generateMessage('7_DAYS', customer.name, customer.membership_expiry, venueName, customer.quota || 0)
+                const { data: expiredMembers, error: expiredError } = await supabase
+                    .from('customers')
+                    .select('*')
+                    .eq('venue_id', venue.id)
+                    .eq('is_member', true)
+                    .eq('membership_expiry', yesterdayStr)
 
-                const sendResult = await sendWhatsApp(customer.phone, message, fonnteToken)
+                if (!expiredError && expiredMembers && expiredMembers.length > 0) {
+                    for (const customer of expiredMembers) {
+                        const message = generateMessage(
+                            'EXPIRED',
+                            customer.name,
+                            customer.membership_expiry,
+                            venue.name,
+                            customer.quota || 0
+                        )
 
-                await supabase.from('reminder_logs').insert({
-                    venue_id: customer.venue_id,
-                    customer_id: customer.id,
-                    reminder_type: '7_DAYS',
-                    channel: 'WHATSAPP',
-                    message_content: message,
-                    phone_number: customer.phone,
-                    status: sendResult.success ? 'SENT' : 'FAILED',
-                    external_message_id: sendResult.messageId,
-                    error_message: sendResult.error,
-                    sent_at: sendResult.success ? new Date().toISOString() : null
-                })
+                        const sendResult = await sendWhatsApp(customer.phone, message, fonnteToken)
 
-                results.push({
-                    customerId: customer.id,
-                    customerName: customer.name,
-                    reminderType: '7_DAYS',
-                    status: sendResult.success ? 'SENT' : 'FAILED',
-                    error: sendResult.error
-                })
+                        await supabase.from('reminder_logs').insert({
+                            venue_id: venue.id,
+                            customer_id: customer.id,
+                            reminder_type: 'EXPIRED',
+                            channel: 'WHATSAPP',
+                            message_content: message,
+                            phone_number: customer.phone,
+                            status: sendResult.success ? 'SENT' : 'FAILED',
+                            external_message_id: sendResult.messageId,
+                            error_message: sendResult.error,
+                            sent_at: sendResult.success ? new Date().toISOString() : null
+                        })
 
-                await new Promise(resolve => setTimeout(resolve, 1000))
-            }
-        }
+                        results.push({
+                            customerId: customer.id,
+                            customerName: customer.name,
+                            reminderType: 'EXPIRED',
+                            status: sendResult.success ? 'SENT' : 'FAILED',
+                            error: sendResult.error
+                        })
 
-        // Query 3: Members expired yesterday (just expired notification)
-        const yesterday = new Date(today)
-        yesterday.setDate(yesterday.getDate() - 1)
-        const yesterdayStr = yesterday.toISOString().split('T')[0]
-
-        const { data: expired, error: errorExpired } = await supabase
-            .from('customers')
-            .select('*')
-            .eq('is_member', true)
-            .eq('membership_expiry', yesterdayStr)
-
-        if (!errorExpired && expired) {
-            for (const customer of expired) {
-                const venueName = venueMap.get(customer.venue_id) || 'Venue Anda'
-                const message = generateMessage('EXPIRED', customer.name, customer.membership_expiry, venueName, customer.quota || 0)
-
-                const sendResult = await sendWhatsApp(customer.phone, message, fonnteToken)
-
-                await supabase.from('reminder_logs').insert({
-                    venue_id: customer.venue_id,
-                    customer_id: customer.id,
-                    reminder_type: 'EXPIRED',
-                    channel: 'WHATSAPP',
-                    message_content: message,
-                    phone_number: customer.phone,
-                    status: sendResult.success ? 'SENT' : 'FAILED',
-                    external_message_id: sendResult.messageId,
-                    error_message: sendResult.error,
-                    sent_at: sendResult.success ? new Date().toISOString() : null
-                })
-
-                results.push({
-                    customerId: customer.id,
-                    customerName: customer.name,
-                    reminderType: 'EXPIRED',
-                    status: sendResult.success ? 'SENT' : 'FAILED',
-                    error: sendResult.error
-                })
-
-                await new Promise(resolve => setTimeout(resolve, 1000))
+                        await new Promise(resolve => setTimeout(resolve, 1000))
+                    }
+                }
             }
         }
 

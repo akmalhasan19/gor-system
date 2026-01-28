@@ -52,18 +52,21 @@
 
 - [x] Create admin page untuk view reminder history ✅
 - [x] Manual trigger untuk send reminder ke specific member ✅
-- [ ] Settings page untuk configure reminder timing (30d, 7d, etc)
+- [x] Settings page untuk configure reminder timing (30d, 7d, etc) ✅
 - [x] Preview message template sebelum send ✅
 
 **File Baru:**
 - `supabase/functions/check-expiring-members/index.ts` ✅ (NEW)
 - `supabase/migrations/20260128_create_reminder_logs.sql` ✅ (NEW)
 - `supabase/migrations/20260128_schedule_reminder_cron.sql` ✅ (NEW)
+- `supabase/migrations/20260128120000_add_reminder_config.sql` ✅ (NEW)
 - `src/lib/api/whatsapp.ts` ✅ (NEW)
 - `src/lib/api/reminders.ts` ✅ (NEW)
 - `src/components/admin/reminder-history.tsx` ✅ (NEW)
+- `src/app/admin/settings/reminders/page.tsx` ✅ (NEW)
+- `src/components/settings/reminder-settings-form.tsx` ✅ (NEW)
 
-**Status:** ✅ **SELESAI** - Core features implemented (28 Jan 2026)
+**Status:** ✅ **SELESAI** - All features implemented (28 Jan 2026)
 
 ---
 

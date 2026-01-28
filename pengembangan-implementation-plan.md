@@ -50,9 +50,9 @@
 
 #### Frontend
 
-- [x] Create admin page untuk view reminder history ✅
+- [x] View reminder history (Menu **Pengaturan** → tab **Reminder**) ✅
 - [x] Manual trigger untuk send reminder ke specific member ✅
-- [x] Settings page untuk configure reminder timing (30d, 7d, etc) ✅
+- [x] Settings untuk configure reminder timing (30d, 7d, etc) ✅
 - [x] Preview message template sebelum send ✅
 
 **File Baru:**
@@ -63,8 +63,8 @@
 - `src/lib/api/whatsapp.ts` ✅ (NEW)
 - `src/lib/api/reminders.ts` ✅ (NEW)
 - `src/components/admin/reminder-history.tsx` ✅ (NEW)
-- `src/app/admin/settings/reminders/page.tsx` ✅ (NEW)
 - `src/components/settings/reminder-settings-form.tsx` ✅ (NEW)
+  - *Terintegrasi ke Menu **Pengaturan***
 
 **Status:** ✅ **SELESAI** - All features implemented (28 Jan 2026)
 
@@ -123,19 +123,24 @@
 
 #### Analytics Dashboard
 
-- [ ] Create analytics page `/admin/analytics`
-- [ ] Chart: Revenue per hari (7 hari, 30 hari, 90 hari)
-- [ ] Chart: Occupancy rate per jam (heatmap)
-- [ ] Chart: Revenue breakdown by court
-- [ ] Chart: Member vs Walk-in ratio
-- [ ] Table: Top 10 pelanggan (by total spending)
-- [ ] Identify peak hours vs off-peak hours
+- [x] Create analytics dashboard ✅ → **Menu "Laporan" → Tab "Analytics"**
+- [x] Chart: Revenue per hari (7 hari, 30 hari, 90 hari) ✅
+- [x] Chart: Occupancy rate per jam (heatmap) ✅
+- [x] Chart: Revenue breakdown by court ✅
+- [x] Chart: Member vs Walk-in ratio ✅
+- [x] Table: Top 10 pelanggan (by total spending) ✅
+- [x] Identify peak hours vs off-peak hours ✅
 
 **File Baru:**
-- `src/app/admin/analytics/page.tsx` (NEW)
-- `src/components/analytics/revenue-chart.tsx` (NEW)
-- `src/components/analytics/occupancy-heatmap.tsx` (NEW)
-- `src/lib/api/analytics.ts` (NEW)
+- `src/lib/api/analytics.ts` ✅ (NEW)
+- `src/components/analytics/revenue-chart.tsx` ✅ (NEW)
+- `src/components/analytics/occupancy-heatmap.tsx` ✅ (NEW)
+- `src/components/analytics/court-revenue-chart.tsx` ✅ (NEW)
+- `src/components/analytics/member-ratio-chart.tsx` ✅ (NEW)
+- `src/components/analytics/top-customers-table.tsx` ✅ (NEW)
+  - *Terintegrasi ke `reports-view.tsx` (Menu Laporan)*
+
+**Status:** ✅ **SELESAI** - Analytics Dashboard Implemented (28 Jan 2026)
 
 #### Dynamic Pricing (Future Enhancement)
 
@@ -153,22 +158,27 @@
 
 **Tujuan:** Identifikasi member yang mulai inactive dan proactive retention
 
-- [ ] Create function untuk track member activity pattern
-  - [ ] Last booking date
-  - [ ] Average frequency (bookings per month)
-  - [ ] Trend: increasing or decreasing?
-- [ ] Define "at-risk" criteria:
-  - [ ] Member tidak booking 30+ hari (used to book weekly)
-  - [ ] Frequency menurun >50% dari average
-  - [ ] Quota tidak terpakai mendekati expiry
-- [ ] Admin dashboard untuk "At-Risk Members"
-- [ ] Send win-back promo otomatis
-- [ ] Exit survey saat membership tidak di-renew
+- [x] Create function untuk track member activity pattern ✅
+  - [x] Last booking date ✅
+  - [x] Average frequency (bookings per month) ✅
+  - [x] Trend: increasing or decreasing? ✅
+- [x] Define "at-risk" criteria: ✅
+  - [x] Member tidak booking 30+ hari (used to book weekly) ✅
+  - [x] Frequency menurun >50% dari average ✅
+  - [x] Quota tidak terpakai mendekati expiry ✅
+- [x] Dashboard "At-Risk Members" (Menu **Member** → Tab baru) ✅
+- [ ] Send win-back promo otomatis (Future Enhancement)
+- [ ] Exit survey saat membership tidak di-renew (Future Enhancement)
 
 **File Baru:**
-- `src/app/admin/retention/page.tsx` (NEW)
-- `src/lib/api/churn-prediction.ts` (NEW)
-- `supabase/functions/calculate-churn-risk/index.ts` (NEW)
+- `src/components/members/at-risk-members.tsx` ✅ (NEW) — *Tab di Menu Member*
+- `src/lib/api/churn-prediction.ts` ✅ (NEW)
+- `supabase/migrations/20260128150000_churn_analysis.sql` ✅ (NEW)
+
+**File yang Dimodifikasi:**
+- `src/components/members/member-list.tsx` ✅ (Tab system added)
+
+**Status:** ✅ **SELESAI** - Core churn prediction implemented (28 Jan 2026)
 
 ---
 
@@ -194,14 +204,14 @@
 
 #### Frontend
 
-- [ ] Settings page untuk define maintenance schedule per court
-- [ ] Calendar view untuk maintenance tasks
+- [ ] Settings untuk define maintenance schedule per court (Menu **Pengaturan** → Tab baru)
+- [ ] Calendar view untuk maintenance tasks (Menu **Jadwal** → Panel/Modal)
 - [ ] Auto-block booking slots saat maintenance
 - [ ] Reminder notification 7 days before due
 - [ ] Maintenance history & cost tracking
 
 **File Baru:**
-- `src/app/admin/maintenance/page.tsx` (NEW)
+- `src/components/settings/maintenance-settings.tsx` (NEW) — *Tab di Menu Pengaturan*
 - `src/components/maintenance/schedule-calendar.tsx` (NEW)
 - `src/components/maintenance/maintenance-form.tsx` (NEW)
 

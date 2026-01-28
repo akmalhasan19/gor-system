@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- Neo-brutalist style: bold strokes, geometric shapes, slight offset shadows -->
+  
+  <!-- Shadow layer -->
+  <rect x="6" y="18" width="52" height="36" rx="2" fill="black"/>
+  
+  <!-- Main calendar/booking card -->
+  <rect x="4" y="16" width="52" height="36" rx="2" fill="white" stroke="black" stroke-width="3"/>
+  
+  <!-- Calendar header bar -->
+  <rect x="4" y="16" width="52" height="12" rx="2" fill="#FFE066" stroke="black" stroke-width="3"/>
+  
+  <!-- Calendar dots/rings -->
+  <circle cx="16" cy="14" r="3" fill="white" stroke="black" stroke-width="2"/>
+  <circle cx="48" cy="14" r="3" fill="white" stroke="black" stroke-width="2"/>
+  
+  <!-- X mark (no booking) -->
+  <line x1="20" y1="36" x2="40" y2="52" stroke="black" stroke-width="4" stroke-linecap="round"/>
+  <line x1="40" y1="36" x2="20" y2="52" stroke="black" stroke-width="4" stroke-linecap="round"/>
+  
+  <!-- Question mark decoration -->
+  <text x="50" y="12" font-family="Arial Black, sans-serif" font-size="16" font-weight="900" fill="black">?</text>
+</svg>

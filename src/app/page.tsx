@@ -14,6 +14,8 @@ import {
   LogOut,
   Settings,
   Banknote,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { signOut } from "@/lib/auth";
 import { useRouter } from "next/navigation";
@@ -270,26 +272,30 @@ export default function Home() {
             </div>
 
             {/* Date Navigator */}
-            <div className="flex items-center justify-between bg-white border-2 border-black p-2 mb-4 shadow-neo-sm">
+            <div className="flex items-center justify-between bg-white border-2 border-black p-4 mb-4 shadow-neo-sm rounded-xl">
               <button
                 onClick={() => handleDateChange(-1)}
-                className="p-1 hover:bg-gray-100 border border-transparent hover:border-black transition-all"
+                className="w-10 h-10 flex items-center justify-center bg-white border-2 border-black hover:bg-black hover:text-white transition-all shadow-[2px_2px_0px_0px_#000000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
               >
-                ◀ Prev
+                <ChevronLeft size={24} strokeWidth={3} />
               </button>
+
               <div className="flex flex-col items-center">
-                <span className="font-display font-black uppercase text-lg">
+                <span className="font-display font-black uppercase text-xl md:text-2xl tracking-tight">
                   {new Date(selectedDate).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
                 </span>
                 {selectedDate === new Date().toLocaleDateString('en-CA') && (
-                  <span className="text-[10px] font-bold bg-brand-lime px-2 rounded-full border border-black">HARI INI</span>
+                  <span className="text-[10px] font-bold bg-brand-lime px-3 py-0.5 border-2 border-black rounded-full shadow-[1px_1px_0px_0px_#000000] mt-1 -rotate-2">
+                    HARI INI
+                  </span>
                 )}
               </div>
+
               <button
                 onClick={() => handleDateChange(1)}
-                className="p-1 hover:bg-gray-100 border border-transparent hover:border-black transition-all"
+                className="w-10 h-10 flex items-center justify-center bg-white border-2 border-black hover:bg-black hover:text-white transition-all shadow-[2px_2px_0px_0px_#000000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
               >
-                Next ▶
+                <ChevronRight size={24} strokeWidth={3} />
               </button>
             </div>
 

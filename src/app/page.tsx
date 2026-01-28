@@ -189,7 +189,7 @@ export default function Home() {
                 className="w-full h-full object-contain brightness-0"
               />
             </div>
-            <span className="text-xl font-black tracking-tight italic">Smash<span className="text-pastel-lilac">.</span></span>
+            <span className="text-xl font-display font-black tracking-tight italic">Smash<span className="text-pastel-lilac">.</span></span>
           </div>
 
           {/* Menu Button with Dropdown */}
@@ -254,7 +254,7 @@ export default function Home() {
         {activeTab === "scheduler" && (
           <div className="flex-1 p-4 overflow-y-auto">
             <div className="mb-4 flex justify-between items-center">
-              <h1 className="text-lg font-black uppercase italic">Jadwal Lapangan</h1>
+              <h1 className="text-lg font-display font-black uppercase italic">Jadwal Lapangan</h1>
               <div className="flex gap-2">
                 <button
                   onClick={handleCopyPublicLink}
@@ -278,7 +278,7 @@ export default function Home() {
                 ◀ Prev
               </button>
               <div className="flex flex-col items-center">
-                <span className="font-black uppercase text-lg">
+                <span className="font-display font-black uppercase text-lg">
                   {new Date(selectedDate).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
                 </span>
                 {selectedDate === new Date().toLocaleDateString('en-CA') && (
@@ -311,7 +311,7 @@ export default function Home() {
               <div className={`flex-1 overflow-y-auto bg-gray-50 border-r-0 md:border-r-2 border-gray-200 transition-all duration-300 ${isCartOpen ? 'md:blur-[1px] md:pointer-events-none md:select-none' : ''}`}>
                 <div className="p-4">
                   <div className="flex justify-between items-center mb-4">
-                    <h1 className="text-2xl font-black uppercase italic">Kantin & Shop</h1>
+                    <h1 className="text-2xl font-display font-black uppercase italic">Kantin & Shop</h1>
                     <button
                       onClick={() => setIsStockModalOpen(true)}
                       className="flex items-center gap-1 text-xs font-bold uppercase bg-white border-2 border-black px-2 py-1 shadow-neo-sm hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all"
@@ -375,7 +375,7 @@ export default function Home() {
         {
           activeTab === "dashboard" && (
             <div className="flex-1 p-4 overflow-y-auto">
-              <h1 className="text-2xl font-black uppercase italic mb-4">Dashboard</h1>
+              <h1 className="text-2xl font-display font-black uppercase italic mb-4">Dashboard</h1>
               <DashboardView />
             </div>
           )
@@ -403,7 +403,7 @@ export default function Home() {
         {
           activeTab === "shift" && (
             <div className="flex-1 p-4 overflow-y-auto">
-              <h1 className="text-2xl font-black uppercase italic mb-4">Shift & Kasir</h1>
+              <h1 className="text-2xl font-display font-black uppercase italic mb-4">Shift & Kasir</h1>
               <ShiftManager />
             </div>
           )

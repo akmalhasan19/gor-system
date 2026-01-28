@@ -1,7 +1,8 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-sans: var(--font-space), 'Inter', system-ui, sans-serif;
+  --font-display: var(--font-syne), 'Inter', system-ui, sans-serif;
 
   --color-brand-lime: #D9F99D;
   --color-brand-black: #000000;
@@ -32,9 +33,8 @@
   }
 
   .font-display {
-    font-family: var(--font-sans);
-    /* Fallback or specific display font if added later */
-    font-weight: 900;
+    font-family: var(--font-display);
+    font-weight: 800;
   }
 
   .neo-interactive:active {

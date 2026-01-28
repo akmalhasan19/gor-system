@@ -1,4 +1,4 @@
-- Function to calculate shift totals
+-- Function to calculate shift totals
 -- Returns expected cash, total sales, etc. based on transactions within the shift window
 
 CREATE OR REPLACE FUNCTION get_shift_totals(

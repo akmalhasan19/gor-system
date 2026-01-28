@@ -1,4 +1,4 @@
-- Create venues table
+-- Create venues table
 CREATE TABLE IF NOT EXISTS venues (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name TEXT NOT NULL,

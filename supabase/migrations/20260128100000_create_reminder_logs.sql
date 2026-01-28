@@ -1,4 +1,4 @@
-- Migration: Create reminder_logs table for tracking member renewal reminders
+-- Migration: Create reminder_logs table for tracking member renewal reminders
 -- Date: 2026-01-28
 
 -- Table to store reminder logs

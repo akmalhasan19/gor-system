@@ -1,11 +1,11 @@
-- Enable RLS on all tables
+-- Enable RLS on all tables
 ALTER TABLE venues ENABLE ROW LEVEL SECURITY;
 ALTER TABLE courts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE bookings ENABLE ROW LEVEL SECURITY;
-ALTER TABLE customers ENABLE ROW LEVEL SECURITY;
-ALTER TABLE products ENABLE ROW LEVEL SECURITY;
-ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE transaction_items ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE customers ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE products ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE transaction_items ENABLE ROW LEVEL SECURITY;
 
 -- Create policies for authenticated users (admin) via DO block to avoid errors
 DO $$
@@ -26,24 +26,24 @@ BEGIN
     END IF;
 
     -- Customers
-    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'customers' AND policyname = 'Admins can do everything on customers') THEN
-        CREATE POLICY "Admins can do everything on customers" ON customers FOR ALL USING (auth.role() = 'authenticated');
-    END IF;
+    -- IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'customers' AND policyname = 'Admins can do everything on customers') THEN
+    --     CREATE POLICY "Admins can do everything on customers" ON customers FOR ALL USING (auth.role() = 'authenticated');
+    -- END IF;
 
     -- Products
-    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'products' AND policyname = 'Admins can do everything on products') THEN
-        CREATE POLICY "Admins can do everything on products" ON products FOR ALL USING (auth.role() = 'authenticated');
-    END IF;
+    -- IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'products' AND policyname = 'Admins can do everything on products') THEN
+    --     CREATE POLICY "Admins can do everything on products" ON products FOR ALL USING (auth.role() = 'authenticated');
+    -- END IF;
 
     -- Transactions
-    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'transactions' AND policyname = 'Admins can do everything on transactions') THEN
-        CREATE POLICY "Admins can do everything on transactions" ON transactions FOR ALL USING (auth.role() = 'authenticated');
-    END IF;
+    -- IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'transactions' AND policyname = 'Admins can do everything on transactions') THEN
+    --     CREATE POLICY "Admins can do everything on transactions" ON transactions FOR ALL USING (auth.role() = 'authenticated');
+    -- END IF;
 
     -- Transaction Items
-    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'transaction_items' AND policyname = 'Admins can do everything on transaction_items') THEN
-        CREATE POLICY "Admins can do everything on transaction_items" ON transaction_items FOR ALL USING (auth.role() = 'authenticated');
-    END IF;
+    -- IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'transaction_items' AND policyname = 'Admins can do everything on transaction_items') THEN
+    --     CREATE POLICY "Admins can do everything on transaction_items" ON transaction_items FOR ALL USING (auth.role() = 'authenticated');
+    -- END IF;
 END $$;
 
 

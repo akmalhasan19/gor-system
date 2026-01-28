@@ -35,6 +35,8 @@ export interface Venue {
     waNotificationTime?: string; // "HH:MM"
     fonnteToken?: string;
     waTemplateReminder?: string;
+    waDeviceId?: string;
+    waStatus?: 'connected' | 'disconnected' | 'scanned';
     // Win-back Promo Configuration
     winbackConfiguration?: WinbackConfiguration;
     // Deposit Policy
@@ -64,6 +66,8 @@ export async function getVenues(): Promise<Venue[]> {
         waNotificationTime: row.wa_notification_time,
         fonnteToken: row.fonnte_token,
         waTemplateReminder: row.wa_template_reminder,
+        waDeviceId: row.wa_device_id,
+        waStatus: row.wa_status,
         winbackConfiguration: row.winback_configuration,
         depositPolicy: row.deposit_policy,
     }));
@@ -92,6 +96,8 @@ export async function getVenueById(id: string): Promise<Venue | null> {
         waNotificationTime: data.wa_notification_time,
         fonnteToken: data.fonnte_token,
         waTemplateReminder: data.wa_template_reminder,
+        waDeviceId: data.wa_device_id,
+        waStatus: data.wa_status,
         winbackConfiguration: data.winback_configuration,
         depositPolicy: data.deposit_policy,
     };
@@ -156,6 +162,8 @@ export async function updateVenue(id: string, updates: Partial<Venue>): Promise<
     if (updates.waNotificationTime !== undefined) dbUpdates.wa_notification_time = updates.waNotificationTime;
     if (updates.fonnteToken !== undefined) dbUpdates.fonnte_token = updates.fonnteToken;
     if (updates.waTemplateReminder !== undefined) dbUpdates.wa_template_reminder = updates.waTemplateReminder;
+    if (updates.waDeviceId !== undefined) dbUpdates.wa_device_id = updates.waDeviceId;
+    if (updates.waStatus !== undefined) dbUpdates.wa_status = updates.waStatus;
     if (updates.winbackConfiguration !== undefined) dbUpdates.winback_configuration = updates.winbackConfiguration;
     if (updates.depositPolicy !== undefined) dbUpdates.deposit_policy = updates.depositPolicy;
 
@@ -247,7 +255,9 @@ export async function getUserVenue(userId: string): Promise<Venue | null> {
                 wa_notification_time,
                 fonnte_token,
                 wa_template_reminder,
-                deposit_policy
+                deposit_policy,
+                wa_device_id,
+                wa_status
             )
         `)
         .eq('user_id', userId)
@@ -273,6 +283,8 @@ export async function getUserVenue(userId: string): Promise<Venue | null> {
         waNotificationTime: venue.wa_notification_time,
         fonnteToken: venue.fonnte_token,
         waTemplateReminder: venue.wa_template_reminder,
+        waDeviceId: venue.wa_device_id,
+        waStatus: venue.wa_status,
         winbackConfiguration: venue.winback_configuration,
         depositPolicy: venue.deposit_policy,
     };

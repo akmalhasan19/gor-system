@@ -1,4 +1,4 @@
-- Create user_venues table for multi-tenant architecture
+-- Create user_venues table for multi-tenant architecture
 -- This enables each auth user to be associated with one or more venues
 
 CREATE TABLE IF NOT EXISTS user_venues (

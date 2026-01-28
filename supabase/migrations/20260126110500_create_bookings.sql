@@ -1,4 +1,4 @@
-- Bookings table migration
+-- Bookings table migration
 -- Creates bookings table with RLS policies for public access
 
 -- Create bookings table

@@ -4,10 +4,82 @@ import React from "react";
 import { useVenue } from "@/lib/venue-context";
 import { updateVenue } from "@/lib/api/venues";
 import { toast } from "sonner";
-import { Clock, AlertTriangle, ShieldAlert } from "lucide-react";
+import { Clock, AlertTriangle, ShieldAlert, QrCode, Loader2, CheckCircle, Trash2, RefreshCw } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
 
 export const OperationalSettings = () => {
     const { currentVenue, refreshVenue } = useVenue();
+    const [qrCode, setQrCode] = useState<string | null>(null);
+    const [waLoading, setWaLoading] = useState(false);
+
+    // Polling for status when QR is shown or waiting
+    useEffect(() => {
+        let interval: NodeJS.Timeout;
+        if (qrCode || (currentVenue?.waStatus === 'scanned')) {
+            interval = setInterval(checkWaStatus, 3000);
+        }
+        return () => clearInterval(interval);
+    }, [qrCode, currentVenue?.waStatus]);
+
+    const checkWaStatus = async () => {
+        if (!currentVenue) return;
+        try {
+            const res = await fetch('/api/whatsapp/status', {
+                method: 'POST',
+                body: JSON.stringify({ venueId: currentVenue.id })
+            });
+            const data = await res.json();
+            if (data.status === 'connected') {
+                setQrCode(null);
+                refreshVenue();
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
+    const handleConnectWA = async () => {
+        if (!currentVenue) return;
+        setWaLoading(true);
+        try {
+            const res = await fetch('/api/whatsapp/connect', {
+                method: 'POST',
+                body: JSON.stringify({ venueId: currentVenue.id })
+            });
+            const data = await res.json();
+
+            if (data.qrCode) {
+                setQrCode(data.qrCode);
+            } else if (data.status === 'connected') {
+                refreshVenue();
+            } else {
+                toast.error(data.error || "Gagal menghubungkan WhatsApp");
+            }
+        } catch (e) {
+            toast.error("Terjadi kesalahan koneksi");
+        } finally {
+            setWaLoading(false);
+        }
+    };
+
+    const handleDisconnectWA = async () => {
+        if (!currentVenue || !confirm("Yakin ingin memutuskan koneksi WhatsApp? Notifikasi tidak akan berjalan.")) return;
+        setWaLoading(true);
+        try {
+            await fetch('/api/whatsapp/disconnect', {
+                method: 'POST',
+                body: JSON.stringify({ venueId: currentVenue.id })
+            });
+            setQrCode(null);
+            refreshVenue();
+            toast.success("WhatsApp terputus");
+        } catch (e) {
+            toast.error("Gagal disconnect");
+        } finally {
+            setWaLoading(false);
+        }
+    };
 
     const handleUpdate = async (field: string, value: any) => {
         if (!currentVenue) return;
@@ -102,22 +174,85 @@ export const OperationalSettings = () => {
                         </div>
                     </div>
 
-                    <div className="flex flex-col gap-2 border-t border-gray-100 pt-2 mt-2">
-                        <p className="text-xs text-gray-500 font-bold">
-                            Integrasi WhatsApp Gateway (Fonnte)
-                        </p>
-                        <div className="flex items-center gap-2">
-                            <input
-                                type="text"
-                                placeholder="Masukkan Token Fonnte"
-                                defaultValue={currentVenue.fonnteToken || ''}
-                                onBlur={(e) => handleUpdate('fonnteToken', e.target.value)}
-                                className="border-2 border-black p-2 font-bold w-full text-sm"
-                            />
+                    <div className="flex flex-col gap-4 border-t border-gray-100 pt-4 mt-2">
+                        <div className="flex items-center justify-between">
+                            <p className="text-sm font-black uppercase text-gray-700">
+                                Integrasi WhatsApp Gateway
+                            </p>
+                            {currentVenue.waStatus === 'connected' && (
+                                <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-bold flex items-center gap-1">
+                                    <CheckCircle size={12} /> Connected
+                                </span>
+                            )}
                         </div>
-                        <p className="text-[10px] text-gray-400 italic">
-                            Token ini digunakan untuk mengirim pesan otomatis. Jangan bagikan ke siapapun.
-                        </p>
+
+                        {currentVenue.waStatus === 'connected' ? (
+                            <div className="bg-green-50 border-2 border-green-200 p-4 rounded-lg flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="bg-green-200 p-2 rounded-full">
+                                        <CheckCircle className="text-green-700" size={24} />
+                                    </div>
+                                    <div>
+                                        <h4 className="font-bold text-green-800 text-sm">WhatsApp Terhubung</h4>
+                                        <p className="text-xs text-green-600">Device ID: {currentVenue.waDeviceId}</p>
+                                    </div>
+                                </div>
+                                <Button
+                                    variant="destructive"
+                                    size="sm"
+                                    onClick={handleDisconnectWA}
+                                    disabled={waLoading}
+                                    className="h-8 text-xs bg-red-50 text-red-600 border border-red-200 hover:bg-red-100"
+                                >
+                                    {waLoading ? <Loader2 className="animate-spin" size={14} /> : <Trash2 size={14} />}
+                                    <span className="ml-2">Putuskan</span>
+                                </Button>
+                            </div>
+                        ) : (
+                            <div className="bg-gray-50 border-2 border-gray-200 p-6 rounded-lg text-center flex flex-col items-center justify-center gap-4">
+                                {qrCode ? (
+                                    <div className="flex flex-col items-center animate-in fade-in duration-300">
+                                        <h4 className="font-bold text-gray-800 text-lg mb-2">Scan QR Code</h4>
+                                        <p className="text-xs text-gray-500 mb-4 max-w-[200px]">
+                                            Buka WhatsApp di HP Anda &gt; Menu &gt; Perangkat Tertaut &gt; Tautkan Perangkat
+                                        </p>
+                                        <div className="bg-white p-2 border border-gray-200 rounded-lg shadow-sm">
+                                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                                            <img src={qrCode} alt="Scan QR" className="w-[200px] h-[200px] object-contain" />
+                                        </div>
+                                        <div className="flex items-center gap-2 mt-4 text-xs text-blue-600 bg-blue-50 px-3 py-1 rounded-full">
+                                            <Loader2 className="animate-spin" size={12} />
+                                            Menunggu scan...
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <div className="bg-white p-4 rounded-full border border-gray-200 shadow-sm">
+                                            <QrCode size={48} className="text-gray-400" />
+                                        </div>
+                                        <div>
+                                            <h4 className="font-bold text-gray-800">Hubungkan WhatsApp GOR</h4>
+                                            <p className="text-xs text-gray-500 max-w-[250px] mx-auto mt-1">
+                                                Gunakan nomor WhatsApp GOR Anda untuk mengirim notifikasi otomatis ke member.
+                                            </p>
+                                        </div>
+                                        <Button
+                                            onClick={handleConnectWA}
+                                            disabled={waLoading}
+                                            className="bg-green-600 hover:bg-green-700 text-white font-bold"
+                                        >
+                                            {waLoading ? (
+                                                <>
+                                                    <Loader2 className="animate-spin mr-2" size={16} /> Connecting...
+                                                </>
+                                            ) : (
+                                                "Hubungkan Sekarang"
+                                            )}
+                                        </Button>
+                                    </>
+                                )}
+                            </div>
+                        )}
                     </div>
 
                     <div className="flex flex-col gap-2 border-t border-gray-100 pt-2 mt-2">

@@ -2,6 +2,17 @@
 -- Ensure that any user belonging to a venue can access that venue's data.
 -- This uses the Security Definer function 'get_my_venue_ids()' to prevent recursion.
 
+-- 0. HELPER FUNCTION
+CREATE OR REPLACE FUNCTION get_my_venue_ids()
+RETURNS SETOF UUID
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+STABLE
+AS $$
+  SELECT venue_id FROM user_venues WHERE user_id = auth.uid()
+$$;
+
 -- 1. COURTS
 DROP POLICY IF EXISTS "Admins can do everything on courts" ON courts;
 DROP POLICY IF EXISTS "Public can view active courts" ON courts; -- Optional: Keep public view if needed, but usually redundant for staff

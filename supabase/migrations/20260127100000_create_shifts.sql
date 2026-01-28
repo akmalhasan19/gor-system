@@ -1,4 +1,4 @@
-- Create shifts table for cashier management
+-- Create shifts table for cashier management
 CREATE TABLE IF NOT EXISTS shifts (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     venue_id UUID NOT NULL REFERENCES venues(id) ON DELETE CASCADE,

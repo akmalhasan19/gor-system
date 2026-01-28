@@ -1,4 +1,4 @@
-- Migration: Schedule daily reminder cron job
+-- Migration: Schedule daily reminder cron job
 -- Date: 2026-01-28
 -- This schedules the check-expiring-members Edge Function to run daily at 09:00 WIB (02:00 UTC)
 

@@ -24,7 +24,7 @@ interface BookingModalProps {
 
 export const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, onSave, onDelete, initialData, existingBooking }) => {
     const { customers, updateCustomer, courts, checkIn } = useAppStore();
-    const { currentVenueId } = useVenue();
+    const { currentVenueId, currentVenue } = useVenue();
 
     const [hourlyRate, setHourlyRate] = useState(50000); // Default fallback
 
@@ -37,6 +37,12 @@ export const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, onS
     const [showDeleteAlert, setShowDeleteAlert] = useState(false);
     const [useQuota, setUseQuota] = useState(false);
     const [showQRScanner, setShowQRScanner] = useState(false);
+    const [paidAmount, setPaidAmount] = useState(0);
+
+    // Deposit Policy Logic
+    const depositPolicy = currentVenue?.depositPolicy;
+    const isDepositEnabled = depositPolicy?.isEnabled;
+    const minDeposit = depositPolicy?.minDepositAmount || 0;
 
     // Update hourly rate based on selected court
     useEffect(() => {
@@ -85,6 +91,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, onS
                 setRepeatWeeks(4);
                 setSelectedCustomerId(""); // Complex to match back to ID without passing it, skip for now
                 setUseQuota(false);
+                setUseQuota(false);
+                setPaidAmount(existingBooking.paidAmount || 0);
             } else if (initialData) {
                 // New Booking Mode
                 setCustomerName("");
@@ -94,6 +102,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, onS
                 setRepeatWeeks(4);
                 setSelectedCustomerId("");
                 setUseQuota(false);
+                setPaidAmount(0);
             }
         }
     }, [isOpen, initialData, existingBooking]);
@@ -136,15 +145,38 @@ export const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, onS
         // ... logic for baseBooking ...
         // We need to reconstruct baseBooking carefully
 
+        const currentPrice = duration * hourlyRate;
+        const finalPaidAmount = useQuota ? currentPrice : paidAmount;
+
+        // Validation for Deposit
+        if (isDepositEnabled && !useQuota && !existingBooking) {
+            if (paidAmount < minDeposit) {
+                return alert(`Wajib bayar Deposit minimal Rp ${new Intl.NumberFormat('id-ID').format(minDeposit)}`);
+            }
+        }
+
+        // Determine status
+        let status: Booking['status'] = existingBooking ? existingBooking.status : 'BELUM_BAYAR';
+
+        if (useQuota) {
+            status = 'LUNAS';
+        } else if (paidAmount >= currentPrice) {
+            status = 'LUNAS';
+        } else if (paidAmount > 0) {
+            status = 'DP';
+        } else {
+            status = 'BELUM_BAYAR';
+        }
+
         const baseBooking: Omit<Booking, "id"> = {
             courtId,
             startTime: startTimeStr,
             duration: duration,
             customerName,
             phone: sanitizePhone(phone),
-            price: duration * hourlyRate,
-            status: existingBooking ? existingBooking.status : 'BELUM_BAYAR', // Keep status if editing
-            paidAmount: existingBooking ? existingBooking.paidAmount : 0,
+            price: currentPrice,
+            status,
+            paidAmount: finalPaidAmount,
             bookingDate
         };
 
@@ -351,6 +383,62 @@ export const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, onS
                             </div>
                         </div>
 
+                        {/* Deposit Section */}
+                        {isDepositEnabled && !useQuota && (
+                            <div className="bg-yellow-50 border-2 border-yellow-400 p-3 flex flex-col gap-2">
+                                <div className="flex items-center gap-2 text-yellow-800">
+                                    <span className="text-xs font-black uppercase">⚠️ Wajib Deposit (DP)</span>
+                                </div>
+                                <div className="flex flex-col gap-1">
+                                    <label className="text-xs font-bold uppercase text-gray-600">Jumlah Bayar (Rp)</label>
+                                    <div className="flex gap-2">
+                                        <input
+                                            type="number"
+                                            value={paidAmount || ''}
+                                            onChange={(e) => setPaidAmount(parseInt(e.target.value) || 0)}
+                                            className="flex-1 border-2 border-black p-2 font-bold text-sm"
+                                            placeholder="0"
+                                        />
+                                        <button
+                                            onClick={() => setPaidAmount(minDeposit)}
+                                            className="bg-yellow-400 text-black font-bold text-xs px-2 uppercase border-2 border-black hover:bg-yellow-500 whitespace-nowrap"
+                                        >
+                                            Min. DP
+                                        </button>
+                                        <button
+                                            onClick={() => setPaidAmount(duration * hourlyRate)}
+                                            className="bg-brand-lime text-black font-bold text-xs px-2 uppercase border-2 border-black hover:bg-lime-500 whitespace-nowrap"
+                                        >
+                                            Lunas
+                                        </button>
+                                    </div>
+                                    <p className="text-[10px] text-gray-500 font-bold">
+                                        Minimal DP: Rp {new Intl.NumberFormat('id-ID').format(minDeposit)}
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+                        {!isDepositEnabled && !useQuota && (
+                            <div className="flex flex-col gap-1">
+                                <label className="text-xs font-bold uppercase text-gray-600">Sudah Bayar? (Opsional)</label>
+                                <div className="flex gap-2">
+                                    <input
+                                        type="number"
+                                        value={paidAmount || ''}
+                                        onChange={(e) => setPaidAmount(parseInt(e.target.value) || 0)}
+                                        className="flex-1 border-2 border-black p-2 font-bold text-sm"
+                                        placeholder="Note nominal (opsional)..."
+                                    />
+                                    <button
+                                        onClick={() => setPaidAmount(duration * hourlyRate)}
+                                        className="bg-brand-lime text-black font-bold text-xs px-2 uppercase border-2 border-black hover:bg-lime-500 whitespace-nowrap"
+                                    >
+                                        Lunas
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
                         {!existingBooking && (
                             <div className="bg-blue-50 p-2 border border-blue-200">
                                 <label className="flex items-center gap-2 cursor-pointer select-none">
@@ -389,6 +477,12 @@ export const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, onS
                                     <>
                                         {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(duration * hourlyRate)}
                                         {isRecurring && <span className="text-xs text-brand-orange ml-1">x {repeatWeeks} mgg</span>}
+
+                                        {!useQuota && (
+                                            <div className={`text-xs ${paidAmount >= (duration * hourlyRate) ? 'text-brand-lime' : paidAmount > 0 ? 'text-yellow-600' : 'text-red-500'} uppercase`}>
+                                                {paidAmount >= (duration * hourlyRate) ? 'LUNAS' : paidAmount > 0 ? `DP: ${new Intl.NumberFormat('id-ID').format(paidAmount)}` : 'BELUM BAYAR'}
+                                            </div>
+                                        )}
                                     </>
                                 )}
                             </div>

@@ -5,7 +5,18 @@ export interface Court {
     courtNumber?: number;
     isActive?: boolean;
     hourlyRate?: number;
+    memberHourlyRate?: number;
     notes?: string;
+}
+
+export interface DepositPolicy {
+    isEnabled: boolean;
+    minDepositAmount: number;
+    cancellationPolicy: 'strict' | 'flexible';
+    refundRules: {
+        hMinus1: number; // % refund
+        hDay: number; // % refund
+    };
 }
 
 export interface Booking {

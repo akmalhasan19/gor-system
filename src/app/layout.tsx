@@ -33,7 +33,7 @@ export default function RootLayout({
   return (
     <html lang="id">
       <body className={`min-h-screen bg-gray-900 flex justify-center font-sans ${spaceGrotesk.variable} ${syne.variable}`}>
-        <div className="w-full max-w-[480px] min-h-screen bg-gray-100 shadow-2xl relative font-sans text-black">
+        <div className="w-full min-h-screen bg-gray-100 shadow-2xl relative font-sans text-black">
           <VenueProvider>
             <DataSyncProvider>
               {children}

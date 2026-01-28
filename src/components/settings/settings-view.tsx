@@ -8,9 +8,15 @@ import { DepositSettings } from "./deposit-settings";
 import { Settings as SettingsIcon, LayoutGrid, Clock, Wrench, DollarSign } from "lucide-react";
 
 import { ReminderSettingsForm } from "./reminder-settings-form";
+import { TeamManagement } from "./team-management";
+import { useUserRole } from "@/hooks/use-role";
+import { Users } from "lucide-react";
 
 export const SettingsView = () => {
-    const [tab, setTab] = useState<'courts' | 'operational' | 'reminders' | 'maintenance' | 'finance'>('operational');
+    const [tab, setTab] = useState<'courts' | 'operational' | 'reminders' | 'maintenance' | 'finance' | 'team'>('operational');
+    const { role, hasPermission } = useUserRole();
+
+    const canViewFinance = hasPermission('VIEW_FINANCE');
 
     return (
         <div className="flex flex-col gap-4">
@@ -55,15 +61,29 @@ export const SettingsView = () => {
                     <Wrench size={16} />
                     Maintenance
                 </button>
+
+                {canViewFinance && (
+                    <button
+                        onClick={() => setTab('finance')}
+                        className={`px-4 py-2 font-black uppercase text-sm flex items-center gap-2 border-b-2 transition-all whitespace-nowrap ${tab === 'finance'
+                            ? 'border-black text-black'
+                            : 'border-transparent text-gray-400 hover:text-gray-600'
+                            }`}
+                    >
+                        <DollarSign size={16} />
+                        Keuangan
+                    </button>
+                )}
+
                 <button
-                    onClick={() => setTab('finance')}
-                    className={`px-4 py-2 font-black uppercase text-sm flex items-center gap-2 border-b-2 transition-all whitespace-nowrap ${tab === 'finance'
+                    onClick={() => setTab('team')}
+                    className={`px-4 py-2 font-black uppercase text-sm flex items-center gap-2 border-b-2 transition-all whitespace-nowrap ${tab === 'team'
                         ? 'border-black text-black'
                         : 'border-transparent text-gray-400 hover:text-gray-600'
                         }`}
                 >
-                    <DollarSign size={16} />
-                    Keuangan
+                    <Users size={16} />
+                    Tim & Akses
                 </button>
             </div>
 
@@ -80,7 +100,8 @@ export const SettingsView = () => {
                     </div>
                 )}
                 {tab === 'maintenance' && <MaintenanceSettings />}
-                {tab === 'finance' && <DepositSettings />}
+                {tab === 'finance' && canViewFinance && <DepositSettings />}
+                {tab === 'team' && <TeamManagement />}
             </div>
         </div>
     );

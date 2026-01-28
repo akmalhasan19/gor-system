@@ -63,8 +63,11 @@ export const DashboardView = () => {
             {/* Recent Activity or Welcome Message */}
             <div className="bg-brand-lilac/20 border-2 border-black p-6 rounded-lg text-center">
                 <h2 className="text-2xl font-black italic uppercase mb-2">Selamat Datang di Smash Partner!</h2>
-                <p className="font-bold text-gray-600">
+                <p className="font-bold text-gray-600 block lg:hidden">
                     Pilih menu di pojok kanan atas untuk navigasi ke Jadwal, POS, atau Laporan.
+                </p>
+                <p className="font-bold text-gray-600 hidden lg:block">
+                    Pilih menu di samping kiri untuk navigasi ke Jadwal, POS, atau Laporan.
                 </p>
             </div>
         </div>

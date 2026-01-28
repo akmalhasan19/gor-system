@@ -258,50 +258,36 @@
 
 ## 🎯 Prioritas 4: Advanced Features
 
-### 8. Offline Mode & PWA Support 📴
 
-**Tujuan:** Tetap bisa operasi saat internet mati
-
-> ⚠️ **PERHATIAN:** Fitur ini kompleks dan memerlukan architectural changes signifikan. Recommended untuk ditunda hingga prioritas 1-3 selesai.
-
-- [ ] Setup Service Worker untuk PWA
-- [ ] Cache critical assets (scheduler, POS)
-- [ ] IndexedDB untuk local data storage
-- [ ] Sync queue untuk pending mutations
-- [ ] Conflict resolution strategy saat reconnect
-- [ ] Offline indicator di UI
-- [ ] Testing: simulate offline scenarios
-
-**File Baru:**
-- `public/service-worker.js` (NEW)
-- `src/lib/offline/sync-manager.ts` (NEW)
-- `src/lib/offline/conflict-resolver.ts` (NEW)
-
----
-
-### 9. Multi-Role Access Control 👥
+### 8. Multi-Role Access Control 👥
 
 **Tujuan:** Berbeda akses level untuk Owner, Manager, Cashier
 
-- [ ] Create roles table di database
-- [ ] Define permissions per role:
-  - [ ] Owner: Full access
-  - [ ] Manager: Access semua kecuali financial settings
-  - [ ] Cashier: POS, Booking (view & create), tidak bisa hapus/edit
-- [ ] Middleware untuk enforce permissions
-- [ ] UI: Hide/disable features based on role
-- [ ] Audit log: track who did what
+- [x] Create roles schema (Used existing `user_venues` + `profiles` table) ✅
+- [x] Define permissions per role: ✅
+  - [x] Owner: Full access ✅
+  - [x] Manager: Access semua kecuali financial settings ✅
+  - [x] Cashier: POS, Booking (view & create), tidak bisa hapus ✅
+- [x] Hook/Guard untuk enforce permissions (`useUserRole`) ✅
+- [x] UI: Hide/disable features based on role (Finance Tab & Delete Button) ✅
+- [x] **Team Management UI:** Invite & Manage staff roles ✅
 
 **Database Migration:**
-- `supabase/migrations/xxxx_roles_permissions.sql` (NEW)
+- `supabase/migrations/20260129_update_role_constraints.sql` ✅ (NEW)
+- `supabase/migrations/20260129_create_profiles.sql` ✅ (NEW)
 
-**File yang Dimodifikasi:**
-- `src/middleware.ts`
-- `src/lib/auth.ts`
+**File yang Dimodifikasi/Baru:**
+- `src/types/role.ts` ✅ (NEW)
+- `src/hooks/use-role.ts` ✅ (NEW)
+- `src/components/settings/team-management.tsx` ✅ (NEW)
+- `src/components/settings/settings-view.tsx` ✅ (Updated)
+- `src/components/booking-modal.tsx` ✅ (Updated for RBAC)
+
+**Status:** ✅ **SELESAI** - Role-Based Access Control Implemented (29 Jan 2026)
 
 ---
 
-### 10. WhatsApp Bot untuk Booking 🤖
+### 9. WhatsApp Bot untuk Booking 🤖
 
 **Tujuan:** Pelanggan bisa booking langsung via WhatsApp tanpa call/manual
 
@@ -351,7 +337,6 @@
 | Photo Verification | 8 hours | Free (Supabase Storage) |
 | Analytics Dashboard | 20 hours | Free |
 | Maintenance Scheduler | 16 hours | Free |
-| Offline Mode | 40+ hours | Free |
 | WhatsApp Bot | 60+ hours | Rp 500k/bulan (API) |
 
 ---

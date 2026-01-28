@@ -12,6 +12,7 @@ import { AlertDialog } from "@/components/ui/alert-dialog";
 import { sanitizePhone } from "@/lib/utils/formatters";
 import { BookingModalQRScanner } from "@/components/booking-modal-qr-scanner";
 import { QrCode } from "lucide-react";
+import { useUserRole } from "@/hooks/use-role";
 
 interface BookingModalProps {
     isOpen: boolean;
@@ -25,6 +26,7 @@ interface BookingModalProps {
 export const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, onSave, onDelete, initialData, existingBooking }) => {
     const { customers, updateCustomer, courts, checkIn } = useAppStore();
     const { currentVenueId, currentVenue } = useVenue();
+    const { hasPermission } = useUserRole();
 
     const [hourlyRate, setHourlyRate] = useState(50000); // Default fallback
 
@@ -499,7 +501,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, onS
                             </button>
                         )}
 
-                        {existingBooking && (
+                        {existingBooking && hasPermission('DELETE_BOOKING') && (
                             <button
                                 onClick={handleDelete}
                                 className="flex-1 bg-red-600 text-white font-black py-3 text-sm uppercase hover:bg-red-700 border-2 border-transparent hover:border-black transition-all"

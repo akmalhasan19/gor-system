@@ -146,10 +146,44 @@ export const useAppStore = create<AppState>((set, get) => ({
         set({ isLoading: true, error: null });
         try {
             const newBooking = await bookingsApi.createBooking(venueId, booking);
-            set((state) => ({
-                bookings: [...state.bookings, newBooking],
-                isLoading: false
-            }));
+
+            // If booking has a payment (Sudah Bayar), create a transaction record automatically
+            // This ensures it shows up in Dashboard and Reports
+            if (newBooking.paidAmount > 0) {
+                const isFullPayment = newBooking.paidAmount >= newBooking.price;
+                const status = isFullPayment ? 'PAID' : 'PARTIAL';
+
+                // Create a temporary CartItem for the transaction
+                const bookingItem: CartItem = {
+                    id: `booking-${newBooking.id}`,
+                    type: 'BOOKING',
+                    name: `Booking ${newBooking.customerName || 'Tamu'} - ${newBooking.courtId}`,
+                    price: newBooking.price,
+                    quantity: 1,
+                    referenceId: newBooking.id
+                };
+
+                // Create the transaction (assume CASH for "Sudah Bayar" option)
+                const newTransaction = await transactionsApi.createTransaction(
+                    venueId,
+                    [bookingItem],
+                    newBooking.paidAmount,
+                    'CASH',
+                    status
+                );
+
+                // Update store with new transaction
+                set((state) => ({
+                    bookings: [...state.bookings, newBooking],
+                    transactions: [newTransaction, ...state.transactions], // Add to top
+                    isLoading: false
+                }));
+            } else {
+                set((state) => ({
+                    bookings: [...state.bookings, newBooking],
+                    isLoading: false
+                }));
+            }
         } catch (error: any) {
             set({ error: error.message, isLoading: false });
             throw error;

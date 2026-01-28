@@ -4,8 +4,10 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { NeoButton } from '@/components/ui/neo-button';
 import { NeoInput } from '@/components/ui/neo-input';
-import { Building2, MapPin, Phone, Grid3x3, Clock, Check, ArrowRight, ArrowLeft, Sparkles } from 'lucide-react';
+import { Building2, MapPin, Phone, Grid3x3, Clock, Check, ArrowRight, ArrowLeft, Sparkles, LogOut } from 'lucide-react';
 import { useVenue } from '@/lib/venue-context';
+import { supabase } from '@/lib/supabase';
+import { toast } from 'sonner';
 
 interface OnboardingData {
     venueName: string;
@@ -39,6 +41,17 @@ export function VenueOnboarding() {
     const updateData = (updates: Partial<OnboardingData>) => {
         setData(prev => ({ ...prev, ...updates }));
     };
+
+    const handleLogout = async () => {
+        try {
+            await supabase.auth.signOut();
+            router.push('/login');
+            router.refresh();
+        } catch (error) {
+            toast.error('Gagal logout');
+        }
+    };
+
 
     const handleNext = () => {
         setError('');
@@ -100,14 +113,40 @@ export function VenueOnboarding() {
         <div className="min-h-screen bg-brand-lime flex items-center justify-center p-4">
             <div className="w-full max-w-2xl bg-white border-4 border-black shadow-neo-lg relative overflow-hidden">
                 {/* Header */}
-                <div className="bg-black text-white p-6">
-                    <div className="flex items-center gap-3 mb-2">
-                        <Sparkles className="w-6 h-6 text-brand-lime" />
-                        <h1 className="text-2xl font-black uppercase italic">Setup GOR Anda</h1>
+                <div className="bg-black text-white p-6 flex justify-between items-start">
+                    <div className="flex-1 pr-6">
+                        <div className="flex items-center gap-3 mb-2">
+                            <Sparkles className="w-6 h-6 text-brand-lime" />
+                            <h1 className="text-2xl font-black uppercase italic">Setup GOR Anda</h1>
+                        </div>
+                        <p className="text-sm text-gray-300 mb-6">
+                            Mari kita atur venue badminton Anda dalam beberapa langkah mudah.
+                        </p>
+
+                        {/* Neo-Brutalist Staff Notice */}
+                        <div className='bg-brand-lime text-black p-4 border-4 border-white shadow-[4px_4px_0px_0px_rgba(255,255,255,0.5)] transform -rotate-1 transition-transform hover:rotate-0'>
+                            <div className="flex items-start gap-3">
+                                <span className="text-2xl">👋</span>
+                                <div>
+                                    <p className='font-black uppercase italic text-sm mb-1 bg-black text-white inline-block px-1'>
+                                        Anda Staff / Karyawan?
+                                    </p>
+                                    <p className="text-xs font-bold leading-relaxed">
+                                        <span className="underline decoration-2 decoration-black">Jangan isi form ini.</span> Minta Owner untuk undang email Anda via <br />
+                                        <span className="font-black bg-white px-1 border border-black mt-1 inline-block">Pengaturan &gt; Tim</span>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <p className="text-sm text-gray-300">
-                        Mari kita atur venue badminton Anda dalam beberapa langkah mudah
-                    </p>
+                    <button
+                        onClick={handleLogout}
+                        className="text-gray-400 hover:text-white flex flex-col items-center text-xs font-bold gap-1 transition-colors border-2 border-transparent hover:border-white p-2 rounded-none"
+                        title="Logout / Ganti Akun"
+                    >
+                        <LogOut className="w-5 h-5" />
+                        Logout
+                    </button>
                 </div>
 
                 {/* Progress Bar */}

@@ -1,4 +1,4 @@
--- Add reminder_configuration column to venues table
+- Add reminder_configuration column to venues table
 ALTER TABLE venues 
 ADD COLUMN IF NOT EXISTS reminder_configuration JSONB DEFAULT '{
     "warnings": [

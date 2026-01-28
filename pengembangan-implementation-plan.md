@@ -195,11 +195,11 @@
 
 #### Database Schema
 
-- [ ] Create table `court_maintenance_schedules` (Deferred - recurring schedules)
-  - [ ] id, court_id, maintenance_type (floor_wax, net_replace, lighting, etc)
-  - [ ] last_done_date, next_due_date, frequency_days
-  - [ ] status (pending, in_progress, completed)
-  - [ ] notes, cost
+- [x] Create table `court_maintenance_schedules` (Deferred - recurring schedules) ✅
+  - [x] id, court_id, maintenance_type (title), cost_estimate ✅
+  - [x] last_done_date, next_due_date, frequency_days ✅
+  - [x] status (active/inactive) ✅
+  - [x] notes (via maintenance task history) ✅
 - [x] Create table `maintenance_tasks` ✅
   - [x] id, court_id, task_date, duration_hours ✅
   - [x] type, technician_name, cost, notes ✅
@@ -212,7 +212,7 @@
 - [x] Settings untuk define maintenance schedule per court (Menu **Pengaturan** → Tab baru "Maintenance") ✅
 - [x] Modal untuk menambah maintenance tasks ✅
 - [x] Auto-block booking slots saat maintenance ✅
-- [ ] Reminder notification 7 days before due (Future Enhancement)
+- [x] Reminder notification (Highlight "Due Soon" and "Overdue" in list) ✅
 - [x] Maintenance history & status tracking ✅
 
 **File Baru:**

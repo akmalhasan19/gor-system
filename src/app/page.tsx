@@ -290,16 +290,16 @@ export default function Home() {
             </div>
 
             {/* Date Navigator */}
-            <div className="flex items-center justify-between bg-white border-2 border-black p-4 mb-4 shadow-neo-sm rounded-xl">
+            <div className="flex items-center justify-between bg-white border-2 border-black p-3 md:p-4 mb-4 shadow-neo-sm rounded-xl gap-2 md:gap-4">
               <button
                 onClick={() => handleDateChange(-1)}
-                className="w-10 h-10 flex items-center justify-center bg-white border-2 border-black hover:bg-black hover:text-white transition-all shadow-[2px_2px_0px_0px_#000000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
+                className="w-8 h-8 md:w-10 md:h-10 flex-shrink-0 flex items-center justify-center bg-white border-2 border-black hover:bg-black hover:text-white transition-all shadow-[2px_2px_0px_0px_#000000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
               >
-                <ChevronLeft size={24} strokeWidth={3} />
+                <ChevronLeft size={20} className="md:w-6 md:h-6" strokeWidth={3} />
               </button>
 
-              <div className="flex flex-col items-center">
-                <span className="font-display font-black uppercase text-xl md:text-2xl tracking-tight">
+              <div className="flex flex-col items-center flex-1 min-w-0 px-2">
+                <span className="font-display font-black uppercase text-base sm:text-lg md:text-2xl tracking-tight text-center leading-tight">
                   {new Date(selectedDate).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
                 </span>
                 {selectedDate === new Date().toLocaleDateString('en-CA') && (
@@ -311,9 +311,9 @@ export default function Home() {
 
               <button
                 onClick={() => handleDateChange(1)}
-                className="w-10 h-10 flex items-center justify-center bg-white border-2 border-black hover:bg-black hover:text-white transition-all shadow-[2px_2px_0px_0px_#000000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
+                className="w-8 h-8 md:w-10 md:h-10 flex-shrink-0 flex items-center justify-center bg-white border-2 border-black hover:bg-black hover:text-white transition-all shadow-[2px_2px_0px_0px_#000000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
               >
-                <ChevronRight size={24} strokeWidth={3} />
+                <ChevronRight size={20} className="md:w-6 md:h-6" strokeWidth={3} />
               </button>
             </div>
 

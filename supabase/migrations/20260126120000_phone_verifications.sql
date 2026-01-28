@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS phone_verifications (
+REATE TABLE IF NOT EXISTS phone_verifications (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
     phone_number TEXT NOT NULL,

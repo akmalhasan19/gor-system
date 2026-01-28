@@ -1,4 +1,4 @@
-﻿-- Ensure bucket exists (idempotent)
+-- Ensure bucket exists (idempotent)
 INSERT INTO storage.buckets (id, name, public) 
 VALUES ('member-photos', 'member-photos', true)
 ON CONFLICT (id) DO UPDATE SET public = true;

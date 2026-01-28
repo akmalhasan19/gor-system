@@ -1,4 +1,4 @@
--- Enable RLS on all tables
+- Enable RLS on all tables
 ALTER TABLE venues ENABLE ROW LEVEL SECURITY;
 ALTER TABLE courts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE bookings ENABLE ROW LEVEL SECURITY;

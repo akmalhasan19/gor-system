@@ -12,6 +12,7 @@ import {
     MaintenanceTask,
 } from "@/lib/api/maintenance";
 import { MaintenanceModal } from "@/components/maintenance/maintenance-modal";
+import { MaintenanceScheduleList } from "@/components/maintenance/maintenance-schedule-list";
 import {
     Wrench,
     RefreshCw,
@@ -20,11 +21,15 @@ import {
     CheckCircle,
     Clock,
     XCircle,
+    CalendarClock,
+    History,
 } from "lucide-react";
 
 export function MaintenanceSettings() {
     const { currentVenueId } = useVenue();
     const { courts } = useAppStore();
+
+    const [activeTab, setActiveTab] = useState<'history' | 'recurring'>('history');
 
     const [tasks, setTasks] = useState<MaintenanceTask[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -46,8 +51,10 @@ export function MaintenanceSettings() {
     };
 
     useEffect(() => {
-        fetchTasks();
-    }, [currentVenueId]);
+        if (activeTab === 'history') {
+            fetchTasks();
+        }
+    }, [currentVenueId, activeTab]);
 
     const getCourtName = (courtId: string) => {
         return courts.find((c) => c.id === courtId)?.name || "Lapangan";
@@ -113,133 +120,162 @@ export function MaintenanceSettings() {
     };
 
     return (
-        <div className="space-y-4">
-            {/* Header */}
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                    <div className="bg-gray-800 p-2 rounded-full border-2 border-black">
-                        <Wrench size={20} className="text-white" />
-                    </div>
-                    <div>
-                        <h3 className="text-lg font-black uppercase">Maintenance Lapangan</h3>
-                        <p className="text-xs text-gray-500 font-bold">
-                            Jadwalkan perawatan rutin untuk mencegah kerusakan
-                        </p>
-                    </div>
-                </div>
-                <div className="flex gap-2">
-                    <button
-                        onClick={fetchTasks}
-                        disabled={isLoading}
-                        className="flex items-center gap-1 text-xs font-bold text-gray-600 hover:text-black disabled:opacity-50"
-                    >
-                        <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
-                    </button>
-                    <button
-                        onClick={() => setShowModal(true)}
-                        className="flex items-center gap-1.5 bg-gray-800 text-white px-3 py-1.5 border-2 border-black font-bold text-xs uppercase shadow-neo-sm hover:bg-black transition-colors active:shadow-none active:translate-x-[2px] active:translate-y-[2px]"
-                    >
-                        <Plus size={14} />
-                        Tambah Jadwal
-                    </button>
-                </div>
+        <div className="space-y-6">
+            <div className="flex items-center gap-4 border-b-2 border-black pb-1">
+                <button
+                    onClick={() => setActiveTab('history')}
+                    className={`flex items-center gap-2 px-4 py-2 text-sm font-bold uppercase transition-all relative top-[2px] ${activeTab === 'history'
+                        ? "bg-black text-white border-2 border-black"
+                        : "text-gray-500 hover:text-black"
+                        }`}
+                >
+                    <History size={16} />
+                    Riwayat & Tugas Manual
+                </button>
+                <button
+                    onClick={() => setActiveTab('recurring')}
+                    className={`flex items-center gap-2 px-4 py-2 text-sm font-bold uppercase transition-all relative top-[2px] ${activeTab === 'recurring'
+                        ? "bg-yellow-400 text-black border-2 border-black"
+                        : "text-gray-500 hover:text-black"
+                        }`}
+                >
+                    <CalendarClock size={16} />
+                    Jadwal Rutin
+                </button>
             </div>
 
-            {/* Task List */}
-            <div className="bg-white border-2 border-black shadow-neo">
-                {isLoading ? (
-                    <div className="p-8 text-center">
-                        <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2" />
-                        <span className="text-sm font-bold text-gray-500">Memuat...</span>
-                    </div>
-                ) : tasks.length === 0 ? (
-                    <div className="p-8 text-center">
-                        <Wrench className="w-10 h-10 mx-auto mb-2 text-gray-300" />
-                        <p className="font-bold text-gray-500">Belum ada jadwal maintenance</p>
-                        <button
-                            onClick={() => setShowModal(true)}
-                            className="mt-3 text-sm font-bold text-blue-600 hover:underline"
-                        >
-                            + Tambah jadwal pertama
-                        </button>
-                    </div>
-                ) : (
-                    <div className="divide-y-2 divide-black">
-                        {tasks.map((task) => (
-                            <div
-                                key={task.id}
-                                className={`p-3 flex items-center gap-3 ${task.status === "cancelled" ? "opacity-50" : ""
-                                    }`}
-                            >
-                                <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-2 flex-wrap">
-                                        <span className="font-black text-sm">
-                                            {getCourtName(task.courtId)}
-                                        </span>
-                                        <span className="text-xs font-bold text-gray-500">
-                                            {new Date(task.taskDate).toLocaleDateString("id-ID", {
-                                                weekday: "short",
-                                                day: "numeric",
-                                                month: "short",
-                                            })}
-                                        </span>
-                                        <span className="text-xs font-bold text-gray-500">
-                                            {task.startHour.toString().padStart(2, "0")}:00 -{" "}
-                                            {(task.startHour + task.durationHours)
-                                                .toString()
-                                                .padStart(2, "0")}
-                                            :00
-                                        </span>
-                                    </div>
-                                    <div className="flex items-center gap-2 mt-1">
-                                        <span className="text-xs font-bold text-gray-600">
-                                            {getTypeName(task.maintenanceType)}
-                                        </span>
-                                        {task.technicianName && (
-                                            <span className="text-xs text-gray-400">
-                                                • {task.technicianName}
-                                            </span>
-                                        )}
-                                    </div>
-                                    {task.notes && (
-                                        <p className="text-[10px] text-gray-400 mt-1 truncate">
-                                            {task.notes}
-                                        </p>
-                                    )}
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    {getStatusBadge(task.status)}
-                                    {task.status === "scheduled" && (
-                                        <>
-                                            <button
-                                                onClick={() => handleComplete(task.id)}
-                                                className="p-1.5 bg-green-100 text-green-700 border border-green-300 hover:bg-green-200 transition-colors"
-                                                title="Tandai Selesai"
-                                            >
-                                                <CheckCircle size={14} />
-                                            </button>
-                                            <button
-                                                onClick={() => handleCancel(task.id)}
-                                                className="p-1.5 bg-red-100 text-red-600 border border-red-300 hover:bg-red-200 transition-colors"
-                                                title="Batalkan"
-                                            >
-                                                <Trash2 size={14} />
-                                            </button>
-                                        </>
-                                    )}
-                                </div>
+            {activeTab === 'recurring' ? (
+                <MaintenanceScheduleList />
+            ) : (
+                <div className="space-y-4">
+                    {/* Header History */}
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="bg-gray-800 p-2 rounded-full border-2 border-black">
+                                <Wrench size={20} className="text-white" />
                             </div>
-                        ))}
+                            <div>
+                                <h3 className="text-lg font-black uppercase">Daftar Maintenance</h3>
+                                <p className="text-xs text-gray-500 font-bold">
+                                    Riwayat perbaikan dan tugas maintenance manual
+                                </p>
+                            </div>
+                        </div>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={fetchTasks}
+                                disabled={isLoading}
+                                className="flex items-center gap-1 text-xs font-bold text-gray-600 hover:text-black disabled:opacity-50"
+                            >
+                                <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
+                            </button>
+                            <button
+                                onClick={() => setShowModal(true)}
+                                className="flex items-center gap-1.5 bg-gray-800 text-white px-3 py-1.5 border-2 border-black font-bold text-xs uppercase shadow-neo-sm hover:bg-black transition-colors active:shadow-none active:translate-x-[2px] active:translate-y-[2px]"
+                            >
+                                <Plus size={14} />
+                                Catat Kerusakan / Tugas
+                            </button>
+                        </div>
                     </div>
-                )}
-            </div>
 
-            {/* Modal */}
-            <MaintenanceModal
-                isOpen={showModal}
-                onClose={() => setShowModal(false)}
-                onSaved={fetchTasks}
-            />
+                    {/* Task List */}
+                    <div className="bg-white border-2 border-black shadow-neo">
+                        {isLoading ? (
+                            <div className="p-8 text-center">
+                                <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2" />
+                                <span className="text-sm font-bold text-gray-500">Memuat...</span>
+                            </div>
+                        ) : tasks.length === 0 ? (
+                            <div className="p-8 text-center">
+                                <Wrench className="w-10 h-10 mx-auto mb-2 text-gray-300" />
+                                <p className="font-bold text-gray-500">Belum ada history maintenance</p>
+                                <button
+                                    onClick={() => setShowModal(true)}
+                                    className="mt-3 text-sm font-bold text-blue-600 hover:underline"
+                                >
+                                    + Catat task pertama
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="divide-y-2 divide-black">
+                                {tasks.map((task) => (
+                                    <div
+                                        key={task.id}
+                                        className={`p-3 flex items-center gap-3 ${task.status === "cancelled" ? "opacity-50" : ""
+                                            }`}
+                                    >
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                                <span className="font-black text-sm">
+                                                    {getCourtName(task.courtId)}
+                                                </span>
+                                                <span className="text-xs font-bold text-gray-500">
+                                                    {new Date(task.taskDate).toLocaleDateString("id-ID", {
+                                                        weekday: "short",
+                                                        day: "numeric",
+                                                        month: "short",
+                                                    })}
+                                                </span>
+                                                <span className="text-xs font-bold text-gray-500">
+                                                    {task.startHour.toString().padStart(2, "0")}:00 -{" "}
+                                                    {(task.startHour + task.durationHours)
+                                                        .toString()
+                                                        .padStart(2, "0")}
+                                                    :00
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center gap-2 mt-1">
+                                                <span className="text-xs font-bold text-gray-600">
+                                                    {getTypeName(task.maintenanceType)}
+                                                </span>
+                                                {task.technicianName && (
+                                                    <span className="text-xs text-gray-400">
+                                                        • {task.technicianName}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            {task.notes && (
+                                                <p className="text-[10px] text-gray-400 mt-1 truncate">
+                                                    {task.notes}
+                                                </p>
+                                            )}
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            {getStatusBadge(task.status)}
+                                            {task.status === "scheduled" && (
+                                                <>
+                                                    <button
+                                                        onClick={() => handleComplete(task.id)}
+                                                        className="p-1.5 bg-green-100 text-green-700 border border-green-300 hover:bg-green-200 transition-colors"
+                                                        title="Tandai Selesai"
+                                                    >
+                                                        <CheckCircle size={14} />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleCancel(task.id)}
+                                                        className="p-1.5 bg-red-100 text-red-600 border border-red-300 hover:bg-red-200 transition-colors"
+                                                        title="Batalkan"
+                                                    >
+                                                        <Trash2 size={14} />
+                                                    </button>
+                                                </>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Modal */}
+                    <MaintenanceModal
+                        isOpen={showModal}
+                        onClose={() => setShowModal(false)}
+                        onSaved={fetchTasks}
+                    />
+                </div>
+            )}
         </div>
     );
 }

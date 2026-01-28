@@ -6,6 +6,7 @@ export async function getCustomers(venueId: string): Promise<Customer[]> {
         .from('customers')
         .select('*')
         .eq('venue_id', venueId)
+        .eq('is_deleted', false) // Filter active only
         .order('name', { ascending: true });
 
     if (error) throw error;
@@ -17,6 +18,9 @@ export async function getCustomers(venueId: string): Promise<Customer[]> {
         isMember: row.is_member,
         quota: row.quota,
         membershipExpiry: row.membership_expiry,
+        photo_url: row.photo_url,
+        isDeleted: row.is_deleted,
+        deletedAt: row.deleted_at
     }));
 }
 
@@ -30,6 +34,7 @@ export async function createCustomer(venueId: string, customer: Omit<Customer, '
             is_member: customer.isMember,
             quota: customer.quota || 0,
             membership_expiry: customer.membershipExpiry || null,
+            photo_url: customer.photo_url || null,
         })
         .select()
         .single();
@@ -43,6 +48,7 @@ export async function createCustomer(venueId: string, customer: Omit<Customer, '
         isMember: data.is_member,
         quota: data.quota,
         membershipExpiry: data.membership_expiry,
+        photo_url: data.photo_url,
     };
 }
 
@@ -54,6 +60,7 @@ export async function updateCustomer(id: string, updates: Partial<Customer>): Pr
     if (updates.isMember !== undefined) dbUpdates.is_member = updates.isMember;
     if (updates.quota !== undefined) dbUpdates.quota = updates.quota;
     if (updates.membershipExpiry !== undefined) dbUpdates.membership_expiry = updates.membershipExpiry;
+    if (updates.photo_url !== undefined) dbUpdates.photo_url = updates.photo_url;
 
     const { error } = await supabase
         .from('customers')
@@ -78,6 +85,18 @@ export async function decrementQuota(id: string): Promise<void> {
     const { error } = await supabase
         .from('customers')
         .update({ quota: newQuota })
+        .eq('id', id);
+
+    if (error) throw error;
+}
+
+export async function deleteCustomer(id: string): Promise<void> {
+    const { error } = await supabase
+        .from('customers')
+        .update({
+            is_deleted: true,
+            deleted_at: new Date().toISOString()
+        })
         .eq('id', id);
 
     if (error) throw error;

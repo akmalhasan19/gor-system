@@ -83,6 +83,9 @@ export interface Customer {
     isMember: boolean;
     membershipExpiry?: string; // ISO Date String
     quota?: number; // Jatah main left
+    photo_url?: string; // URL to Supabase Storage
+    isDeleted?: boolean;
+    deletedAt?: string;
 }
 
 export const INITIAL_CUSTOMERS: Customer[] = [

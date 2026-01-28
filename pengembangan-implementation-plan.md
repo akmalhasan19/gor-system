@@ -76,26 +76,40 @@
 
 #### Opsi A: Photo Verification (Sederhana)
 
-- [ ] Upload foto member saat registrasi
-- [ ] Tampilkan foto saat check-in di `BookingModal`
-- [ ] Pegawai harus verifikasi manual apakah foto match
+- [x] Upload foto member saat registrasi ✅
+- [x] Tampilkan foto saat check-in di `BookingModal` ✅
+- [x] Pegawai harus verifikasi manual apakah foto match ✅
 
 **File yang Dimodifikasi:**
-- `src/components/members/member-modal.tsx`
-- `src/components/booking-modal.tsx`
-- `supabase/migrations/xxxx_add_member_photo.sql` (NEW)
+- `src/components/members/member-modal.tsx` ✅
+- `src/components/booking-modal.tsx` ✅
+- `supabase/migrations/20260128130000_add_member_photo.sql` ✅ (NEW)
 
 #### Opsi B: QR Code Dynamic (Advanced)
 
-- [ ] Generate unique QR code per member per hari
-- [ ] QR code embed member_id + date + hash
-- [ ] Scan QR saat check-in, auto-validate
-- [ ] QR expired after 24 hours
+- [x] Generate unique QR code per member per hari ✅
+- [x] QR code embed member_id + date + hash ✅
+- [x] Scan QR saat check-in, auto-validate ✅
+- [x] QR expired after 24 hours ✅
+#### Opsi B: QR Code Dynamic (Advanced)
+
+- [x] Generate unique QR code per member per hari ✅
+- [x] QR code embed member_id + date + hash ✅
+- [x] Scan QR saat check-in, auto-validate ✅
+- [x] QR expired after 24 hours ✅
+- [x] **UPGRADE: URL-based QR & Public Verification Page** ✅
+  - [x] Switch QR data format to URL (`/verify?data=BASE64`)
+  - [x] Create public verification page (`src/app/verify/page.tsx`)
+  - [x] Update scanner to parse URL and extract payload
+  - [x] Ensure mobile formatting for verification page
 
 **File Baru:**
-- `src/lib/utils/qr-generator.ts` (NEW)
-- `src/components/members/qr-display.tsx` (NEW)
-- `src/components/booking-modal-qr-scanner.tsx` (NEW)
+- `src/lib/utils/qr-generator.ts` ✅ (Modified)
+- `src/components/members/qr-display.tsx` ✅ (Modified)
+- `src/components/booking-modal-qr-scanner.tsx` ✅ (No changes needed, logic in utility)
+- `src/app/verify/page.tsx` ✅ (NEW)
+
+**Status:** ✅ **SELESAI** - QR Code System Complete (28 Jan 2026)
 
 **Recommendation:** Mulai dengan Opsi A (Photo) dulu, upgrade ke Opsi B jika diperlukan
 

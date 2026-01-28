@@ -54,6 +54,7 @@ interface AppState {
     // Customer actions
     addCustomer: (venueId: string, customer: Omit<Customer, 'id'>) => Promise<void>;
     updateCustomer: (id: string, updates: Partial<Customer>) => Promise<void>;
+    deleteCustomer: (id: string) => Promise<void>;
     setCustomers: (customers: Customer[]) => void;
 
     // Court actions
@@ -341,6 +342,20 @@ export const useAppStore = create<AppState>((set, get) => ({
                 customers: state.customers.map((c) =>
                     c.id === id ? { ...c, ...updates } : c
                 ),
+                isLoading: false
+            }));
+        } catch (error: any) {
+            set({ error: error.message, isLoading: false });
+            throw error;
+        }
+    },
+
+    deleteCustomer: async (id) => {
+        set({ isLoading: true, error: null });
+        try {
+            await customersApi.deleteCustomer(id);
+            set((state) => ({
+                customers: state.customers.filter((c) => c.id !== id),
                 isLoading: false
             }));
         } catch (error: any) {

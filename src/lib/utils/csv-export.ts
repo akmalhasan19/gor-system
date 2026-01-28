@@ -223,10 +223,10 @@ function formatMemberForCSV(customer: Customer) {
     return {
         'ID': customer.id.slice(0, 8),
         'Nama': customer.name,
-        'No. Telepon': customer.phone,
+        'No. Telepon': `='${customer.phone}`, // Force Excel to treat as text
         'Status Member': customer.isMember ? 'Member' : 'Non-Member',
         'Sisa Quota': customer.isMember ? (customer.quota ?? 0) : '-',
-        'Tanggal Kadaluarsa': customer.membershipExpiry || '-',
+        'Tanggal Kadaluarsa': customer.membershipExpiry ? new Date(customer.membershipExpiry).toLocaleDateString('id-ID') : '-',
         'Hari Menuju Kadaluarsa': daysUntilExpiry,
         'Status Kadaluarsa': customer.isMember && customer.membershipExpiry
             ? (typeof daysUntilExpiry === 'number' && daysUntilExpiry < 0 ? 'Expired' : (typeof daysUntilExpiry === 'number' && daysUntilExpiry <= 7 ? 'Segera Expired' : 'Aktif'))

@@ -5,9 +5,10 @@ import { useAppStore } from "@/lib/store";
 import { Customer } from "@/lib/constants";
 import { NeoBadge } from "@/components/ui/neo-badge";
 import { MemberModal } from "@/components/members/member-modal";
+import { QRDisplay } from "@/components/members/qr-display";
 import { exportMembersToCSV } from "@/lib/utils/csv-export";
 import { toast } from "sonner";
-import { Download } from "lucide-react";
+import { Download, QrCode } from "lucide-react";
 
 export const MemberList = () => {
     const { customers } = useAppStore();
@@ -15,6 +16,7 @@ export const MemberList = () => {
     const [searchQuery, setSearchQuery] = useState("");
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | undefined>(undefined);
+    const [qrMember, setQrMember] = useState<Customer | null>(null);
 
     const filteredCustomers = customers.filter((customer) => {
         const matchesSearch = customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -92,21 +94,35 @@ export const MemberList = () => {
                 </label>
             </div>
 
-            <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3">
                 {filteredCustomers.map((customer) => (
                     <div
                         key={customer.id}
                         onClick={() => handleEdit(customer)}
-                        className="bg-white border-2 border-black p-3 shadow-neo hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[3px_3px_0px_black] transition-all cursor-pointer relative group"
+                        className="bg-white border-2 border-black p-3 shadow-neo hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[3px_3px_0px_black] transition-all cursor-pointer relative group flex flex-col justify-between h-full min-h-[120px]"
                     >
-                        <div className="flex justify-between items-start mb-1">
-                            <div>
-                                <h3 className="font-black text-sm uppercase leading-none">{customer.name}</h3>
-                                <p className="text-[10px] font-bold text-gray-500 mt-0.5">{customer.phone}</p>
+                        <div className="flex justify-between items-start mb-2">
+                            <div className="pr-8">
+                                <h3 className="font-black text-lg uppercase leading-none truncate">{customer.name}</h3>
+                                <p className="text-xs font-bold text-gray-500 mt-1">{customer.phone}</p>
                             </div>
-                            {customer.isMember && (
-                                <NeoBadge status="MEMBER" className="scale-75 origin-top-right bg-purple-200 text-black border-purple-900" />
-                            )}
+                            <div className="flex flex-col items-end gap-2 absolute top-0 right-0 p-2">
+                                {customer.isMember && (
+                                    <NeoBadge status="MEMBER" className="scale-75 origin-top-right bg-purple-200 text-black border-purple-900 shadow-sm" />
+                                )}
+                                {customer.isMember && (
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setQrMember(customer);
+                                        }}
+                                        className="p-1.5 bg-brand-lime hover:bg-brand-lime/80 border-2 border-black transition-all shadow-sm hover:shadow-md z-10"
+                                        title="Tampilkan QR Code"
+                                    >
+                                        <QrCode size={18} />
+                                    </button>
+                                )}
+                            </div>
                         </div>
 
                         {customer.isMember && (
@@ -148,6 +164,14 @@ export const MemberList = () => {
                 onClose={() => setIsModalOpen(false)}
                 initialData={selectedCustomer}
             />
+
+            {qrMember && (
+                <QRDisplay
+                    isOpen={!!qrMember}
+                    onClose={() => setQrMember(null)}
+                    member={qrMember}
+                />
+            )}
         </div>
     );
 };

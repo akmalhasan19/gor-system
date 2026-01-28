@@ -5,6 +5,13 @@ import { useAppStore } from "@/lib/store";
 import { Customer } from "@/lib/constants";
 import { NeoInput } from "@/components/ui/neo-input";
 
+import { supabase } from "@/lib/supabase";
+import { Camera, Loader2, Upload } from "lucide-react";
+import { toast } from "sonner";
+import { compressAndConvertToWebp } from "@/lib/utils/image-utils";
+import { sanitizePhone } from "@/lib/utils/formatters";
+import { AlertDialog } from "@/components/ui/alert-dialog";
+
 interface MemberModalProps {
     isOpen: boolean;
     onClose: () => void;
@@ -21,6 +28,12 @@ export const MemberModal: React.FC<MemberModalProps> = ({ isOpen, onClose, initi
     const [quota, setQuota] = useState(0);
     const [expiry, setExpiry] = useState("");
 
+    // Photo State
+    const [photoFile, setPhotoFile] = useState<File | null>(null);
+    const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+    const [isUploading, setIsUploading] = useState(false);
+    const [showDeleteAlert, setShowDeleteAlert] = useState(false);
+
     useEffect(() => {
         if (initialData) {
             setName(initialData.name);
@@ -28,6 +41,7 @@ export const MemberModal: React.FC<MemberModalProps> = ({ isOpen, onClose, initi
             setIsMember(initialData.isMember);
             setQuota(initialData.quota || 0);
             setExpiry(initialData.membershipExpiry || "");
+            setPhotoPreview(initialData.photo_url || null);
         } else {
             // Reset for new
             setName("");
@@ -35,34 +49,88 @@ export const MemberModal: React.FC<MemberModalProps> = ({ isOpen, onClose, initi
             setIsMember(false);
             setQuota(0);
             setExpiry("");
+            setPhotoPreview(null);
+            setPhotoFile(null);
         }
     }, [initialData, isOpen]);
+
+    const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            setPhotoFile(file);
+            const objectUrl = URL.createObjectURL(file);
+            setPhotoPreview(objectUrl);
+        }
+    };
+
+    const uploadPhoto = async (file: File): Promise<string | null> => {
+        try {
+            // Convert to WebP for optimization
+            const webpFile = await compressAndConvertToWebp(file, 600, 600, 0.85);
+            const fileName = `${currentVenueId}/${Date.now()}.webp`;
+            const { error: uploadError } = await supabase.storage
+                .from('member-photos')
+                .upload(fileName, webpFile);
+
+            if (uploadError) {
+                console.error('Upload error:', uploadError);
+                throw uploadError;
+            }
+
+            const { data } = supabase.storage
+                .from('member-photos')
+                .getPublicUrl(fileName);
+
+            return data.publicUrl;
+        } catch (error) {
+            console.error('Failed to upload photo:', error);
+            return null;
+        }
+    };
 
     if (!isOpen) return null;
 
     const handleSave = async () => {
-        if (!name || !phone) return alert("Nama dan No HP wajib diisi!");
+        if (!name || !phone) {
+            toast.error("Nama dan No HP wajib diisi!");
+            return;
+        }
 
-        const customerData: Omit<Customer, 'id'> = {
-            name,
-            phone,
-            isMember,
-            quota: isMember ? quota : undefined,
-            membershipExpiry: isMember ? expiry : undefined
-        };
+        setIsUploading(true);
+        let photoUrl = initialData?.photo_url;
 
         try {
+            if (photoFile) {
+                const uploadedUrl = await uploadPhoto(photoFile);
+                if (uploadedUrl) {
+                    photoUrl = uploadedUrl;
+                } else {
+                    toast.error("Gagal mengupload foto. Melanjutkan penyimpanan tanpa foto baru.");
+                }
+            }
+
+            const customerData: Omit<Customer, 'id'> = {
+                name,
+                phone: sanitizePhone(phone),
+                isMember,
+                quota: isMember ? quota : undefined,
+                membershipExpiry: isMember ? expiry : undefined,
+                photo_url: photoUrl
+            };
+
             if (initialData) {
                 await updateCustomer(initialData.id, customerData);
-                alert('Data pelanggan berhasil diupdate!');
+                toast.success('Data pelanggan berhasil diupdate!');
             } else {
                 await addCustomer(currentVenueId, customerData);
-                alert('Pelanggan baru berhasil ditambahkan!');
+                toast.success('Pelanggan baru berhasil ditambahkan!');
             }
             onClose();
         } catch (error) {
             console.error('Failed to save customer:', error);
-            alert('Gagal menyimpan data pelanggan. Silakan coba lagi.');
+            toast.error('Gagal menyimpan data pelanggan. Silakan coba lagi.');
+        } finally {
+            setIsUploading(false);
         }
     };
 
@@ -77,6 +145,34 @@ export const MemberModal: React.FC<MemberModalProps> = ({ isOpen, onClose, initi
                 </div>
 
                 <div className="p-4 flex flex-col gap-4 overflow-y-auto">
+                    {/* Photo Upload Section */}
+                    <div className="flex flex-col items-center gap-2 mb-2">
+                        <div className="relative w-24 h-24 bg-gray-100 rounded-full border-2 border-black overflow-hidden flex items-center justify-center group">
+                            {photoPreview ? (
+                                <img
+                                    src={photoPreview}
+                                    alt="Preview"
+                                    className="w-full h-full object-cover"
+                                />
+                            ) : (
+                                <Camera size={32} className="text-gray-400" />
+                            )}
+                            <label className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity text-white text-xs font-bold text-center p-1">
+                                <Upload size={16} className="mb-1" />
+                                <span className="sr-only">Upload</span>
+                            </label>
+                            <input
+                                type="file"
+                                accept="image/*"
+                                className="absolute inset-0 opacity-0 cursor-pointer"
+                                onChange={handlePhotoChange}
+                            />
+                        </div>
+                        <span className="text-xs font-bold uppercase text-gray-500">
+                            {photoPreview ? "Ganti Foto" : "Upload Foto"}
+                        </span>
+                    </div>
+
                     <div className="flex flex-col gap-1">
                         <label className="text-xs font-bold uppercase">Nama Lengkap</label>
                         <NeoInput
@@ -144,15 +240,59 @@ export const MemberModal: React.FC<MemberModalProps> = ({ isOpen, onClose, initi
                     </div>
                 </div>
 
-                <div className="p-3 border-t-2 border-black bg-gray-50">
+                <div className="p-3 border-t-2 border-black bg-gray-50 flex gap-2">
+                    {initialData && (
+                        <button
+                            onClick={() => setShowDeleteAlert(true)}
+                            disabled={isUploading}
+                            className="bg-red-600 text-white font-black py-3 px-4 text-sm uppercase hover:bg-red-700 border-2 border-transparent hover:border-black transition-all disabled:opacity-70 disabled:cursor-not-allowed"
+                            type="button"
+                        >
+                            Hapus
+                        </button>
+                    )}
                     <button
                         onClick={handleSave}
-                        className="w-full bg-black text-white font-black py-3 text-sm uppercase hover:bg-brand-orange hover:text-black border-2 border-transparent hover:border-black transition-all"
+                        disabled={isUploading}
+                        className="flex-1 bg-black text-white font-black py-3 text-sm uppercase hover:bg-brand-orange hover:text-black border-2 border-transparent hover:border-black transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
                     >
-                        Simpan Data
+                        {isUploading ? (
+                            <>
+                                <Loader2 className="animate-spin" size={16} />
+                                Memproses...
+                            </>
+                        ) : (
+                            "Simpan Data"
+                        )}
                     </button>
                 </div>
             </div>
+
+            {initialData && (
+                <AlertDialog
+                    isOpen={showDeleteAlert}
+                    onClose={() => setShowDeleteAlert(false)}
+                    onConfirm={async () => {
+                        setIsUploading(true);
+                        try {
+                            const { deleteCustomer } = useAppStore.getState();
+                            await deleteCustomer(initialData.id);
+                            toast.success("Member berhasil dihapus");
+                            onClose();
+                        } catch (error) {
+                            console.error(error);
+                            toast.error("Gagal menghapus member");
+                        } finally {
+                            setIsUploading(false);
+                            setShowDeleteAlert(false);
+                        }
+                    }}
+                    title="Hapus Member"
+                    description="Apakah anda yakin ingin menghapus member ini? Data member akan hilang dari list namun riwayat booking tetap tersimpan."
+                    confirmLabel="Hapus"
+                    variant="danger"
+                />
+            )}
         </div>
     );
 };

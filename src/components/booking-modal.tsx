@@ -9,6 +9,9 @@ import { NeoInput } from "@/components/ui/neo-input";
 import { useAppStore } from "@/lib/store";
 import { RRule } from "rrule";
 import { AlertDialog } from "@/components/ui/alert-dialog";
+import { sanitizePhone } from "@/lib/utils/formatters";
+import { BookingModalQRScanner } from "@/components/booking-modal-qr-scanner";
+import { QrCode } from "lucide-react";
 
 interface BookingModalProps {
     isOpen: boolean;
@@ -33,6 +36,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, onS
     const [selectedCustomerId, setSelectedCustomerId] = useState<string>("");
     const [showDeleteAlert, setShowDeleteAlert] = useState(false);
     const [useQuota, setUseQuota] = useState(false);
+    const [showQRScanner, setShowQRScanner] = useState(false);
 
     // Update hourly rate based on selected court
     useEffect(() => {
@@ -137,7 +141,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, onS
             startTime: startTimeStr,
             duration: duration,
             customerName,
-            phone,
+            phone: sanitizePhone(phone),
             price: duration * hourlyRate,
             status: existingBooking ? existingBooking.status : 'BELUM_BAYAR', // Keep status if editing
             paidAmount: existingBooking ? existingBooking.paidAmount : 0,
@@ -214,18 +218,29 @@ export const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, onS
                         {!existingBooking && (
                             <div className="flex flex-col gap-1 border-b-2 border-dashed border-gray-200 pb-3">
                                 <label className="text-xs font-bold uppercase text-gray-500">Pilih Member (Opsional)</label>
-                                <select
-                                    className="bg-gray-50 border border-black p-2 font-bold text-sm"
-                                    value={selectedCustomerId}
-                                    onChange={handleCustomerSelect}
-                                >
-                                    <option value="">-- Tamu / Non-Member --</option>
-                                    {customers.map(c => (
-                                        <option key={c.id} value={c.id}>
-                                            {c.name} {c.isMember ? '(Member)' : ''}
-                                        </option>
-                                    ))}
-                                </select>
+                                <div className="flex gap-2">
+                                    <select
+                                        className="flex-1 bg-gray-50 border border-black p-2 font-bold text-sm"
+                                        value={selectedCustomerId}
+                                        onChange={handleCustomerSelect}
+                                    >
+                                        <option value="">-- Tamu / Non-Member --</option>
+                                        {customers.map(c => (
+                                            <option key={c.id} value={c.id}>
+                                                {c.name} {c.isMember ? '(Member)' : ''}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowQRScanner(true)}
+                                        className="flex items-center gap-1.5 bg-brand-lime hover:bg-brand-lime/80 text-black px-3 border-2 border-black font-bold text-xs uppercase transition-all"
+                                        title="Scan QR Member"
+                                    >
+                                        <QrCode size={16} />
+                                        <span className="hidden sm:inline">Scan</span>
+                                    </button>
+                                </div>
                             </div>
                         )}
 
@@ -277,14 +292,36 @@ export const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, onS
                             </div>
                         )}
 
-                        <div className="flex flex-col gap-1">
-                            <label className="text-xs font-bold uppercase">Nama Pemesan</label>
-                            <NeoInput
-                                value={customerName}
-                                onChange={(e) => setCustomerName(e.target.value)}
-                                placeholder="Nama..."
-                                className="p-2 text-sm"
-                            />
+                        <div className="flex gap-2">
+                            <div className="flex-1 flex flex-col gap-1">
+                                <label className="text-xs font-bold uppercase">Nama Pemesan</label>
+                                <NeoInput
+                                    value={customerName}
+                                    onChange={(e) => setCustomerName(e.target.value)}
+                                    placeholder="Nama..."
+                                    className="p-2 text-sm"
+                                />
+                            </div>
+
+                            {/* Photo Verification Display */}
+                            {selectedCustomerId && (() => {
+                                const cust = customers.find(c => c.id === selectedCustomerId);
+                                if (cust?.photo_url) {
+                                    return (
+                                        <div className="w-16 h-16 shrink-0 border-2 border-black bg-gray-100 flex items-center justify-center overflow-hidden">
+                                            <img
+                                                src={cust.photo_url}
+                                                alt={cust.name}
+                                                className="w-full h-full object-cover"
+                                                onClick={() => window.open(cust.photo_url, '_blank')}
+                                                title="Klik untuk memperbesar"
+                                                style={{ cursor: 'pointer' }}
+                                            />
+                                        </div>
+                                    );
+                                }
+                                return null;
+                            })()}
                         </div>
 
                         <div className="flex flex-col gap-1">
@@ -394,6 +431,25 @@ export const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, onS
                 description="Apakah anda yakin ingin menghapus booking ini? Slot akan langsung kosong."
                 confirmLabel="Hapus"
                 variant="danger"
+            />
+
+            <BookingModalQRScanner
+                isOpen={showQRScanner}
+                onClose={() => setShowQRScanner(false)}
+                onScan={(memberId) => {
+                    const customer = customers.find(c => c.id === memberId);
+                    if (customer) {
+                        setSelectedCustomerId(memberId);
+                        setCustomerName(customer.name);
+                        setPhone(customer.phone);
+                        if (customer.quota && customer.quota > 0) {
+                            setUseQuota(true);
+                        }
+                        toast.success(`Member ${customer.name} terpilih!`);
+                    } else {
+                        toast.error("Member tidak ditemukan di database");
+                    }
+                }}
             />
         </>
     );

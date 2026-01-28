@@ -36,32 +36,34 @@
 
 #### Backend (Supabase Edge Functions)
 
-- [ ] Setup Supabase Edge Function untuk scheduled task
-- [ ] Create function `check-expiring-members`
-  - [ ] Query members yang akan expired dalam 30 hari
-  - [ ] Query members yang akan expired dalam 7 hari
-  - [ ] Query members yang sudah expired
-- [ ] Integrase WhatsApp Business API / Fonnte / Wappin
-  - [ ] Setup API credentials di environment variables
-  - [ ] Create message template untuk reminder
-  - [ ] Implement send message function
-- [ ] Logging: track reminder sent, delivered, failed
-- [ ] Schedule cron job (daily 09:00 WIB)
+- [x] Setup Supabase Edge Function untuk scheduled task ✅
+- [x] Create function `check-expiring-members` ✅
+  - [x] Query members yang akan expired dalam 30 hari ✅
+  - [x] Query members yang akan expired dalam 7 hari ✅
+  - [x] Query members yang sudah expired ✅
+- [x] Integrase WhatsApp Business API / Fonnte / Wappin ✅
+  - [x] Setup API credentials di environment variables ✅
+  - [x] Create message template untuk reminder ✅
+  - [x] Implement send message function ✅
+- [x] Logging: track reminder sent, delivered, failed ✅
+- [x] Schedule cron job (daily 09:00 WIB) ✅
 
 #### Frontend
 
-- [ ] Create admin page untuk view reminder history
-- [ ] Manual trigger untuk send reminder ke specific member
+- [x] Create admin page untuk view reminder history ✅
+- [x] Manual trigger untuk send reminder ke specific member ✅
 - [ ] Settings page untuk configure reminder timing (30d, 7d, etc)
-- [ ] Preview message template sebelum send
+- [x] Preview message template sebelum send ✅
 
 **File Baru:**
-- `supabase/functions/check-expiring-members/index.ts` (NEW)
-- `src/app/admin/reminders/page.tsx` (NEW)
-- `src/lib/api/whatsapp.ts` (NEW)
+- `supabase/functions/check-expiring-members/index.ts` ✅ (NEW)
+- `supabase/migrations/20260128_create_reminder_logs.sql` ✅ (NEW)
+- `supabase/migrations/20260128_schedule_reminder_cron.sql` ✅ (NEW)
+- `src/lib/api/whatsapp.ts` ✅ (NEW)
+- `src/lib/api/reminders.ts` ✅ (NEW)
+- `src/components/admin/reminder-history.tsx` ✅ (NEW)
 
-**Database Migration:**
-- `supabase/migrations/xxxx_create_reminder_logs.sql` (NEW)
+**Status:** ✅ **SELESAI** - Core features implemented (28 Jan 2026)
 
 ---
 

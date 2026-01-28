@@ -18,10 +18,23 @@ export const DailyReport = () => {
     const filteredTransactions = useMemo(() => {
         let result = transactions;
 
+        // Get today's date in YYYY-MM-DD format (local timezone)
+        const today = new Date();
+        const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
         if (useRangeFilter && startDate && endDate) {
+            // User-specified date range filter
             result = transactions.filter(t => {
-                const txDate = new Date(t.date).toISOString().split('T')[0];
-                return txDate >= startDate && txDate <= endDate;
+                const txDate = new Date(t.date);
+                const txDateStr = `${txDate.getFullYear()}-${String(txDate.getMonth() + 1).padStart(2, '0')}-${String(txDate.getDate()).padStart(2, '0')}`;
+                return txDateStr >= startDate && txDateStr <= endDate;
+            });
+        } else {
+            // Default: filter to today's transactions only
+            result = transactions.filter(t => {
+                const txDate = new Date(t.date);
+                const txDateStr = `${txDate.getFullYear()}-${String(txDate.getMonth() + 1).padStart(2, '0')}-${String(txDate.getDate()).padStart(2, '0')}`;
+                return txDateStr === todayStr;
             });
         }
 

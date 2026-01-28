@@ -9,11 +9,12 @@ export async function middleware(request: NextRequest) {
     })
 
     // Protect admin routes
-    // Allow /login, /public, /_next, /favicon.ico, /api/public, /api/phone-verification, /api/auth
+    // Allow /login, /public, /verify, /_next, /favicon.ico, /api/public, /api/phone-verification, /api/auth
     const isPublicRoute =
         request.nextUrl.pathname.startsWith('/login') ||
         request.nextUrl.pathname.startsWith('/onboarding') ||
         request.nextUrl.pathname.startsWith('/public') ||
+        request.nextUrl.pathname.startsWith('/verify') ||
         request.nextUrl.pathname.startsWith('/api/public') ||
         request.nextUrl.pathname.startsWith('/api/phone-verification') ||
         request.nextUrl.pathname.startsWith('/api/onboarding') ||

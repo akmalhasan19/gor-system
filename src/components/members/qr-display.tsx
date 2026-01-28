@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Customer } from "@/lib/constants";
 import { generateMemberQRCode, getTodayDate } from "@/lib/utils/qr-generator";
-import { X, QrCode, Loader2 } from "lucide-react";
+import { X, QrCode, Loader2, CheckCircle2, Sparkles } from "lucide-react";
 
 interface QRDisplayProps {
     isOpen: boolean;
@@ -11,18 +11,20 @@ interface QRDisplayProps {
     member: Customer;
 }
 
+interface CheckInData {
+    scanned_at: string;
+    member_name: string;
+}
+
 export const QRDisplay: React.FC<QRDisplayProps> = ({ isOpen, onClose, member }) => {
     const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [checkInStatus, setCheckInStatus] = useState<'waiting' | 'confirmed'>('waiting');
+    const [checkInData, setCheckInData] = useState<CheckInData | null>(null);
+    const pollingRef = useRef<NodeJS.Timeout | null>(null);
 
-    useEffect(() => {
-        if (isOpen && member) {
-            generateQR();
-        }
-    }, [isOpen, member]);
-
-    const generateQR = async () => {
+    const generateQR = useCallback(async () => {
         setIsLoading(true);
         setError(null);
         try {
@@ -34,7 +36,48 @@ export const QRDisplay: React.FC<QRDisplayProps> = ({ isOpen, onClose, member })
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [member.id, member.name]);
+
+    const checkForScan = useCallback(async () => {
+        try {
+            const today = getTodayDate();
+            const response = await fetch(`/api/public/qr-checkin?memberId=${member.id}&date=${today}`);
+            const data = await response.json();
+
+            if (data.found && data.checkIn) {
+                setCheckInStatus('confirmed');
+                setCheckInData(data.checkIn);
+                // Stop polling once confirmed
+                if (pollingRef.current) {
+                    clearInterval(pollingRef.current);
+                    pollingRef.current = null;
+                }
+            }
+        } catch (err) {
+            // Silent fail, continue polling
+        }
+    }, [member.id]);
+
+    useEffect(() => {
+        if (isOpen && member) {
+            setCheckInStatus('waiting');
+            setCheckInData(null);
+            generateQR();
+
+            // Start polling for check-in confirmation
+            pollingRef.current = setInterval(checkForScan, 2000); // Poll every 2 seconds
+
+            // Initial check
+            checkForScan();
+        }
+
+        return () => {
+            if (pollingRef.current) {
+                clearInterval(pollingRef.current);
+                pollingRef.current = null;
+            }
+        };
+    }, [isOpen, member, generateQR, checkForScan]);
 
     if (!isOpen) return null;
 
@@ -46,6 +89,69 @@ export const QRDisplay: React.FC<QRDisplayProps> = ({ isOpen, onClose, member })
         day: 'numeric'
     });
 
+    const formatTime = (isoString: string) => {
+        return new Date(isoString).toLocaleTimeString('id-ID', {
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    };
+
+    // CONFIRMED STATE - Member has scanned
+    if (checkInStatus === 'confirmed') {
+        return (
+            <div className="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-4 overflow-y-auto">
+                <div className="bg-gradient-to-br from-green-500 to-emerald-600 border-4 border-black w-full max-w-xs flex flex-col shadow-[8px_8px_0px_black] max-h-[90vh] my-auto animate-in zoom-in duration-300">
+                    {/* Header */}
+                    <div className="bg-black text-white p-2 flex justify-between items-center shrink-0">
+                        <div className="flex items-center gap-2">
+                            <CheckCircle2 size={18} />
+                            <span className="font-black text-sm uppercase">Check-In Berhasil!</span>
+                        </div>
+                        <button
+                            onClick={onClose}
+                            className="hover:text-brand-orange font-bold transition-colors"
+                        >
+                            <X size={20} />
+                        </button>
+                    </div>
+
+                    {/* Success Content */}
+                    <div className="p-6 flex flex-col items-center gap-4 text-white text-center">
+                        {/* Success Icon */}
+                        <div className="relative">
+                            <div className="w-20 h-20 bg-white/20 backdrop-blur rounded-full flex items-center justify-center border-4 border-white/50">
+                                <CheckCircle2 size={48} className="text-white" />
+                            </div>
+                            <Sparkles className="absolute -top-1 -right-1 text-yellow-300 animate-pulse" size={24} />
+                        </div>
+
+                        {/* Member Info */}
+                        <div>
+                            <h3 className="font-black text-2xl uppercase">{member.name}</h3>
+                            <p className="text-white/80 text-sm mt-1">telah bermain pada</p>
+                        </div>
+
+                        {/* Date & Time */}
+                        <div className="bg-white/20 backdrop-blur rounded-xl p-4 w-full">
+                            <p className="font-black text-lg">{formattedDate}</p>
+                            {checkInData?.scanned_at && (
+                                <p className="text-white/80 text-sm mt-1">
+                                    Pukul {formatTime(checkInData.scanned_at)}
+                                </p>
+                            )}
+                        </div>
+
+                        {/* Confirmation Message */}
+                        <p className="text-sm text-white/70">
+                            Member telah melakukan verifikasi QR
+                        </p>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // WAITING STATE - Show QR code
     return (
         <div className="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-4 overflow-y-auto">
             <div className="bg-white border-4 border-black w-full max-w-xs flex flex-col shadow-[8px_8px_0px_black] max-h-[90vh] my-auto">
@@ -126,8 +232,15 @@ export const QRDisplay: React.FC<QRDisplayProps> = ({ isOpen, onClose, member })
                             Kasir akan scan QR saat check-in booking
                         </p>
                     </div>
+
+                    {/* Waiting indicator */}
+                    <div className="flex items-center gap-2 text-gray-400 text-xs">
+                        <Loader2 className="animate-spin" size={12} />
+                        <span>Menunggu member scan QR...</span>
+                    </div>
                 </div>
             </div>
         </div>
     );
 };
+

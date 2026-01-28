@@ -2,15 +2,26 @@
 
 import React, { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { validateMemberQRData } from "@/lib/utils/qr-generator";
-import { CheckCircle2, XCircle, Loader2, AlertCircle } from "lucide-react";
+import { validateMemberQRData, getTodayDate } from "@/lib/utils/qr-generator";
+import { CheckCircle2, XCircle, Loader2, AlertCircle, Sparkles } from "lucide-react";
 
 // Wrap in Suspense boundary for useSearchParams
 export default function VerifyPage() {
     return (
-        <Suspense fallback={<div className="flex items-center justify-center min-h-screen bg-[#FDFBF7]"><Loader2 className="animate-spin" size={48} /></div>}>
+        <Suspense fallback={<LoadingScreen />}>
             <VerifyContent />
         </Suspense>
+    );
+}
+
+function LoadingScreen() {
+    return (
+        <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-green-400 via-emerald-500 to-teal-600">
+            <div className="text-center text-white">
+                <Loader2 className="animate-spin mx-auto mb-4" size={48} />
+                <p className="font-bold animate-pulse">Memverifikasi...</p>
+            </div>
+        </div>
     );
 }
 
@@ -25,13 +36,12 @@ function VerifyContent() {
     useEffect(() => {
         if (!dataToken) {
             setStatus('invalid');
-            setErrorMsg("No QR data found.");
+            setErrorMsg("QR Code tidak ditemukan.");
             return;
         }
 
         const verify = async () => {
             try {
-                // validateMemberQRData handles base64 tokens directly too (logic added in recent update)
                 const result = await validateMemberQRData(dataToken);
 
                 if (result.valid && result.payload) {
@@ -40,10 +50,25 @@ function VerifyContent() {
                         name: result.payload.name || "Member",
                         memberId: result.payload.memberId
                     });
+
+                    // Record check-in event for operator notification
+                    try {
+                        await fetch('/api/public/qr-checkin', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                memberId: result.payload.memberId,
+                                memberName: result.payload.name,
+                                date: getTodayDate()
+                            })
+                        });
+                    } catch (e) {
+                        // Non-blocking, just for operator notification
+                        console.log('Check-in recording skipped');
+                    }
                 } else {
                     if (result.error && result.error.includes("kadaluarsa")) {
                         setStatus('expired');
-                        // Use payload if available even if expired, to show who it was
                         if (result.payload) {
                             setMemberData({
                                 name: result.payload.name || "Member",
@@ -57,7 +82,7 @@ function VerifyContent() {
                 }
             } catch (err) {
                 setStatus('invalid');
-                setErrorMsg("System error during verification");
+                setErrorMsg("Terjadi kesalahan sistem");
             }
         };
 
@@ -73,94 +98,96 @@ function VerifyContent() {
         });
     };
 
-    // Using inline styles for colors similar to global theme where tailwind classes might vary slightly
-    // bg-brand-cream replacement: bg-[#FDFBF7]
-    // bg-brand-lime replacement: bg-[#D4F46A]
-
-    return (
-        <div className="min-h-screen bg-[#FDFBF7] flex flex-col items-center justify-center p-4 font-sans">
-            <div className="w-full max-w-md bg-white border-4 border-black shadow-[8px_8px_0px_black] p-6 text-center">
-
-                {/* Logo / Header */}
-                <div className="mb-6">
-                    <h1 className="text-2xl font-black italic uppercase tracking-tighter">SMASH PARTNER</h1>
-                    <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">Official Member Verification</p>
-                </div>
-
-                {/* Content based on Status */}
-                {status === 'loading' && (
-                    <div className="py-12 flex flex-col items-center gap-4">
-                        <Loader2 className="animate-spin text-black" size={48} />
-                        <p className="font-bold animate-pulse">Verifying QR Code...</p>
+    // VALID - Success screen with friendly message
+    if (status === 'valid' && memberData) {
+        return (
+            <div className="min-h-screen bg-gradient-to-br from-green-400 via-emerald-500 to-teal-600 flex flex-col items-center justify-center p-6 font-sans">
+                <div className="w-full max-w-sm text-center text-white animate-in fade-in zoom-in duration-500">
+                    {/* Success Icon */}
+                    <div className="relative inline-block mb-6">
+                        <div className="w-28 h-28 bg-white/20 backdrop-blur rounded-full flex items-center justify-center mx-auto border-4 border-white/50">
+                            <CheckCircle2 size={64} className="text-white" />
+                        </div>
+                        <Sparkles className="absolute -top-2 -right-2 text-yellow-300 animate-pulse" size={28} />
                     </div>
-                )}
 
-                {status === 'valid' && memberData && (
-                    <div className="flex flex-col items-center gap-4 animate-in fade-in zoom-in duration-300">
-                        <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center border-4 border-black mb-2 relative">
-                            <CheckCircle2 size={56} className="text-green-600" />
-                            <div className="absolute -bottom-2 bg-black text-white px-3 py-1 text-xs font-black uppercase rounded-full">
-                                Verified
-                            </div>
-                        </div>
+                    {/* Greeting */}
+                    <p className="text-lg font-medium text-white/80 mb-1">Hai,</p>
+                    <h1 className="text-4xl font-black uppercase tracking-tight mb-4">{memberData.name}!</h1>
 
-                        <div>
-                            <p className="text-sm font-bold text-gray-500 uppercase">Selamat Datang</p>
-                            <h2 className="text-3xl font-black uppercase leading-none mt-1">{memberData.name}</h2>
-                            <p className="text-xs font-mono bg-gray-100 px-2 py-1 mt-2 inline-block rounded border border-gray-300">ID: {memberData.memberId}</p>
-                        </div>
-
-                        <div className="w-full bg-green-50 border-2 border-green-600 p-4 mt-2">
-                            <p className="font-bold text-green-800 text-sm uppercase">Status Member: AKTIF</p>
-                            <p className="text-xs font-bold mt-1 text-green-700">Valid untuk hari ini:</p>
-                            <p className="font-black text-lg text-green-900">{getTodayDateFormatted()}</p>
-                        </div>
-
-                        <p className="text-xs text-gray-400 mt-4 max-w-[250px]">
-                            Tunjukkan halaman ini ke petugas jika diperlukan verifikasi manual.
+                    {/* Main Message - Customizable per venue in future */}
+                    <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-6 mb-6 border border-white/30">
+                        <p className="text-2xl font-bold leading-relaxed">
+                            🏸 Selamat Bermain Hari Ini!
+                        </p>
+                        <p className="text-white/90 text-sm mt-3">
+                            Senang bertemu kamu lagi di lapangan
                         </p>
                     </div>
-                )}
 
-                {status === 'expired' && (
-                    <div className="flex flex-col items-center gap-4 animate-in fade-in zoom-in duration-300">
-                        <div className="w-24 h-24 bg-orange-100 rounded-full flex items-center justify-center border-4 border-black mb-2">
-                            <AlertCircle size={56} className="text-[#FF9F1C]" />
-                        </div>
-
-                        <div>
-                            <h2 className="text-2xl font-black uppercase text-red-600">QR KADALUARSA</h2>
-                            {memberData && <p className="font-bold text-lg mt-1">{memberData.name}</p>}
-                        </div>
-
-                        <div className="w-full bg-red-50 border-2 border-red-600 p-4 mt-2">
-                            <p className="text-xs font-bold text-red-800 uppercase">{errorMsg}</p>
-                            <p className="text-xs mt-2">Silakan generate QR Code baru di aplikasi untuk hari ini.</p>
-                        </div>
+                    {/* Date Info */}
+                    <div className="bg-white/10 rounded-xl py-3 px-4 inline-block">
+                        <p className="text-xs font-medium text-white/70 uppercase tracking-wider">Valid Hari Ini</p>
+                        <p className="font-bold text-sm">{getTodayDateFormatted()}</p>
                     </div>
-                )}
 
-                {status === 'invalid' && (
-                    <div className="flex flex-col items-center gap-4 animate-in fade-in zoom-in duration-300">
-                        <div className="w-24 h-24 bg-red-100 rounded-full flex items-center justify-center border-4 border-black mb-2">
-                            <XCircle size={56} className="text-red-600" />
-                        </div>
-
-                        <div>
-                            <h2 className="text-2xl font-black uppercase text-red-600">QR TIDAK VALID</h2>
-                        </div>
-
-                        <div className="w-full bg-gray-100 border-2 border-gray-300 p-4 mt-2">
-                            <p className="text-xs font-bold text-gray-500 uppercase">Error Details</p>
-                            <p className="text-sm font-bold text-red-500 mt-1">{errorMsg}</p>
-                        </div>
-                    </div>
-                )}
-
-                <div className="mt-8 pt-4 border-t-2 border-dashed border-gray-200">
-                    <p className="text-[10px] font-bold text-gray-400 uppercase">Smash Partner System &copy; 2026</p>
+                    {/* Footer */}
+                    <p className="text-xs text-white/50 mt-8">
+                        Powered by Smash Partner System
+                    </p>
                 </div>
             </div>
-        </div>
-    );
+        );
+    }
+
+    // EXPIRED - QR has expired
+    if (status === 'expired') {
+        return (
+            <div className="min-h-screen bg-gradient-to-br from-orange-400 via-amber-500 to-yellow-500 flex flex-col items-center justify-center p-6 font-sans">
+                <div className="w-full max-w-sm text-center text-white animate-in fade-in zoom-in duration-500">
+                    <div className="w-24 h-24 bg-white/20 backdrop-blur rounded-full flex items-center justify-center mx-auto mb-6 border-4 border-white/50">
+                        <AlertCircle size={56} />
+                    </div>
+
+                    <h1 className="text-3xl font-black uppercase mb-2">QR Kadaluarsa</h1>
+                    {memberData && <p className="text-xl font-medium mb-4">{memberData.name}</p>}
+
+                    <div className="bg-white/20 backdrop-blur-sm rounded-xl p-4 mb-6">
+                        <p className="text-sm">
+                            QR code ini hanya berlaku untuk satu hari.<br />
+                            Silakan minta QR code baru dari petugas.
+                        </p>
+                    </div>
+
+                    <p className="text-xs text-white/60">Smash Partner System</p>
+                </div>
+            </div>
+        );
+    }
+
+    // INVALID - QR is not valid
+    if (status === 'invalid') {
+        return (
+            <div className="min-h-screen bg-gradient-to-br from-red-400 via-rose-500 to-pink-600 flex flex-col items-center justify-center p-6 font-sans">
+                <div className="w-full max-w-sm text-center text-white animate-in fade-in zoom-in duration-500">
+                    <div className="w-24 h-24 bg-white/20 backdrop-blur rounded-full flex items-center justify-center mx-auto mb-6 border-4 border-white/50">
+                        <XCircle size={56} />
+                    </div>
+
+                    <h1 className="text-3xl font-black uppercase mb-4">QR Tidak Valid</h1>
+
+                    <div className="bg-white/20 backdrop-blur-sm rounded-xl p-4 mb-6">
+                        <p className="text-sm">
+                            {errorMsg || "QR code tidak dapat diverifikasi."}
+                        </p>
+                    </div>
+
+                    <p className="text-xs text-white/60">Smash Partner System</p>
+                </div>
+            </div>
+        );
+    }
+
+    // LOADING
+    return <LoadingScreen />;
 }

@@ -147,3 +147,65 @@ export async function compressAndConvertToWebp(
         reader.readAsDataURL(file);
     });
 }
+
+/**
+ * Creates a cropped image from a source URL and pixel crop data.
+ * 
+ * @param imageSrc - The source image URL
+ * @param pixelCrop - The pixel crop data usually from react-easy-crop
+ * @param quality - Output quality (0-1), default 0.9
+ * @returns Promise<Blob> - The cropped image blob
+ */
+export async function getCroppedImg(
+    imageSrc: string,
+    pixelCrop: { x: number; y: number; width: number; height: number },
+    quality: number = 0.9
+): Promise<Blob> {
+    const image = await createImage(imageSrc);
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+
+    if (!ctx) {
+        throw new Error('No 2d context');
+    }
+
+    // Set width to double the crop width for high resolution (optional, enables better quality on retina)
+    // For now, let's keep it 1:1 to the crop
+    canvas.width = pixelCrop.width;
+    canvas.height = pixelCrop.height;
+
+    ctx.drawImage(
+        image,
+        pixelCrop.x,
+        pixelCrop.y,
+        pixelCrop.width,
+        pixelCrop.height,
+        0,
+        0,
+        pixelCrop.width,
+        pixelCrop.height
+    );
+
+    return new Promise((resolve, reject) => {
+        canvas.toBlob(
+            (blob) => {
+                if (!blob) {
+                    reject(new Error('Canvas is empty'));
+                    return;
+                }
+                resolve(blob);
+            },
+            'image/webp',
+            quality
+        );
+    });
+}
+
+const createImage = (url: string): Promise<HTMLImageElement> =>
+    new Promise((resolve, reject) => {
+        const image = new Image();
+        image.addEventListener('load', () => resolve(image));
+        image.addEventListener('error', (error) => reject(error));
+        image.setAttribute('crossOrigin', 'anonymous'); // needed to avoid CORS issues when downloading from external URL
+        image.src = url;
+    });

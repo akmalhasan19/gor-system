@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Sidebar } from '@/components/sidebar';
+import { MobileBottomNav } from '@/components/mobile-bottom-nav';
 import { MobileNav } from '@/components/mobile-nav';
 import { AuthGuard } from '@/components/auth-guard';
 import { FloatingCart } from '@/components/floating-cart';
@@ -17,7 +18,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
     return (
         <AuthGuard>
             <DataSyncProvider>
-                <div className="min-h-screen bg-gray-50 flex flex-col lg:flex-row">
+                <div className="min-h-screen bg-white flex flex-col lg:flex-row">
                     {/* Sidebar for Desktop */}
                     <Sidebar />
 
@@ -26,16 +27,19 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
                         {/* Hidden Receipt Component for Printing */}
                         <Receipt transaction={latestTransaction} />
 
-                        {/* Mobile Navigation */}
+                        {/* Mobile Navigation Top */}
                         <MobileNav />
 
                         {/* Page Content */}
-                        <main className="flex-1 overflow-hidden flex flex-col">
+                        <main className="flex-1 overflow-y-auto flex flex-col pb-20 md:pb-0">
                             {children}
                         </main>
 
                         {/* Global Floating Cart (Visible on non-POS pages) */}
                         <FloatingCart />
+
+                        {/* Mobile Bottom Navigation */}
+                        <MobileBottomNav />
                     </div>
                 </div>
             </DataSyncProvider>

@@ -2,6 +2,8 @@
 
 import React from 'react';
 import dynamic from 'next/dynamic';
+import Link from 'next/link';
+import { Settings } from 'lucide-react';
 
 // Lazy load DashboardView dengan loading indicator
 const DashboardView = dynamic(
@@ -22,7 +24,12 @@ const DashboardView = dynamic(
 export default function DashboardPage() {
     return (
         <div className="flex-1 p-4 overflow-y-auto">
-            <h1 className="text-2xl font-display font-black uppercase italic mb-4">Dashboard</h1>
+            <div className="flex justify-between items-center mb-4">
+                <h1 className="text-2xl font-display font-black uppercase italic">Dashboard</h1>
+                <Link href="/settings" className="p-2 border-2 border-black bg-white rounded-lg shadow-neo-sm hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all">
+                    <Settings size={20} />
+                </Link>
+            </div>
             <DashboardView />
         </div>
     );

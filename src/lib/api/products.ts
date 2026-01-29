@@ -13,9 +13,10 @@ export async function getProducts(venueId: string): Promise<Product[]> {
     return (data || []).map(row => ({
         id: row.id,
         name: row.name,
-        price: row.selling_price,
-        stock: row.stock_quantity,
-        category: row.type,
+        price: Number(row.price),
+        stock: Number(row.stock),
+        category: row.category,
+        image_url: row.image_url,
     }));
 }
 
@@ -25,10 +26,10 @@ export async function createProduct(venueId: string, product: Omit<Product, 'id'
         .insert({
             venue_id: venueId,
             name: product.name,
-            selling_price: product.price,
-            stock_quantity: product.stock,
-            type: product.category,
-            cost_price: 0, // Can be added later
+            price: product.price,
+            stock: product.stock,
+            category: product.category,
+            image_url: product.image_url,
         })
         .select()
         .single();
@@ -38,16 +39,17 @@ export async function createProduct(venueId: string, product: Omit<Product, 'id'
     return {
         id: data.id,
         name: data.name,
-        price: data.selling_price,
-        stock: data.stock_quantity,
-        category: data.type,
+        price: Number(data.price),
+        stock: Number(data.stock),
+        category: data.category,
+        image_url: data.image_url,
     };
 }
 
 export async function updateStock(id: string, newStock: number): Promise<void> {
     const { error } = await supabase
         .from('products')
-        .update({ stock_quantity: newStock })
+        .update({ stock: newStock })
         .eq('id', id);
 
     if (error) throw error;

@@ -7,6 +7,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
     throw new Error('Missing Supabase environment variables. Please check your .env file.');
 }
 
+console.log('Supabase Client Init:', { supabaseUrl, hasKey: !!supabaseAnonKey });
 export const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey);
 
 // For future use: Database types will be generated from Supabase

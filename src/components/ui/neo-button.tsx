@@ -18,8 +18,8 @@ export const NeoButton = React.forwardRef<HTMLButtonElement, NeoButtonProps>(
             <button
                 ref={ref}
                 className={cn(
-                    "px-6 py-3 font-black uppercase tracking-wider border-2 border-black transition-all",
-                    "neo-shadow active:neo-interactive active:translate-x-[2px] active:translate-y-[2px] hover:-translate-y-1 hover:shadow-lg",
+                    "px-6 py-3 font-black uppercase tracking-wider border-[3px] border-black rounded-2xl transition-all",
+                    "neo-shadow active:neo-interactive active:translate-x-[2px] active:translate-y-[2px] hover:-translate-x-[1px] hover:-translate-y-[1px] hover:shadow-neo-lg",
                     "flex items-center justify-center gap-2",
                     variants[variant],
                     className

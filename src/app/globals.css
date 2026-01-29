@@ -4,17 +4,20 @@
   --font-sans: var(--font-space), 'Inter', system-ui, sans-serif;
   --font-display: var(--font-syne), 'Inter', system-ui, sans-serif;
 
-  --color-brand-lime: #D9F99D;
+  --color-brand-lime: #BEF264; /* Corrected Lime for Neo Layout */
   --color-brand-black: #000000;
   --color-brand-white: #FFFFFF;
   --color-brand-danger: #F87171;
-  --color-brand-green: #16a34a;
-  --color-brand-orange: #f97316;
+  --color-brand-green: #22C55E;
+  --color-brand-orange: #FB923C;
+  --color-brand-yellow: #FACC15;
   --color-pastel-lilac: #BDB2FF;
-  /* Approximate pastel lilac matches user request */
 
   --shadow-neo: 4px 4px 0px 0px rgba(0, 0, 0, 1);
+  --shadow-neo-lg: 6px 6px 0px 0px rgba(0, 0, 0, 1);
   --shadow-neo-sm: 2px 2px 0px 0px rgba(0, 0, 0, 1);
+  
+  --radius-neo: 1rem;
 }
 
 /* Custom Utilities for Neo Brutalism */

@@ -1,0 +1,7 @@
+project_id = "gor-system"
+
+[analytics]
+enabled = false
+
+[realtime]
+enabled = false

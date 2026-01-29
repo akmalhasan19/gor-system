@@ -47,7 +47,7 @@ export const MobileNav = () => {
                 <div className="relative">
                     <button
                         onClick={() => setIsMenuOpen(!isMenuOpen)}
-                        className={`bg-white p-1.5 border-2 border-black shadow-neo-sm active:shadow-none active:translate-x-[2px] active:translate-y-[2px] transition-all ${isMenuOpen ? 'bg-black text-white' : ''}`}
+                        className={`bg-white p-1.5 border-2 border-black shadow-neo-sm active:shadow-none active:translate-x-[2px] active:translate-y-[2px] transition-all hidden ${isMenuOpen ? 'bg-black text-white' : ''}`}
                     >
                         <Menu className="w-6 h-6" strokeWidth={2.5} />
                     </button>

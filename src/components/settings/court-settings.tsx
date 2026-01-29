@@ -3,14 +3,20 @@
 import React, { useState } from "react";
 import { useAppStore } from "@/lib/store";
 import { toast } from "sonner";
+import { NeoButton } from "@/components/ui/neo-button";
+import { Plus } from "lucide-react";
 
 export const CourtSettings = () => {
-    const { courts, updateCourt } = useAppStore();
+    const { courts, updateCourt, addCourt, currentVenueId } = useAppStore();
+    const [isAdding, setIsAdding] = useState(false);
+    const [newCourtData, setNewCourtData] = useState({
+        name: '',
+        hourlyRate: 0,
+        memberHourlyRate: 0
+    });
 
     const handleUpdate = async (courtId: string, field: string, value: number | null) => {
         try {
-            // Optimistic update handled by store if designed well, or wait for sync.
-            // Our store updates state immediately.
             await updateCourt(courtId, { [field]: value });
             toast.success("Harga disimpan!");
         } catch (error: any) {
@@ -19,12 +25,118 @@ export const CourtSettings = () => {
         }
     };
 
+    const handleAddCourt = async () => {
+        if (!newCourtData.name) {
+            toast.error("Nama lapangan wajib diisi!");
+            return;
+        }
+        if (newCourtData.hourlyRate <= 0) {
+            toast.error("Harga per jam harus lebih dari 0!");
+            return;
+        }
+
+        try {
+            await addCourt(currentVenueId, {
+                name: newCourtData.name,
+                hourlyRate: newCourtData.hourlyRate,
+                memberHourlyRate: newCourtData.memberHourlyRate || undefined, // Send undefined if 0/empty
+                courtNumber: courts.length + 1, // Simple auto-increment suggestion
+                isActive: true
+            });
+            toast.success("Lapangan berhasil ditambahkan!");
+            setIsAdding(false);
+            setNewCourtData({ name: '', hourlyRate: 0, memberHourlyRate: 0 });
+        } catch (error: any) {
+            console.error(error);
+            toast.error("Gagal menambah lapangan: " + (error.message || "Terjadi kesalahan"));
+        }
+    };
+
     return (
         <div className="space-y-6 pb-24">
-            <div className="flex flex-col gap-2">
-                <h2 className="text-2xl font-black italic uppercase tracking-tighter">Pengaturan Lapangan</h2>
-                <p className="text-sm text-gray-500 font-bold">Atur harga normal dan harga khusus member di sini.</p>
+            <div className="flex justify-between items-start gap-4">
+                <div className="flex flex-col gap-2">
+                    <h2 className="text-2xl font-black italic uppercase tracking-tighter">Pengaturan Lapangan</h2>
+                    <p className="text-sm text-gray-500 font-bold">Atur harga normal dan harga khusus member di sini.</p>
+                </div>
+                {!isAdding && (
+                    <NeoButton
+                        onClick={() => setIsAdding(true)}
+                        className="py-2 px-4 text-xs"
+                        icon={<Plus size={16} strokeWidth={3} />}
+                    >
+                        Tambah Lapangan
+                    </NeoButton>
+                )}
             </div>
+
+            {isAdding && (
+                <div className="bg-white border-2 border-black p-4 shadow-neo flex flex-col gap-4 animate-in fade-in slide-in-from-top-4 duration-300">
+                    <div className="flex justify-between items-center border-b-2 border-gray-100 pb-2">
+                        <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 bg-brand-lime text-black flex items-center justify-center font-black rounded-full border-2 border-black">
+                                +
+                            </div>
+                            <h3 className="text-xl font-black uppercase text-black">Lapangan Baru</h3>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="flex flex-col gap-1">
+                            <label className="text-xs font-bold uppercase text-gray-500">Nama Lapangan</label>
+                            <input
+                                autoFocus
+                                type="text"
+                                placeholder="Cth: Lapangan 3"
+                                value={newCourtData.name}
+                                onChange={(e) => setNewCourtData({ ...newCourtData, name: e.target.value })}
+                                className="p-2 w-full font-bold outline-none bg-white border-2 border-black focus:shadow-[4px_4px_0px_black] transition-all"
+                            />
+                        </div>
+                        <div className="flex flex-col gap-1">
+                            <label className="text-xs font-bold uppercase text-gray-500">Harga Umum (Per Jam)</label>
+                            <div className="flex items-center group focus-within:shadow-[4px_4px_0px_black] transition-all border-2 border-black">
+                                <div className="bg-gray-100 border-r-2 border-black p-2 font-bold text-sm select-none">Rp</div>
+                                <input
+                                    type="number"
+                                    value={newCourtData.hourlyRate || ''}
+                                    onChange={(e) => setNewCourtData({ ...newCourtData, hourlyRate: parseInt(e.target.value) || 0 })}
+                                    className="p-2 w-full font-bold outline-none bg-white font-mono"
+                                />
+                            </div>
+                        </div>
+                        <div className="flex flex-col gap-1">
+                            <label className="text-xs font-bold uppercase text-brand-lilac">Harga Member (Opsional)</label>
+                            <div className="flex items-center group focus-within:shadow-[4px_4px_0px_#A78BFA] transition-all border-2 border-black">
+                                <div className="bg-brand-lilac text-white border-r-2 border-black p-2 font-bold text-sm select-none">Rp</div>
+                                <input
+                                    type="number"
+                                    value={newCourtData.memberHourlyRate || ''}
+                                    placeholder="Opsional"
+                                    onChange={(e) => setNewCourtData({ ...newCourtData, memberHourlyRate: parseInt(e.target.value) || 0 })}
+                                    className="p-2 w-full font-bold outline-none bg-brand-lilac/10 font-mono placeholder:text-gray-400 placeholder:font-sans"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex justify-end gap-2 pt-2">
+                        <NeoButton
+                            variant="secondary"
+                            onClick={() => setIsAdding(false)}
+                            className="py-2 px-4 text-xs"
+                        >
+                            Batal
+                        </NeoButton>
+                        <NeoButton
+                            onClick={handleAddCourt}
+                            className="py-2 px-4 text-xs bg-brand-lime"
+                        >
+                            Simpan Lapangan
+                        </NeoButton>
+                    </div>
+                </div>
+            )}
 
             <div className="grid gap-6">
                 {courts.map((court) => (
@@ -72,18 +184,14 @@ export const CourtSettings = () => {
                                         placeholder="Belum diatur"
                                         onBlur={(e) => {
                                             const rawVal = e.target.value;
-                                            if (rawVal === '') {
-                                                // If cleared, maybe set to null? But API expects number? 
-                                                // Looking at API types, optional usually means undefined/null.
-                                                // Let's assume 0 is not valid, so 0 or empty -> delete.
-                                                // But usually simpler to just parse.
-                                                // If empty, let's ignore or set undefined?
-                                                // Let's try sending null if allowed, or just leave it.
-                                                // Actually, best to just set to same as normal price if user wants to reset?
-                                                // Or support null.
-                                            }
                                             const val = parseInt(rawVal);
-                                            if (!isNaN(val) && val !== court.memberHourlyRate) {
+                                            // Handle update if different
+                                            if (rawVal === '') {
+                                                if (court.memberHourlyRate !== undefined && court.memberHourlyRate !== null) {
+                                                    // If clearing value
+                                                    handleUpdate(court.id, 'memberHourlyRate', null); // or 0? API might want null/undefined handled carefully
+                                                }
+                                            } else if (!isNaN(val) && val !== court.memberHourlyRate) {
                                                 handleUpdate(court.id, 'memberHourlyRate', val);
                                             }
                                         }}

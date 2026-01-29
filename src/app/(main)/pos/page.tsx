@@ -48,7 +48,7 @@ export default function POSPage() {
                         <div className="flex gap-2">
                             <button
                                 onClick={() => setIsCartOpen(!isCartOpen)}
-                                className={`flex items-center gap-2 text-xs font-bold uppercase border-2 border-black px-3 py-2 shadow-neo-sm hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all ${isCartOpen ? 'bg-black text-white' : 'bg-white text-black'}`}
+                                className={`flex items-center gap-2 text-xs font-bold uppercase border-2 border-black px-3 py-2 rounded-xl shadow-neo-sm hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all ${isCartOpen ? 'bg-black text-white' : 'bg-white text-black'}`}
                             >
                                 <ShoppingCart size={16} />
                                 <span className="hidden sm:inline">Keranjang</span>
@@ -60,7 +60,7 @@ export default function POSPage() {
                             </button>
                             <button
                                 onClick={() => setIsStockModalOpen(true)}
-                                className="flex items-center gap-1 text-xs font-bold uppercase bg-white border-2 border-black px-2 py-1 shadow-neo-sm hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all"
+                                className="flex items-center gap-1 text-xs font-bold uppercase bg-white border-2 border-black px-2 py-1 rounded-xl shadow-neo-sm hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all"
                             >
                                 <PackagePlus size={14} />
                                 <span className="hidden sm:inline">Stok</span>
@@ -85,8 +85,8 @@ export default function POSPage() {
                     ? "translate-y-0 translate-x-0"
                     : "translate-y-full md:translate-y-0 md:translate-x-full"
                 }
-                bottom-0 left-0 w-full h-[40vh] border-t-2
-                md:top-0 md:left-auto md:right-0 md:w-[300px] md:h-full md:border-t-0 md:border-l-2
+                bottom-0 left-0 w-full h-[40vh] border-t-[3px] rounded-t-3xl overflow-hidden
+                md:top-0 md:left-auto md:right-0 md:w-[300px] md:h-full md:border-t-0 md:border-l-2 md:rounded-none
             `}>
                 <CartSidebar onClose={() => setIsCartOpen(false)} />
             </div>

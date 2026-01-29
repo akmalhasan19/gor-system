@@ -4,21 +4,31 @@ import { cn } from "@/lib/utils";
 interface NeoCardProps extends React.HTMLAttributes<HTMLDivElement> {
     title?: string;
     action?: React.ReactNode;
+    headerColor?: string;
+    showDecorator?: boolean;
 }
 
 export const NeoCard = React.forwardRef<HTMLDivElement, NeoCardProps>(
-    ({ className, title, action, children, ...props }, ref) => {
+    ({ className, title, action, headerColor, showDecorator, children, ...props }, ref) => {
         return (
             <div
                 ref={ref}
                 className={cn(
-                    "bg-white border-2 border-black p-4 neo-shadow",
+                    "bg-white border-[3px] border-black p-4 rounded-2xl neo-shadow relative overflow-hidden",
                     className
                 )}
                 {...props}
             >
+                {showDecorator && (
+                    <div
+                        className={cn("absolute left-0 top-0 bottom-0 w-3 border-r-[3px] border-black", headerColor || "bg-brand-lime")}
+                    />
+                )}
                 {(title || action) && (
-                    <div className="flex items-center justify-between mb-4 border-b-2 border-black pb-2">
+                    <div className={cn(
+                        "flex items-center justify-between mb-4 border-b-[3px] border-black pb-2",
+                        showDecorator && "pl-4"
+                    )}>
                         {title && (
                             <h3 className="font-black text-lg uppercase italic tracking-tighter">
                                 {title}
@@ -27,7 +37,7 @@ export const NeoCard = React.forwardRef<HTMLDivElement, NeoCardProps>(
                         {action && <div>{action}</div>}
                     </div>
                 )}
-                <div>{children}</div>
+                <div className={cn(showDecorator && "pl-4")}>{children}</div>
             </div>
         );
     }

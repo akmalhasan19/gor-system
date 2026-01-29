@@ -77,6 +77,7 @@ export interface Product {
     price: number;
     category: 'DRINK' | 'FOOD' | 'EQUIPMENT' | 'RENTAL';
     stock: number;
+    image_url?: string;
 }
 
 export const INITIAL_PRODUCTS: Product[] = [

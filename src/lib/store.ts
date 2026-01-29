@@ -210,7 +210,8 @@ export const useAppStore = create<AppState>((set, get) => ({
                 name: newRecord.name,
                 price: Number(newRecord.price),
                 category: newRecord.category,
-                stock: Number(newRecord.stock)
+                stock: Number(newRecord.stock),
+                image_url: newRecord.image_url
             };
 
             set(state => {

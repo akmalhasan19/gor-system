@@ -1,5 +1,13 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { RateLimiter } from '@/lib/rate-limit';
+
+// Global Re-usable Rate Limiter (In-Memory)
+// Note: In serverless, this Map is reset on cold start, but effective for high-traffic spikes on warm instances.
+const limiter = new RateLimiter({
+    interval: 60 * 1000, // 1 minute
+    uniqueTokenPerInterval: 500, // Max 500 unique IPs per minute
+});
 
 export async function middleware(request: NextRequest) {
     let response = NextResponse.next({
@@ -172,8 +180,30 @@ export async function middleware(request: NextRequest) {
         }
     }
 
+    // --- RATE LIMITING (API Routes Only) ---
+    if (request.nextUrl.pathname.startsWith('/api')) {
+        const ip = request.headers.get('x-forwarded-for') ?? '127.0.0.1';
+        try {
+            const { success, limit, remaining, reset } = await limiter.check(20, ip); // 20 requests per minute
+            response.headers.set('X-RateLimit-Limit', limit.toString());
+            response.headers.set('X-RateLimit-Remaining', remaining.toString());
+            response.headers.set('X-RateLimit-Reset', reset.toString());
+
+            if (!success) {
+                return new NextResponse('Too Many Requests', {
+                    status: 429,
+                    headers: response.headers
+                });
+            }
+        } catch (error) {
+            console.error('Rate limit error:', error);
+            // Fail open if rate limiter fails
+        }
+    }
+
     return response
 }
+
 
 export const config = {
     matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],

@@ -63,3 +63,26 @@ The recent migration `...fix_rls_nuclear.sql` uses `SECURITY DEFINER` functions 
 - **Status:** ✅ **RESOLVED**.
     - **Cart Overlay:** `FloatingCart` updated to `z-40` and `bottom-20` (mobile) to avoid blocking interactions.
     - **Booking Flow:** "Advanced Options" (Recurring, Manual Payment) are now collapsed by default under an "Opsi Tambahan" details section.
+
+---
+
+## 🌟 6. Optimization Opportunities (Identified Jan 29)
+**Severity: MEDIUM (Recommended for Production Hardening)**
+
+While the system is functional and secure at a basic level, the following optimizations are recommended for a "Production Grade" system:
+
+### A. Rate Limiting (API Security)
+- **Issue**: There is no explicit rate limiting on API routes (like `/api/auth` or `/api/otp`). A malicious actor could spam your OTP endpoint, costing you money or crashing the service.
+- **Recommendation**: Implement `upstash/ratelimit` or a simple in-memory rate limiter in `middleware.ts` or per API route.
+
+### B. Security Headers (CSP)
+- **Issue**: No Content Security Policy (CSP) headers are defined in `next.config.ts` or middleware. This leaves the app vulnerable to XSS attacks if a malicious script is injected.
+- **Recommendation**: Configure `security` headers in `next.config.ts`.
+
+### C. Automated Testing
+- **Issue**: There are zero automated tests (`package.json` has no test scripts).
+- **Recommendation**: Set up a basic **Playwright** E2E test suite to verify critical flows (Login -> specific Dashboard -> Logout) to prevent regressions during future refactors.
+
+### D. Image Optimization
+- **Issue**: `next.config.ts` is currently empty.
+- **Recommendation**: Define `remotePatterns` to narrowly restrict where images can be loaded from (e.g. only your Supabase Storage bucket) to prevent injection of malicious tracking pixels or huge images.

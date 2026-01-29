@@ -29,12 +29,12 @@ export const FloatingCart = () => {
     return (
         <Link
             href="/pos"
-            className="fixed bottom-6 right-6 z-50 bg-black text-white p-4 shadow-neo hover:scale-110 transition-transform border-2 border-white"
+            className="fixed bottom-20 right-4 md:bottom-6 md:right-6 z-40 bg-black text-white p-3 md:p-4 shadow-neo hover:scale-110 transition-transform border-2 border-white rounded-full md:rounded-none"
         >
-            <ShoppingCart size={24} />
+            <ShoppingCart size={20} className="md:w-6 md:h-6" />
             {/* Badge */}
             {cart.length > 0 && (
-                <div className="absolute -top-2 -right-2 bg-brand-orange text-black text-xs font-black px-2 py-0.5 border-2 border-black animate-bounce">
+                <div className="absolute -top-1 -right-1 md:-top-2 md:-right-2 bg-brand-orange text-black text-[10px] md:text-xs font-black px-1.5 md:px-2 py-0.5 border-2 border-black animate-bounce rounded-full md:rounded-none">
                     {cart.length}
                 </div>
             )}

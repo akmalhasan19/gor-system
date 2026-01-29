@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useAppStore } from "@/lib/store";
 import { X, Plus, PackagePlus, Trash2, AlertTriangle } from "lucide-react";
+import { toast } from "sonner";
 
 interface StockModalProps {
     isOpen: boolean;
@@ -45,11 +46,16 @@ export const StockModal: React.FC<StockModalProps> = ({ isOpen, onClose }) => {
 
         if (numAmount <= 0 || isNaN(numAmount)) return;
 
+        if (!currentVenueId) {
+            toast.error("Error: Data Venue tidak ditemukan. Silakan refresh halaman.");
+            return;
+        }
+
         try {
             if (mode === 'EXISTING') {
                 if (selectedProductId) {
                     await updateProductStock(selectedProductId, numAmount);
-                    alert('Stok berhasil ditambahkan!');
+                    toast.success('Stok berhasil ditambahkan!');
                     onClose();
                     resetForm();
                 }
@@ -64,14 +70,14 @@ export const StockModal: React.FC<StockModalProps> = ({ isOpen, onClose }) => {
                         stock: numAmount
                     };
                     await addProduct(currentVenueId, newProduct);
-                    alert('Produk baru berhasil ditambahkan!');
+                    toast.success('Produk baru berhasil ditambahkan!');
                     onClose();
                     resetForm();
                 }
             }
         } catch (error) {
             console.error('Failed to update stock/product:', error);
-            alert('Gagal menyimpan data. Silakan coba lagi.');
+            toast.error('Gagal menyimpan data. Silakan coba lagi.');
         }
     };
 
@@ -85,12 +91,12 @@ export const StockModal: React.FC<StockModalProps> = ({ isOpen, onClose }) => {
         if (selectedProductId) {
             try {
                 await removeProduct(selectedProductId);
-                alert('Produk berhasil dihapus!');
+                toast.success('Produk berhasil dihapus!');
                 setSelectedProductId("");
                 setShowDeleteConfirm(false);
             } catch (error) {
                 console.error('Failed to delete product:', error);
-                alert('Gagal menghapus produk. Silakan coba lagi.');
+                toast.error('Gagal menghapus produk. Silakan coba lagi.');
             }
         }
     };

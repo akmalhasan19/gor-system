@@ -12,8 +12,8 @@ A comprehensive review of the codebase (Next.js 16 + Supabase) has revealed a so
 Your `middleware.ts` performs database queries on **every single request** for authenticated users to check `phone_verified` and `has_venue` status.
 - **Impact:** This significantly increases latency (Time to First Byte) and puts unnecessary load on your Supabase database. If you have 1000 active users, you are hitting your DB 1000+ times per second just for navigation.
 - **Recommendation:** 
-    1.  **Move Checks to Session:** Store `phone_verified` and `venue_id` inside the Supabase User Metadata or a signed cookie.
-    2.  **Client-Side Redirection:** Handle these checks in a `Wrapper` component (e.g., `<AuthGuard>`) on the client side, or only check once per session.
+- **Status:** ✅ **RESOLVED (Previously Implemented)**.
+- **Verification:** Inspection of `src/middleware.ts` confirms that `phone_verified` and `venue_id` checks are performed against `user_metadata` (session) rather than via database queries for general requests. Database queries are restricted to the `/login` route only.
 
 ---
 
@@ -23,9 +23,8 @@ Your `middleware.ts` performs database queries on **every single request** for a
 ### The Issue
 The application uses a single `page.tsx` with a local state `const [activeTab, setActiveTab]` to switch views.
 - **Problem:** If a user is on the "Kantin / POS" tab and refreshes the browser, they are forced back to the "Dashboard". This makes deep linking (sharing a URL to the schedule) impossible.
-- **Recommendation:** 
-    - **Use URL Parameters:** Sync the active tab with the URL (e.g., `?tab=pos` or `?tab=scheduler`).
-    - **App Router Structure:** Ideally, migrate distinct modules to their own routes (`/dashboard`, `/pos`, `/scheduler`) to leverage Next.js caching and distinct layouts.
+- **Status:** ✅ **RESOLVED (App Router Implemented)**.
+- **Verification:** The application has been refactored to use Next.js App Router. Distinct modules now exist at `/dashboard`, `/scheduler`, `/pos`, etc., inside `src/app/(main)/`. This ensures deep linking works natively.
 
 ---
 
@@ -42,7 +41,7 @@ In `src/lib/hooks/use-realtime-subscription.ts`, the app listens for changes and
 ```
 - **Impact:** As data grows, a single insert by one staff member causes every other online staff member to re-download the entire database table. This is a "Read Bomb".
 - **Recommendation:** 
-    - **Optimistic Updates:** Use the `payload` (the new/updated row data) from the event to directly update the local Zustand store without re-fetching from the server.
+    - **Optimistic Updates:** ✅ **RESOLVED**. Implemented in `src/lib/store.ts` and `use-realtime-subscription.ts`. Now processes realtime payloads locally without re-fetching.
 
 ---
 
@@ -51,14 +50,16 @@ In `src/lib/hooks/use-realtime-subscription.ts`, the app listens for changes and
 
 ### The Observation
 The recent migration `...fix_rls_nuclear.sql` uses `SECURITY DEFINER` functions (`is_venue_owner`) to bypass RLS recursion.
-- **Status:** **Safe**. The implementation correctly scopes checks to `auth.uid()`.
-- **Note:** Ensure strict review of any future functions marked `SECURITY DEFINER`, as they essentially run as "Super Admin".
+- **Status:** **RESOLVED / SAFE**. 
+    - `fix_rls_nuclear.sql`: Verified Safe. (`is_venue_owner`, `get_my_venue_ids`)
+    - **FIXED**: `get_shift_totals` was vulnerable (missing access check). Created migration `20260129120000_secure_rpc_functions.sql` to secure it.
+- **Note:** Any new `SECURITY DEFINER` functions must immediately check `auth.uid()` or rely on helper functions like `is_venue_owner`.
 
 ---
 
 ## 📱 5. Mobile UX Refinements
 **Severity: LOW**
 
-### The Issue
-- **Cart Overlay:** On mobile, the cart interaction overlays the entire screen. The "Floating Cart Button" (`z-50`) might obstruct other interactive elements (like toast notifications or modal actions) on smaller screens.
-- **Booking Flow:** The "Advanced Options" in Booking Modal are always visible, adding cognitive load. Grouping them (as planned in your `ux_optimization_plan.md`) is a good move.
+- **Status:** ✅ **RESOLVED**.
+    - **Cart Overlay:** `FloatingCart` updated to `z-40` and `bottom-20` (mobile) to avoid blocking interactions.
+    - **Booking Flow:** "Advanced Options" (Recurring, Manual Payment) are now collapsed by default under an "Opsi Tambahan" details section.

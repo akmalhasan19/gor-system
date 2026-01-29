@@ -5,7 +5,7 @@ import { useAppStore } from "@/lib/store";
 import { useVenue } from "@/lib/venue-context";
 
 export const DataSyncProvider = ({ children }: { children: React.ReactNode }) => {
-    const { syncBookings, syncProducts, syncCustomers, syncTransactions } = useAppStore();
+    const { syncBookings, syncProducts, syncCustomers, syncTransactions, syncCourts } = useAppStore();
     const { currentVenueId } = useVenue();
 
     useEffect(() => {
@@ -18,11 +18,12 @@ export const DataSyncProvider = ({ children }: { children: React.ReactNode }) =>
                 syncProducts(currentVenueId),
                 syncCustomers(currentVenueId),
                 syncTransactions(currentVenueId),
+                syncCourts(currentVenueId),
             ]);
         };
 
         syncData();
-    }, [syncBookings, syncProducts, syncCustomers, syncTransactions, currentVenueId]);
+    }, [syncBookings, syncProducts, syncCustomers, syncTransactions, syncCourts, currentVenueId]);
 
     return <>{children}</>;
 };

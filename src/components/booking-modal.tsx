@@ -420,55 +420,67 @@ export const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, onS
                                 </div>
                             </div>
                         )}
-                        {!isDepositEnabled && !useQuota && (
-                            <div className="flex flex-col gap-1">
-                                <label className="text-xs font-bold uppercase text-gray-600">Sudah Bayar? (Opsional)</label>
-                                <div className="flex gap-2">
-                                    <input
-                                        type="number"
-                                        value={paidAmount || ''}
-                                        onChange={(e) => setPaidAmount(parseInt(e.target.value) || 0)}
-                                        className="flex-1 border-2 border-black p-2 font-bold text-sm"
-                                        placeholder="Note nominal (opsional)..."
-                                    />
-                                    <button
-                                        onClick={() => setPaidAmount(duration * hourlyRate)}
-                                        className="bg-brand-lime text-black font-bold text-xs px-2 uppercase border-2 border-black hover:bg-lime-500 whitespace-nowrap"
-                                    >
-                                        Lunas
-                                    </button>
-                                </div>
-                            </div>
-                        )}
+                        {/* Advanced Options Group */}
+                        <details className="group border-2 border-black bg-gray-50 open:bg-white transition-all">
+                            <summary className="cursor-pointer p-2 font-bold text-xs uppercase flex items-center justify-between select-none hover:bg-gray-100">
+                                <span>Opsi Tambahan</span>
+                                <span className="group-open:rotate-180 transition-transform">▼</span>
+                            </summary>
+                            <div className="p-3 border-t-2 border-black flex flex-col gap-4">
 
-                        {!existingBooking && (
-                            <div className="bg-blue-50 p-2 border border-blue-200">
-                                <label className="flex items-center gap-2 cursor-pointer select-none">
-                                    <input
-                                        type="checkbox"
-                                        checked={isRecurring}
-                                        onChange={(e) => setIsRecurring(e.target.checked)}
-                                        className="w-4 h-4 accent-black"
-                                    />
-                                    <span className="font-bold text-xs uppercase text-blue-800">Ulangi Booking (Rutin)</span>
-                                </label>
+                                {/* Recurring Option */}
+                                {!existingBooking && (
+                                    <div className="bg-blue-50 p-2 border border-blue-200">
+                                        <label className="flex items-center gap-2 cursor-pointer select-none">
+                                            <input
+                                                type="checkbox"
+                                                checked={isRecurring}
+                                                onChange={(e) => setIsRecurring(e.target.checked)}
+                                                className="w-4 h-4 accent-black"
+                                            />
+                                            <span className="font-bold text-xs uppercase text-blue-800">Ulangi Booking (Rutin)</span>
+                                        </label>
 
-                                {isRecurring && (
-                                    <div className="mt-2 flex items-center gap-2">
-                                        <span className="text-xs font-bold">Ulangi selama</span>
-                                        <input
-                                            type="number"
-                                            min={2}
-                                            max={12}
-                                            value={repeatWeeks}
-                                            onChange={(e) => setRepeatWeeks(parseInt(e.target.value))}
-                                            className="w-12 border border-black p-1 text-center font-bold text-xs"
-                                        />
-                                        <span className="text-xs font-bold">Minggu</span>
+                                        {isRecurring && (
+                                            <div className="mt-2 flex items-center gap-2">
+                                                <span className="text-xs font-bold">Ulangi selama</span>
+                                                <input
+                                                    type="number"
+                                                    min={2}
+                                                    max={12}
+                                                    value={repeatWeeks}
+                                                    onChange={(e) => setRepeatWeeks(parseInt(e.target.value))}
+                                                    className="w-12 border border-black p-1 text-center font-bold text-xs"
+                                                />
+                                                <span className="text-xs font-bold">Minggu</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* Manual Payment/Status Override (Only if Deposit NOT enabled or explicit override) */}
+                                {!isDepositEnabled && !useQuota && (
+                                    <div className="flex flex-col gap-1">
+                                        <label className="text-xs font-bold uppercase text-gray-600">Sudah Bayar? (Opsional)</label>
+                                        <div className="flex gap-2">
+                                            <input
+                                                type="number"
+                                                value={paidAmount || ''}
+                                                onChange={(e) => setPaidAmount(parseInt(e.target.value) || 0)}
+                                                className="flex-1 border-2 border-black p-2 font-bold text-sm"
+                                                placeholder="Nominal..."
+                                            />
+                                            <button
+                                                onClick={() => setPaidAmount(duration * hourlyRate)}
+                                                className="bg-brand-lime text-black font-bold text-xs px-2 uppercase border-2 border-black hover:bg-lime-500 whitespace-nowrap"
+                                            >
+                                                Lunas
+                                            </button>
+                                        </div>
                                     </div>
                                 )}
                             </div>
-                        )}
+                        </details>
 
                         <div className="text-right">
                             <span className="text-xs font-bold text-gray-500">Estimasi Biaya ({new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(hourlyRate)} / jam)</span>

@@ -7,6 +7,7 @@ import { AuthGuard } from '@/components/auth-guard';
 import { FloatingCart } from '@/components/floating-cart';
 import { Receipt } from '@/components/pos/receipt';
 import { useAppStore } from '@/lib/store';
+import { DataSyncProvider } from '@/components/data-sync-provider';
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
     // Need access to transactions for the global Receipt component (hidden print)
@@ -15,27 +16,29 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
 
     return (
         <AuthGuard>
-            <div className="min-h-screen bg-gray-50 flex flex-col lg:flex-row">
-                {/* Sidebar for Desktop */}
-                <Sidebar />
+            <DataSyncProvider>
+                <div className="min-h-screen bg-gray-50 flex flex-col lg:flex-row">
+                    {/* Sidebar for Desktop */}
+                    <Sidebar />
 
-                {/* Main Content Area */}
-                <div className="flex-1 flex flex-col min-w-0 relative">
-                    {/* Hidden Receipt Component for Printing */}
-                    <Receipt transaction={latestTransaction} />
+                    {/* Main Content Area */}
+                    <div className="flex-1 flex flex-col min-w-0 relative">
+                        {/* Hidden Receipt Component for Printing */}
+                        <Receipt transaction={latestTransaction} />
 
-                    {/* Mobile Navigation */}
-                    <MobileNav />
+                        {/* Mobile Navigation */}
+                        <MobileNav />
 
-                    {/* Page Content */}
-                    <main className="flex-1 overflow-hidden flex flex-col">
-                        {children}
-                    </main>
+                        {/* Page Content */}
+                        <main className="flex-1 overflow-hidden flex flex-col">
+                            {children}
+                        </main>
 
-                    {/* Global Floating Cart (Visible on non-POS pages) */}
-                    <FloatingCart />
+                        {/* Global Floating Cart (Visible on non-POS pages) */}
+                        <FloatingCart />
+                    </div>
                 </div>
-            </div>
+            </DataSyncProvider>
         </AuthGuard>
     );
 }

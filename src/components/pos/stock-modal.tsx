@@ -142,7 +142,9 @@ export const StockModal: React.FC<StockModalProps> = ({ isOpen, onClose }) => {
                 }
             } else {
                 // New Product Mode
+                console.log('DEBUG newPrice:', newPrice, 'Type:', typeof newPrice);
                 const price = parseInt(newPrice);
+                console.log('DEBUG parsed price:', price);
                 if (newName && !isNaN(price)) {
                     let finalImageUrl = newImageUrl;
 

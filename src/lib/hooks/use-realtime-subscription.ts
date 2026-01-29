@@ -5,7 +5,10 @@ import { useVenue } from '../venue-context';
 import { toast } from 'sonner';
 
 export function useRealtimeSubscription() {
-    const { syncBookings, syncProducts, syncCustomers, syncTransactions, syncCourts } = useAppStore();
+    const {
+        syncBookings, syncProducts, syncCustomers, syncTransactions, syncCourts,
+        handleRealtimeBooking, handleRealtimeProduct, handleRealtimeCustomer, handleRealtimeCourt
+    } = useAppStore();
     const { currentVenueId } = useVenue();
 
     useEffect(() => {
@@ -24,7 +27,7 @@ export function useRealtimeSubscription() {
                     console.log('📅 Booking updated:', payload);
                     toast.info('Data Booking diperbarui');
                     if (currentVenueId) {
-                        await syncBookings(currentVenueId);
+                        handleRealtimeBooking(payload);
                     }
                 }
             )
@@ -38,7 +41,7 @@ export function useRealtimeSubscription() {
                 async (payload) => {
                     console.log('📦 Product updated:', payload);
                     if (currentVenueId) {
-                        await syncProducts(currentVenueId);
+                        handleRealtimeProduct(payload);
                     }
                 }
             )
@@ -52,7 +55,7 @@ export function useRealtimeSubscription() {
                 async (payload) => {
                     console.log('👥 Customer updated:', payload);
                     if (currentVenueId) {
-                        await syncCustomers(currentVenueId);
+                        handleRealtimeCustomer(payload);
                     }
                 }
             )
@@ -80,7 +83,7 @@ export function useRealtimeSubscription() {
                 async (payload) => {
                     console.log('🏸 Court updated:', payload);
                     if (currentVenueId) {
-                        await syncCourts(currentVenueId);
+                        handleRealtimeCourt(payload);
                     }
                 }
             )
@@ -94,5 +97,9 @@ export function useRealtimeSubscription() {
             console.log('🔌 Disconnecting Realtime...');
             supabase.removeChannel(channel);
         };
-    }, [syncBookings, syncProducts, syncCustomers, syncTransactions, syncCourts, currentVenueId]);
+    }, [
+        syncBookings, syncProducts, syncCustomers, syncTransactions, syncCourts,
+        handleRealtimeBooking, handleRealtimeProduct, handleRealtimeCustomer, handleRealtimeCourt,
+        currentVenueId
+    ]);
 }

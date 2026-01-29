@@ -81,7 +81,10 @@ export default function LoginPage() {
             // Use admin signup route to bypass email confirmation
             const response = await fetch('/api/auth/admin-signup', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-admin-secret-key': 'smash-dev-admin-2026' // Required for development
+                },
                 body: JSON.stringify({ email, password }),
             });
 

@@ -44,10 +44,11 @@ export const CourtSettings = () => {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {/* Standard Rate */}
                             <div className="flex flex-col gap-1">
-                                <label className="text-xs font-bold uppercase text-gray-500">Harga Umum (Per Jam)</label>
+                                <label htmlFor={`court-${court.id}-hourly`} className="text-xs font-bold uppercase text-gray-500">Harga Umum (Per Jam)</label>
                                 <div className="flex items-center group focus-within:shadow-[4px_4px_0px_black] transition-all border-2 border-black">
                                     <div className="bg-gray-100 border-r-2 border-black p-2 font-bold text-sm select-none">Rp</div>
                                     <input
+                                        id={`court-${court.id}-hourly`}
                                         type="number"
                                         defaultValue={court.hourlyRate}
                                         onBlur={(e) => {
@@ -61,10 +62,11 @@ export const CourtSettings = () => {
 
                             {/* Member Rate */}
                             <div className="flex flex-col gap-1">
-                                <label className="text-xs font-bold uppercase text-brand-lilac">Harga Member (Per Jam)</label>
+                                <label htmlFor={`court-${court.id}-member`} className="text-xs font-bold uppercase text-brand-lilac">Harga Member (Per Jam)</label>
                                 <div className="flex items-center group focus-within:shadow-[4px_4px_0px_#A78BFA] transition-all border-2 border-black">
                                     <div className="bg-brand-lilac text-white border-r-2 border-black p-2 font-bold text-sm select-none">Rp</div>
                                     <input
+                                        id={`court-${court.id}-member`}
                                         type="number"
                                         defaultValue={court.memberHourlyRate || ''}
                                         placeholder="Belum diatur"

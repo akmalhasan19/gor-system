@@ -370,8 +370,9 @@ export const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, onS
 
                         <div className="flex gap-2">
                             <div className="flex-1 flex flex-col gap-1">
-                                <label className="text-xs font-bold uppercase">Durasi (Jam)</label>
+                                <label htmlFor="booking-duration" className="text-xs font-bold uppercase">Durasi (Jam)</label>
                                 <input
+                                    id="booking-duration"
                                     type="number"
                                     min={1}
                                     max={5}
@@ -392,9 +393,10 @@ export const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, onS
                                     <span className="text-xs font-black uppercase">⚠️ Wajib Deposit (DP)</span>
                                 </div>
                                 <div className="flex flex-col gap-1">
-                                    <label className="text-xs font-bold uppercase text-gray-600">Jumlah Bayar (Rp)</label>
+                                    <label htmlFor="booking-paid-amount" className="text-xs font-bold uppercase text-gray-600">Jumlah Bayar (Rp)</label>
                                     <div className="flex gap-2">
                                         <input
+                                            id="booking-paid-amount"
                                             type="number"
                                             value={paidAmount || ''}
                                             onChange={(e) => setPaidAmount(parseInt(e.target.value) || 0)}
@@ -461,9 +463,10 @@ export const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, onS
                                 {/* Manual Payment/Status Override (Only if Deposit NOT enabled or explicit override) */}
                                 {!isDepositEnabled && !useQuota && (
                                     <div className="flex flex-col gap-1">
-                                        <label className="text-xs font-bold uppercase text-gray-600">Sudah Bayar? (Opsional)</label>
+                                        <label htmlFor="booking-optional-payment" className="text-xs font-bold uppercase text-gray-600">Sudah Bayar? (Opsional)</label>
                                         <div className="flex gap-2">
                                             <input
+                                                id="booking-optional-payment"
                                                 type="number"
                                                 value={paidAmount || ''}
                                                 onChange={(e) => setPaidAmount(parseInt(e.target.value) || 0)}

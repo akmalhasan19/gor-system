@@ -1,7 +1,15 @@
 import type { NextConfig } from "next";
 
+// Bundle Analyzer - enable with ANALYZE=true npm run build
+const withBundleAnalyzer = require('@next/bundle-analyzer')({
+  enabled: process.env.ANALYZE === 'true',
+});
+
 const nextConfig: NextConfig = {
   /* config options here */
+  // Empty turbopack config to silence migration warning
+  turbopack: {},
+
   images: {
     remotePatterns: [
       {
@@ -51,7 +59,9 @@ const nextConfig: NextConfig = {
 const withSerwist = require("@serwist/next").default({
   swSrc: "src/app/sw.ts",
   swDest: "public/sw.js",
-  disable: process.env.NODE_ENV === 'development', // Disable in dev to avoid aggressive caching issues
+  // Disable in development for Turbopack compatibility
+  disable: process.env.NODE_ENV !== 'production',
 });
 
-export default withSerwist(nextConfig);
+// Wrap with both plugins: Bundle Analyzer -> Serwist -> Next Config
+export default withBundleAnalyzer(withSerwist(nextConfig));

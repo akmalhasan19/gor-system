@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import Image from "next/image";
 import { Customer } from "@/lib/constants";
 import { generateMemberQRCode, getTodayDate } from "@/lib/utils/qr-generator";
 import { X, QrCode, Loader2, Check, Sparkles, Clock, Calendar } from "lucide-react";
@@ -192,7 +193,13 @@ export const QRDisplay: React.FC<QRDisplayProps> = ({ isOpen, onClose, member })
                         {/* Member Badge */}
                         <div className="flex items-center gap-3 mb-6 bg-white pl-2 pr-4 py-2 border-2 border-black rounded-full shadow-[2px_2px_0px_0px_#000000]">
                             {member.photo_url ? (
-                                <img src={member.photo_url} alt={member.name} className="w-8 h-8 rounded-full border border-black object-cover" />
+                                <Image
+                                    src={member.photo_url}
+                                    alt={member.name}
+                                    width={32}
+                                    height={32}
+                                    className="rounded-full border border-black object-cover"
+                                />
                             ) : (
                                 <div className="w-8 h-8 rounded-full border border-black bg-neutral-200 flex items-center justify-center font-black text-xs">
                                     {member.name.charAt(0)}

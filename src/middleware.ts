@@ -146,38 +146,14 @@ export async function middleware(request: NextRequest) {
     if (user && request.nextUrl.pathname.startsWith('/login')) {
         const isPhoneVerified = user.user_metadata?.phone_verified === true;
 
-        // Only redirect if phone is verified, otherwise they need to complete verification
         if (isPhoneVerified) {
-            // Double-check with database
-            const { data: verification } = await supabase
-                .from('phone_verifications')
-                .select('is_verified')
-                .eq('user_id', user.id)
-                .eq('is_verified', true)
-                .limit(1)
-                .single();
-
-            if (verification?.is_verified) {
-                return NextResponse.redirect(new URL('/', request.url));
-            }
+            return NextResponse.redirect(new URL('/', request.url));
         }
 
-        // Check if verification is pending and bypass login redirect
-        const verifyPhone = request.nextUrl.searchParams.get('verify_phone');
-        if (!verifyPhone) {
-            // Check if user needs verification
-            const { data: pendingVerification } = await supabase
-                .from('phone_verifications')
-                .select('is_verified')
-                .eq('user_id', user.id)
-                .eq('is_verified', true)
-                .limit(1)
-                .single();
-
-            if (pendingVerification?.is_verified) {
-                return NextResponse.redirect(new URL('/', request.url));
-            }
-        }
+        // Optimization: We no longer do a blocking DB check here for "pending" verification.
+        // We rely on the client-side AuthGuard to catch edge cases where metadata is stale.
+        // If a user is truly verified but metadata says false, they might see the login page for a moment
+        // before AuthGuard redirects them, OR they can just log in again and we update metadata.
     }
 
     // --- RATE LIMITING (API Routes Only) ---

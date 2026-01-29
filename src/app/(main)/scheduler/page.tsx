@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Scheduler } from "@/components/scheduler";
+import dynamic from 'next/dynamic';
 import { BookingModal } from "@/components/booking-modal";
 import { Booking } from "@/lib/constants";
 import { useAppStore } from "@/lib/store";
@@ -10,6 +10,22 @@ import { toast } from "sonner";
 import { getMaintenanceTasks, MaintenanceTask } from "@/lib/api/maintenance";
 import { NeoButton } from "@/components/ui/neo-button";
 import { Share2, Plus, ChevronLeft, ChevronRight } from "lucide-react";
+
+// Lazy load Scheduler component
+const Scheduler = dynamic(
+    () => import('@/components/scheduler').then(mod => ({ default: mod.Scheduler })),
+    {
+        loading: () => (
+            <div className="flex items-center justify-center p-12">
+                <div className="text-center">
+                    <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-black border-r-transparent"></div>
+                    <p className="mt-2 font-bold text-sm">Loading Scheduler...</p>
+                </div>
+            </div>
+        ),
+        ssr: false
+    }
+);
 
 export default function SchedulerPage() {
     const {

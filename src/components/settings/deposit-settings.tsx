@@ -80,8 +80,9 @@ export const DepositSettings = () => {
 
                     <div className={`flex flex-col gap-4 transition-all ${!policy.isEnabled ? 'opacity-50 pointer-events-none grayscale' : ''}`}>
                         <div className="flex flex-col gap-1">
-                            <label className="text-xs font-bold uppercase text-gray-600">Minimal Deposit (Rp)</label>
+                            <label htmlFor="deposit-min-amount" className="text-xs font-bold uppercase text-gray-600">Minimal Deposit (Rp)</label>
                             <input
+                                id="deposit-min-amount"
                                 type="number"
                                 defaultValue={policy.minDepositAmount}
                                 onBlur={(e) => handleUpdate({ minDepositAmount: parseInt(e.target.value) })}

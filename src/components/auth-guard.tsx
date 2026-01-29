@@ -28,7 +28,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
         const isPhoneVerifiedMeta = user.user_metadata?.phone_verified === true;
 
         if (!isPhoneVerifiedMeta) {
-            // Fallback to DB check on client side
+            // Fallback to DB check on client side -> This is the new "Strict Check" moved from middleware
             const { data: verification } = await supabase
                 .from('phone_verifications')
                 .select('is_verified')
@@ -37,9 +37,13 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
                 .single();
 
             if (!verification?.is_verified) {
-                // Not verified in DB either
+                // Not verified in DB either -> Redirect to login/verify
                 router.push('/login?verify_phone=true');
                 return;
+            } else {
+                // User IS verified in DB but metadata is stale.
+                // Optionally: We could refresh the session here to update metadata?
+                // For now, we allow them through.
             }
         }
 

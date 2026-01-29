@@ -1,11 +1,38 @@
 'use client';
 
 import React, { useState } from 'react';
-import { ProductList } from "@/components/pos/product-list";
-import { CartSidebar } from "@/components/pos/cart-sidebar";
+import dynamic from 'next/dynamic';
 import { StockModal } from "@/components/pos/stock-modal";
 import { PackagePlus, ShoppingCart } from "lucide-react";
 import { useAppStore } from "@/lib/store";
+
+// Lazy load heavy POS components
+const ProductList = dynamic(
+    () => import('@/components/pos/product-list').then(mod => ({ default: mod.ProductList })),
+    {
+        loading: () => (
+            <div className="flex items-center justify-center p-12">
+                <div className="text-center">
+                    <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-black border-r-transparent"></div>
+                    <p className="mt-2 font-bold text-sm">Loading Products...</p>
+                </div>
+            </div>
+        ),
+        ssr: false
+    }
+);
+
+const CartSidebar = dynamic(
+    () => import('@/components/pos/cart-sidebar').then(mod => ({ default: mod.CartSidebar })),
+    {
+        loading: () => (
+            <div className="flex items-center justify-center p-4">
+                <div className="inline-block h-6 w-6 animate-spin rounded-full border-4 border-solid border-black border-r-transparent"></div>
+            </div>
+        ),
+        ssr: false
+    }
+);
 
 export default function POSPage() {
     const [isCartOpen, setIsCartOpen] = useState(true);

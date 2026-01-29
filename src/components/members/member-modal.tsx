@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Image from "next/image";
 import { useAppStore } from "@/lib/store";
 import { Customer } from "@/lib/constants";
 import { NeoInput } from "@/components/ui/neo-input";
@@ -134,6 +135,9 @@ export const MemberModal: React.FC<MemberModalProps> = ({ isOpen, onClose, initi
         }
     };
 
+    // Determine if we should use unoptimized mode (for file blob URLs)
+    const isFilePreview = photoPreview?.startsWith('blob:') || false;
+
     return (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
             <div className="bg-white border-2 border-black shadow-neo w-full max-w-md flex flex-col max-h-[90vh]">
@@ -149,10 +153,12 @@ export const MemberModal: React.FC<MemberModalProps> = ({ isOpen, onClose, initi
                     <div className="flex flex-col items-center gap-2 mb-2">
                         <div className="relative w-24 h-24 bg-gray-100 rounded-full border-2 border-black overflow-hidden flex items-center justify-center group">
                             {photoPreview ? (
-                                <img
+                                <Image
                                     src={photoPreview}
                                     alt="Preview"
-                                    className="w-full h-full object-cover"
+                                    fill
+                                    className="object-cover"
+                                    unoptimized={isFilePreview}
                                 />
                             ) : (
                                 <Camera size={32} className="text-gray-400" />

@@ -2,6 +2,8 @@
 
 import React from "react";
 import Image from "next/image";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
     LayoutDashboard,
     CalendarDays,
@@ -14,21 +16,23 @@ import {
 } from "lucide-react";
 import { signOut } from "@/lib/auth";
 
-interface SidebarProps {
-    activeTab: string;
-    setActiveTab: (tab: "dashboard" | "scheduler" | "pos" | "reports" | "members" | "settings" | "shift") => void;
-}
+export const Sidebar = () => {
+    const pathname = usePathname();
 
-export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
     const menuItems = [
-        { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-        { id: 'scheduler', icon: CalendarDays, label: 'Jadwal' },
-        { id: 'pos', icon: ShoppingCart, label: 'Kantin / POS' },
-        { id: 'members', icon: Users, label: 'Member' },
-        { id: 'reports', icon: Receipt, label: 'Laporan' },
-        { id: 'shift', icon: Banknote, label: 'Kasir / Shift' },
-        { id: 'settings', icon: Settings, label: 'Pengaturan' },
+        { id: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+        { id: '/scheduler', icon: CalendarDays, label: 'Jadwal' },
+        { id: '/pos', icon: ShoppingCart, label: 'Kantin / POS' },
+        { id: '/members', icon: Users, label: 'Member' },
+        { id: '/reports', icon: Receipt, label: 'Laporan' },
+        { id: '/shift', icon: Banknote, label: 'Kasir / Shift' },
+        { id: '/settings', icon: Settings, label: 'Pengaturan' },
     ];
+
+    const isActive = (path: string) => {
+        if (path === '/dashboard' && pathname === '/') return true;
+        return pathname.startsWith(path);
+    };
 
     return (
         <div className="hidden lg:flex flex-col w-64 bg-black text-white h-screen sticky top-0 border-r-2 border-white/20">
@@ -56,22 +60,22 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
             {/* Navigation Items */}
             <div className="flex-1 py-6 px-3 flex flex-col gap-2 overflow-y-auto scrollbar-none [scrollbar-width:none] [-ms-overflow-style:none]">
                 {menuItems.map((item) => (
-                    <button
+                    <Link
                         key={item.id}
-                        onClick={() => setActiveTab(item.id as any)}
+                        href={item.id}
                         className={`flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm uppercase transition-all duration-200 group
-                        ${activeTab === item.id
+                        ${isActive(item.id)
                                 ? "bg-brand-lime text-black shadow-[4px_4px_0px_white] translate-x-[-2px] translate-y-[-2px]"
                                 : "text-gray-400 hover:bg-white/10 hover:text-white"
                             }`}
                     >
                         <item.icon
                             size={20}
-                            strokeWidth={activeTab === item.id ? 2.5 : 2}
-                            className={`transition-transform duration-200 ${activeTab === item.id ? "scale-110" : "group-hover:scale-110"}`}
+                            strokeWidth={isActive(item.id) ? 2.5 : 2}
+                            className={`transition-transform duration-200 ${isActive(item.id) ? "scale-110" : "group-hover:scale-110"}`}
                         />
                         {item.label}
-                    </button>
+                    </Link>
                 ))}
             </div>
 

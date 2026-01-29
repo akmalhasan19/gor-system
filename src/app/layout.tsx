@@ -23,6 +23,11 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   title: "GOR Management System",
   description: "Operating System for Sports Hall Management",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Smash Partner",
+  },
 };
 
 export default function RootLayout({

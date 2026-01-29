@@ -7,6 +7,7 @@ import { VenueProvider } from "@/lib/venue-context";
 import { DataSyncProvider } from "@/components/data-sync-provider";
 import { NetworkStatus } from "@/components/ui/network-status";
 import { SessionSyncer } from "@/components/session-syncer";
+import { MaintenanceScreen } from "@/components/maintenance-screen";
 
 // Load fonts
 const spaceGrotesk = Space_Grotesk({ subsets: ['latin'], variable: '--font-space' });
@@ -36,6 +37,18 @@ export default function RootLayout({
   children: React.ReactNode;
 
 }>) {
+  const isMaintenanceMode = process.env.NEXT_PUBLIC_MAINTENANCE_MODE === 'true';
+
+  if (isMaintenanceMode) {
+    return (
+      <html lang="id">
+        <body className={`min-h-screen bg-gray-900 flex justify-center font-sans ${spaceGrotesk.variable} ${syne.variable}`}>
+          <MaintenanceScreen />
+        </body>
+      </html>
+    );
+  }
+
   return (
     <html lang="id">
       <body className={`min-h-screen bg-gray-900 flex justify-center font-sans ${spaceGrotesk.variable} ${syne.variable}`}>

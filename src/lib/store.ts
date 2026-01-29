@@ -571,7 +571,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     removeProduct: async (id) => {
         set({ isLoading: true, error: null });
         try {
-            await productsApi.deleteProduct(id);
+            await productsApi.archiveProduct(id); // Soft delete by default
             set((state) => ({
                 products: state.products.filter((p) => p.id !== id),
                 isLoading: false

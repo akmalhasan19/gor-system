@@ -6,6 +6,7 @@ export async function getProducts(venueId: string): Promise<Product[]> {
         .from('products')
         .select('*')
         .eq('venue_id', venueId)
+        .eq('is_active', true) // Only fetch active products
         .order('name', { ascending: true });
 
     if (error) throw error;
@@ -55,7 +56,28 @@ export async function updateStock(id: string, newStock: number): Promise<void> {
     if (error) throw error;
 }
 
-export async function deleteProduct(id: string): Promise<void> {
+// Soft delete - sets is_active to false (default behavior)
+export async function archiveProduct(id: string): Promise<void> {
+    const { error } = await supabase
+        .from('products')
+        .update({ is_active: false })
+        .eq('id', id);
+
+    if (error) throw error;
+}
+
+// Restore archived product
+export async function restoreProduct(id: string): Promise<void> {
+    const { error } = await supabase
+        .from('products')
+        .update({ is_active: true })
+        .eq('id', id);
+
+    if (error) throw error;
+}
+
+// Permanent delete - removes from database (use with caution!)
+export async function permanentDeleteProduct(id: string): Promise<void> {
     const { error } = await supabase
         .from('products')
         .delete()

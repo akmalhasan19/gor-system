@@ -21,29 +21,20 @@ export async function getProducts(venueId: string): Promise<Product[]> {
 }
 
 export async function createProduct(venueId: string, product: Omit<Product, 'id'>): Promise<Product> {
-    // DEBUG: Log the price being sent
-    console.log('Creating product with price:', product.price, 'Type:', typeof product.price);
-
-    const insertData = {
-        venue_id: venueId,
-        name: product.name,
-        price: product.price,
-        stock: product.stock,
-        category: product.category,
-        image_url: product.image_url,
-    };
-
-    console.log('Insert data:', JSON.stringify(insertData, null, 2));
-
     const { data, error } = await supabase
         .from('products')
-        .insert(insertData)
+        .insert({
+            venue_id: venueId,
+            name: product.name,
+            price: product.price,
+            stock: product.stock,
+            category: product.category,
+            image_url: product.image_url,
+        })
         .select()
         .single();
 
     if (error) throw error;
-
-    console.log('Returned data from Supabase:', JSON.stringify(data, null, 2));
 
     return {
         id: data.id,

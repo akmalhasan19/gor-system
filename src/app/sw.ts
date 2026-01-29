@@ -1,6 +1,6 @@
 import { defaultCache } from "@serwist/next/worker";
 import type { PrecacheEntry, SerwistGlobalConfig } from "serwist";
-import { CacheFirst, ExpirationPlugin, Serwist } from "serwist";
+import { CacheFirst, ExpirationPlugin, NetworkOnly, Serwist } from "serwist";
 
 /// <reference lib="webworker" />
 /// <reference lib="esnext" />
@@ -28,6 +28,21 @@ const supabaseStorageStrategy = new CacheFirst({
     ],
 });
 
+/**
+ * Offline fallback handler for navigation requests
+ * Returns the offline page when network is unavailable
+ */
+const offlineFallbackHandler = new NetworkOnly({
+    plugins: [
+        {
+            handlerDidError: async () => {
+                // Return the offline page when network fails
+                return Response.redirect('/offline', 302);
+            },
+        },
+    ],
+});
+
 const serwist = new Serwist({
     precacheEntries: self.__SW_MANIFEST,
     skipWaiting: true,
@@ -40,7 +55,21 @@ const serwist = new Serwist({
             matcher: ({ url }) => url.hostname.includes('supabase.co') && url.pathname.includes('/storage/v1/object/public/'),
             handler: supabaseStorageStrategy,
         },
+        // Offline fallback for navigation requests
+        {
+            matcher: ({ request }) => request.mode === 'navigate',
+            handler: offlineFallbackHandler,
+        },
     ],
+    // Fallback for offline navigation
+    fallbacks: {
+        entries: [
+            {
+                url: '/offline',
+                matcher: ({ request }) => request.destination === 'document',
+            },
+        ],
+    },
 });
 
 serwist.addEventListeners();

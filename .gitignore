@@ -47,3 +47,8 @@ node_modules/
 /blob-report/
 /playwright/.cache/
 /playwright/.auth/
+
+# PWA / Serwist
+/public/sw.js
+/public/sw.js.map
+/public/swe-worker-*.js

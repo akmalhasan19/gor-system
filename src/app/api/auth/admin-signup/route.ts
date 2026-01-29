@@ -4,6 +4,37 @@ import { createClient } from '@supabase/supabase-js';
 // This route uses the service role key to bypass email confirmation
 // Only for admin registration during development
 export async function POST(request: NextRequest) {
+    // ----------------------------------------------------------------------
+    // 🚨 SECURITY LOCKDOWN
+    // This route is a potential backdoor. We strictly limit its availability.
+    // 1. CRITICAL: Strictly disable in Production unless a specific override secret is present.
+    // 2. AUTH: Require a specific header key even in Development/Override mode.
+    // ----------------------------------------------------------------------
+
+    const IS_DEV = process.env.NODE_ENV === 'development';
+    const MASTER_SECRET = process.env.ADMIN_SIGNUP_SECRET; // Must be set in .env to use in Prod
+
+    // Check Header
+    const requestSecret = request.headers.get('x-admin-secret-key');
+
+    // Rule 1: If in Production AND no Master Secret is set in Env, completely disable (404).
+    if (!IS_DEV && !MASTER_SECRET) {
+        return NextResponse.json({ error: 'Not Found' }, { status: 404 });
+    }
+
+    // Rule 2: If we are here, we are either in Dev or have a Master Secret configured.
+    // Now verify the request provided the correct secret.
+    // In Dev, we can fallback to a default if no env is set, for developer convenience (BUT verify header exists).
+
+    const requiredKey = MASTER_SECRET || 'smash-dev-admin-2026';
+
+    if (requestSecret !== requiredKey) {
+        return NextResponse.json(
+            { success: false, error: 'Unauthorized: Invalid Admin Secret Key' },
+            { status: 401 }
+        );
+    }
+
     try {
         const body = await request.json();
         const { email, password } = body;

@@ -48,4 +48,10 @@ const nextConfig: NextConfig = {
   }
 };
 
-export default nextConfig;
+const withSerwist = require("@serwist/next").default({
+  swSrc: "src/app/sw.ts",
+  swDest: "public/sw.js",
+  disable: process.env.NODE_ENV === 'development', // Disable in dev to avoid aggressive caching issues
+});
+
+export default withSerwist(nextConfig);

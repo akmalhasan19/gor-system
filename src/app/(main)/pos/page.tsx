@@ -3,6 +3,8 @@
 import React, { useState } from 'react';
 import dynamic from 'next/dynamic';
 import { StockModal } from "@/components/pos/stock-modal";
+import { PendingTransactionsBadge } from "@/components/pos/pending-transactions-badge";
+import { PendingTransactionsModal } from "@/components/pos/pending-transactions-modal";
 import { PackagePlus, ShoppingCart } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 
@@ -37,6 +39,7 @@ const CartSidebar = dynamic(
 export default function POSPage() {
     const [isCartOpen, setIsCartOpen] = useState(true);
     const [isStockModalOpen, setIsStockModalOpen] = useState(false);
+    const [isPendingModalOpen, setIsPendingModalOpen] = useState(false);
     const { cart } = useAppStore();
 
     return (
@@ -46,6 +49,7 @@ export default function POSPage() {
                     <div className="flex justify-between items-center mb-4">
                         <h1 className="text-2xl font-display font-black uppercase italic">Kantin & Shop</h1>
                         <div className="flex gap-2">
+                            <PendingTransactionsBadge onClick={() => setIsPendingModalOpen(true)} />
                             <button
                                 onClick={() => setIsCartOpen(!isCartOpen)}
                                 className={`flex items-center gap-2 text-xs font-bold uppercase border-2 border-black px-3 py-2 rounded-xl shadow-neo-sm hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all ${isCartOpen ? 'bg-black text-white' : 'bg-white text-black'}`}
@@ -94,6 +98,11 @@ export default function POSPage() {
             <StockModal
                 isOpen={isStockModalOpen}
                 onClose={() => setIsStockModalOpen(false)}
+            />
+
+            <PendingTransactionsModal
+                isOpen={isPendingModalOpen}
+                onClose={() => setIsPendingModalOpen(false)}
             />
         </div>
     );

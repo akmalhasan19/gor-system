@@ -23,12 +23,34 @@ import { FileText, TrendingUp, BarChart3, LayoutGrid } from "lucide-react";
 import { DailyReport } from "@/components/reports/daily-report";
 import { BookingHistoryExport } from "@/components/reports/booking-history-export";
 
-// Analytics Components
-import { RevenueChart } from "@/components/analytics/revenue-chart";
-import { OccupancyHeatmap } from "@/components/analytics/occupancy-heatmap";
-import { CourtRevenueChart } from "@/components/analytics/court-revenue-chart";
-import { MemberRatioChart } from "@/components/analytics/member-ratio-chart";
-import { TopCustomersTable } from "@/components/analytics/top-customers-table";
+// Analytics Components - Lazy Loaded
+import dynamic from 'next/dynamic';
+import { ChartSkeleton } from "@/components/ui/chart-skeleton";
+
+const RevenueChart = dynamic(
+    () => import("@/components/analytics/revenue-chart").then(mod => ({ default: mod.RevenueChart })),
+    { loading: () => <ChartSkeleton />, ssr: false }
+);
+
+const OccupancyHeatmap = dynamic(
+    () => import("@/components/analytics/occupancy-heatmap").then(mod => ({ default: mod.OccupancyHeatmap })),
+    { loading: () => <ChartSkeleton />, ssr: false }
+);
+
+const CourtRevenueChart = dynamic(
+    () => import("@/components/analytics/court-revenue-chart").then(mod => ({ default: mod.CourtRevenueChart })),
+    { loading: () => <ChartSkeleton />, ssr: false }
+);
+
+const MemberRatioChart = dynamic(
+    () => import("@/components/analytics/member-ratio-chart").then(mod => ({ default: mod.MemberRatioChart })),
+    { loading: () => <ChartSkeleton />, ssr: false }
+);
+
+const TopCustomersTable = dynamic(
+    () => import("@/components/analytics/top-customers-table").then(mod => ({ default: mod.TopCustomersTable })),
+    { loading: () => <div className="bg-white rounded-lg border p-6 animate-pulse"><div className="h-64 bg-gray-100 rounded"></div></div>, ssr: false }
+);
 
 type TabType = 'ringkasan' | 'analytics' | 'export';
 

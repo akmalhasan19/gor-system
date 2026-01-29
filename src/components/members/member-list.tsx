@@ -7,7 +7,13 @@ import { NeoBadge } from "@/components/ui/neo-badge";
 import { MemberModal } from "@/components/members/member-modal";
 import { QRDisplay } from "@/components/members/qr-display";
 import { AtRiskMembers } from "@/components/members/at-risk-members";
-import { ExitSurveyStats } from "@/components/members/exit-survey-stats";
+import dynamic from 'next/dynamic';
+import { ChartSkeleton } from "@/components/ui/chart-skeleton";
+
+const ExitSurveyStats = dynamic(
+    () => import("@/components/members/exit-survey-stats").then(mod => ({ default: mod.ExitSurveyStats })),
+    { loading: () => <ChartSkeleton />, ssr: false }
+);
 import { exportMembersToCSV } from "@/lib/utils/csv-export";
 import { toast } from "sonner";
 import { Download, QrCode, Users, AlertTriangle, ClipboardList, UserX } from "lucide-react";

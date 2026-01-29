@@ -527,6 +527,58 @@ export const useAppStore = create<AppState>((set, get) => ({
             get().syncBookings(venueId);
             get().syncProducts(venueId);
         } catch (error: any) {
+            // Check if it's a network error
+            const isNetworkError =
+                !navigator.onLine ||
+                error.message?.includes('fetch') ||
+                error.message?.includes('Failed to fetch') ||
+                error.message?.includes('NetworkError') ||
+                error.message?.includes('network');
+
+            if (isNetworkError) {
+                // Import sync-queue dynamically to avoid circular dependencies
+                const { addToQueue, isBackgroundSyncSupported } = await import('@/lib/sync-queue');
+
+                if (isBackgroundSyncSupported()) {
+                    // Queue for background sync
+                    const queuedTransaction = {
+                        id: crypto.randomUUID(),
+                        venueId,
+                        items,
+                        paidAmount,
+                        paymentMethod,
+                        timestamp: Date.now(),
+                        retryCount: 0
+                    };
+
+                    await addToQueue(queuedTransaction);
+
+                    // Register sync event
+                    if ('serviceWorker' in navigator) {
+                        const registration = await navigator.serviceWorker.ready;
+                        await registration.sync.register('sync-transactions');
+                    }
+
+                    // Clear cart and show success message
+                    set({ cart: [], isLoading: false, error: null });
+
+                    // Import toast dynamically
+                    const { toast } = await import('sonner');
+                    toast.info('📡 Transaksi disimpan. Akan otomatis tersinkronisasi saat online.', {
+                        duration: 5000,
+                    });
+
+                    return; // Don't throw error
+                } else {
+                    // Background Sync not supported
+                    set({ error: 'Transaksi gagal. Background Sync tidak didukung di browser ini. Silakan coba lagi saat online.', isLoading: false });
+                    const { toast } = await import('sonner');
+                    toast.error('Transaksi gagal. Silakan coba lagi saat online.');
+                    throw new Error('Background Sync not supported');
+                }
+            }
+
+            // For non-network errors, throw as usual
             set({ error: error.message, isLoading: false });
             throw error;
         }

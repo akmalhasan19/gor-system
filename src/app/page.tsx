@@ -18,7 +18,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { signOut } from "@/lib/auth";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { NeoButton } from "@/components/ui/neo-button";
 import { Scheduler } from "@/components/scheduler";
 import { BookingModal } from "@/components/booking-modal";
@@ -50,7 +50,38 @@ export default function Home() {
 
 
 
-  const [activeTab, setActiveTab] = useState<"dashboard" | "scheduler" | "pos" | "reports" | "members" | "settings" | "shift">("dashboard");
+  // Navigation State
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  // Get initial tab from URL or default to dashboard
+  const validTabs = ["dashboard", "scheduler", "pos", "reports", "members", "settings", "shift"];
+  const initialTab = searchParams.get('tab');
+  const [activeTab, setActiveTabState] = useState<"dashboard" | "scheduler" | "pos" | "reports" | "members" | "settings" | "shift">(
+    (initialTab && validTabs.includes(initialTab)) ? (initialTab as any) : "dashboard"
+  );
+
+  // Sync activeTab with URL changes (e.g. Back button)
+  useEffect(() => {
+    const tabFromUrl = searchParams.get('tab');
+    if (tabFromUrl && validTabs.includes(tabFromUrl) && tabFromUrl !== activeTab) {
+      setActiveTabState(tabFromUrl as any);
+    } else if (!tabFromUrl && activeTab !== 'dashboard') {
+      // Optionally reset to dashboard if no param (root url)
+      setActiveTabState('dashboard');
+    }
+  }, [searchParams]);
+
+  // Wrapper to update URL when tab changes
+  const setActiveTab = (tab: "dashboard" | "scheduler" | "pos" | "reports" | "members" | "settings" | "shift") => {
+    // Optimistic update
+    setActiveTabState(tab);
+    // Update URL
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('tab', tab);
+    router.push(pathname + '?' + params.toString());
+  };
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isStockModalOpen, setIsStockModalOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(true);

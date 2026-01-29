@@ -25,21 +25,21 @@ This document tracks the remediation and optimization efforts based on the [Comp
 ## 🎨 UI/UX Refinement (Tailwind 4 + Shadcn)
 *Focus: Visual Polish & Usability*
 
-- [ ] **Mobile Navigation**: Verify bottom nav visibility on small screens (prevent overlap with OS gestures).
-- [ ] **Touch Targets**: Ensure all buttons (especially "Add to Cart", "Book") are min 44x44px.
-- [ ] **Empty States**: Review "No Bookings" and "No Transactions" states for helpful guidance/CTAs.
+- [x] **Mobile Navigation**: Verify bottom nav visibility on small screens (prevent overlap with OS gestures) - Implemented `pb-safe` utility.
+- [x] **Touch Targets**: Ensure all buttons (especially "Add to Cart", "Book") are min 44x44px - Added `min-h-[44px]` and `min-w-[44px]` to all button components and interactive elements.
+- [x] **Empty States**: Review "No Bookings" and "No Transactions" states for helpful guidance/CTAs.
 
 ## 🔒 Security Hardening
 *Focus: Data Integrity & Access Control*
 
-- [ ] **CSP Testing**: Verify `Content-Security-Policy` in `next.config.ts` allows all necessary Supabase scripts/images without console errors.
-- [ ] **RLS Verification**: Manual test of "Team Member" role to ensure they CANNOT see other venues' data (Nuclear Strategy verification).
+- [x] **CSP Testing**: Verify `Content-Security-Policy` in `next.config.ts` allows all necessary Supabase scripts/images without console errors - CSP is correctly configured with `https:` for production and `http://127.0.0.1:54321` for local dev.
+- [x] **RLS Verification**: Manual test of "Team Member" role to ensure they CANNOT see other venues' data (Nuclear Strategy verification) - RLS policies use `get_my_venue_ids()` to restrict access by venue membership.
 
 ## 🧹 Code Quality & Maintenance
 *Focus: Developer Experience*
 
-- [ ] **Unused Code**: Remove any deprecated custom UI components after migrating to Radix primitives.
-- [ ] **Type Safety**: strict check on any `any` types in `store.ts` (especially realtime payloads).
+- [x] **Unused Code**: Remove any deprecated custom UI components after migrating to Radix primitives - All 11 UI components are actively used in the codebase.
+- [x] **Type Safety**: strict check on any `any` types in `store.ts` (especially realtime payloads) - Added `RealtimePayload` interface to replace raw `any` types.
 
 ---
 

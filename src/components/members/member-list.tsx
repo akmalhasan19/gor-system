@@ -10,7 +10,8 @@ import { AtRiskMembers } from "@/components/members/at-risk-members";
 import { ExitSurveyStats } from "@/components/members/exit-survey-stats";
 import { exportMembersToCSV } from "@/lib/utils/csv-export";
 import { toast } from "sonner";
-import { Download, QrCode, Users, AlertTriangle, ClipboardList } from "lucide-react";
+import { Download, QrCode, Users, AlertTriangle, ClipboardList, UserX } from "lucide-react";
+import { EmptyState } from "@/components/ui/empty-state";
 
 type MemberTab = 'list' | 'at-risk' | 'exit-survey';
 
@@ -29,6 +30,9 @@ export const MemberList = () => {
         const matchesMember = filterMemberOnly ? customer.isMember : true;
         return matchesSearch && matchesMember;
     });
+
+    const isFilteredEmpty = filteredCustomers.length === 0;
+    const isDatabaseEmpty = customers.length === 0;
 
     const handleEdit = (customer: Customer) => {
         setSelectedCustomer(customer);
@@ -126,68 +130,97 @@ export const MemberList = () => {
                     </div>
 
                     <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3">
-                        {filteredCustomers.map((customer) => (
-                            <div
-                                key={customer.id}
-                                onClick={() => handleEdit(customer)}
-                                className="bg-white border-2 border-black p-3 shadow-neo hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[3px_3px_0px_black] transition-all cursor-pointer relative group flex flex-col justify-between h-full min-h-[120px]"
-                            >
-                                <div className="flex justify-between items-start mb-2">
-                                    <div className="pr-8">
-                                        <h3 className="font-black text-lg uppercase leading-none truncate">{customer.name}</h3>
-                                        <p className="text-xs font-bold text-gray-500 mt-1">{customer.phone}</p>
-                                    </div>
-                                    <div className="flex flex-col items-end gap-2 absolute top-0 right-0 p-2">
-                                        {customer.isMember && (
-                                            <NeoBadge status="MEMBER" className="scale-75 origin-top-right bg-purple-200 text-black border-purple-900 shadow-sm" />
-                                        )}
-                                        {customer.isMember && (
+                        {isFilteredEmpty ? (
+                            <div className="col-span-full py-12">
+                                <EmptyState
+                                    icon={UserX}
+                                    title={isDatabaseEmpty ? "Belum Ada Member" : "Member Tidak Ditemukan"}
+                                    description={isDatabaseEmpty
+                                        ? "Mulai dengan menambahkan pelanggan atau member baru ke dalam sistem."
+                                        : "Tidak ada member yang cocok dengan pencarian atau filter Anda."}
+                                    action={
+                                        isDatabaseEmpty ? (
                                             <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setQrMember(customer);
-                                                }}
-                                                className="p-1.5 bg-brand-lime hover:bg-brand-lime/80 border-2 border-black transition-all shadow-sm hover:shadow-md z-10"
-                                                title="Tampilkan QR Code"
+                                                onClick={handleAdd}
+                                                className="bg-brand-lime text-black px-4 py-2 font-black uppercase text-sm border-2 border-black shadow-neo hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all"
                                             >
-                                                <QrCode size={18} />
+                                                + Tambah Sekarang
                                             </button>
-                                        )}
-                                    </div>
-                                </div>
-
-                                {customer.isMember && (
-                                    <div className="mt-2 pt-2 border-t-2 border-dashed border-gray-200 space-y-1">
-                                        <div className="flex justify-between items-center text-[10px]">
-                                            <span className="font-bold text-gray-500 uppercase">Jatah Main</span>
-                                            <span className="font-black bg-black text-white px-1 py-0.5 rounded-sm">
-                                                {customer.quota}x
-                                            </span>
-                                        </div>
-                                        {customer.membershipExpiry && (() => {
-                                            const expiryDate = new Date(customer.membershipExpiry);
-                                            // Set 'now' to start of today to match typical date inputs logic
-                                            const now = new Date();
-                                            now.setHours(0, 0, 0, 0);
-                                            const isExpired = expiryDate < now;
-
-                                            return (
-                                                <div className="flex justify-between items-center text-[10px]">
-                                                    <span className="font-bold text-gray-500 uppercase">Berlaku s/d</span>
-                                                    <span className={`font-bold uppercase ${isExpired ? 'text-red-500 underline' : 'text-green-600'}`}>
-                                                        {customer.membershipExpiry}
-                                                    </span>
-                                                </div>
-                                            );
-                                        })()}
-                                    </div>
-                                )}
-
-                                <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <span className="text-[9px] font-bold bg-gray-100 px-1 border border-black">EDIT</span>
-                                </div>
+                                        ) : (
+                                            <button
+                                                onClick={() => { setSearchQuery(''); setFilterMemberOnly(false); }}
+                                                className="bg-gray-200 text-black px-4 py-2 font-bold uppercase text-xs border-2 border-transparent hover:border-black transition-all"
+                                            >
+                                                Reset Filter
+                                            </button>
+                                        )
+                                    }
+                                />
                             </div>
-                        ))}
+                        ) : (
+                            filteredCustomers.map((customer) => (
+                                <div
+                                    key={customer.id}
+                                    onClick={() => handleEdit(customer)}
+                                    className="bg-white border-2 border-black p-3 shadow-neo hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[3px_3px_0px_black] transition-all cursor-pointer relative group flex flex-col justify-between h-full min-h-[120px]"
+                                >
+                                    <div className="flex justify-between items-start mb-2">
+                                        <div className="pr-8">
+                                            <h3 className="font-black text-lg uppercase leading-none truncate">{customer.name}</h3>
+                                            <p className="text-xs font-bold text-gray-500 mt-1">{customer.phone}</p>
+                                        </div>
+                                        <div className="flex flex-col items-end gap-2 absolute top-0 right-0 p-2">
+                                            {customer.isMember && (
+                                                <NeoBadge status="MEMBER" className="scale-75 origin-top-right bg-purple-200 text-black border-purple-900 shadow-sm" />
+                                            )}
+                                            {customer.isMember && (
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setQrMember(customer);
+                                                    }}
+                                                    className="p-1.5 bg-brand-lime hover:bg-brand-lime/80 border-2 border-black transition-all shadow-sm hover:shadow-md z-10"
+                                                    title="Tampilkan QR Code"
+                                                >
+                                                    <QrCode size={18} />
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {customer.isMember && (
+                                        <div className="mt-2 pt-2 border-t-2 border-dashed border-gray-200 space-y-1">
+                                            <div className="flex justify-between items-center text-[10px]">
+                                                <span className="font-bold text-gray-500 uppercase">Jatah Main</span>
+                                                <span className="font-black bg-black text-white px-1 py-0.5 rounded-sm">
+                                                    {customer.quota}x
+                                                </span>
+                                            </div>
+                                            {customer.membershipExpiry && (() => {
+                                                const expiryDate = new Date(customer.membershipExpiry);
+                                                // Set 'now' to start of today to match typical date inputs logic
+                                                const now = new Date();
+                                                now.setHours(0, 0, 0, 0);
+                                                const isExpired = expiryDate < now;
+
+                                                return (
+                                                    <div className="flex justify-between items-center text-[10px]">
+                                                        <span className="font-bold text-gray-500 uppercase">Berlaku s/d</span>
+                                                        <span className={`font-bold uppercase ${isExpired ? 'text-red-500 underline' : 'text-green-600'}`}>
+                                                            {customer.membershipExpiry}
+                                                        </span>
+                                                    </div>
+                                                );
+                                            })()}
+                                        </div>
+                                    )}
+
+                                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <span className="text-[9px] font-bold bg-gray-100 px-1 border border-black">EDIT</span>
+                                    </div>
+                                </div>
+                            ))
+                        )}
                     </div>
                 </>
             )}

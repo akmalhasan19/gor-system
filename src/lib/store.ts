@@ -7,6 +7,15 @@ import * as transactionsApi from './api/transactions';
 import * as courtsApi from './api/courts';
 import type { Court } from './api/courts';
 
+// Type for Supabase realtime payloads
+// Using `any` for record values as Supabase realtime data is dynamically typed
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+interface RealtimePayload<T = Record<string, any>> {
+    eventType: 'INSERT' | 'UPDATE' | 'DELETE';
+    new: T;
+    old: T;
+}
+
 interface AppState {
     bookings: Booking[];
     products: Product[];
@@ -29,11 +38,11 @@ interface AppState {
     syncCourts: (venueId: string) => Promise<void>;
 
     // Realtime actions (Optimistic Updates)
-    handleRealtimeBooking: (payload: any) => void;
-    handleRealtimeProduct: (payload: any) => void;
-    handleRealtimeCustomer: (payload: any) => void;
-    handleRealtimeTransaction: (payload: any) => void;
-    handleRealtimeCourt: (payload: any) => void;
+    handleRealtimeBooking: (payload: RealtimePayload) => void;
+    handleRealtimeProduct: (payload: RealtimePayload) => void;
+    handleRealtimeCustomer: (payload: RealtimePayload) => void;
+    handleRealtimeTransaction: (payload: RealtimePayload) => void;
+    handleRealtimeCourt: (payload: RealtimePayload) => void;
 
 
     // Booking actions
@@ -143,7 +152,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     },
 
     // Realtime Handlers (Optimistic Updates)
-    handleRealtimeBooking: (payload: any) => {
+    handleRealtimeBooking: (payload: RealtimePayload) => {
         const { eventType, new: newRecord, old: oldRecord } = payload;
         const currentVenueId = get().currentVenueId;
         const selectedDate = get().selectedDate;
@@ -198,7 +207,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         }
     },
 
-    handleRealtimeProduct: (payload: any) => {
+    handleRealtimeProduct: (payload: RealtimePayload) => {
         const { eventType, new: newRecord, old: oldRecord } = payload;
         const currentVenueId = get().currentVenueId;
 
@@ -232,7 +241,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         }
     },
 
-    handleRealtimeCustomer: (payload: any) => {
+    handleRealtimeCustomer: (payload: RealtimePayload) => {
         const { eventType, new: newRecord, old: oldRecord } = payload;
         const currentVenueId = get().currentVenueId;
 
@@ -269,7 +278,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         }
     },
 
-    handleRealtimeTransaction: (payload: any) => {
+    handleRealtimeTransaction: (payload: RealtimePayload) => {
         // Transactions are complex due to CartItems, usually we just sync if it's too complex or just append basic info
         // But let's try to map what we can. Transaction table is simpler than the full joined relation.
         // If we need items, we might need to fetch them or just accept that realtime transaction might need a refetch if items are critical to show immediately in a list that shows items.
@@ -318,7 +327,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         }
     },
 
-    handleRealtimeCourt: (payload: any) => {
+    handleRealtimeCourt: (payload: RealtimePayload) => {
         const { eventType, new: newRecord, old: oldRecord } = payload;
         const currentVenueId = get().currentVenueId;
 

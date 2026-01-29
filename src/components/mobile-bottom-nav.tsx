@@ -32,7 +32,7 @@ export const MobileBottomNav = () => {
                         key={item.id}
                         href={item.id}
                         className={cn(
-                            "flex flex-col items-center justify-center p-2 rounded-xl transition-all border-[3px] border-transparent",
+                            "flex flex-col items-center justify-center p-2 rounded-xl transition-all border-[3px] border-transparent min-w-[44px] min-h-[44px]",
                             isActive ? "bg-brand-lime border-black shadow-neo-sm -translate-y-1" : "hover:bg-gray-100"
                         )}
                     >

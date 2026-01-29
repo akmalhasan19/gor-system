@@ -11,7 +11,7 @@ import { RRule } from "rrule";
 import { AlertDialog } from "@/components/ui/alert-dialog";
 import { sanitizePhone } from "@/lib/utils/formatters";
 import { BookingModalQRScanner } from "@/components/booking-modal-qr-scanner";
-import { QrCode } from "lucide-react";
+import { QrCode, Clock, MapPin } from "lucide-react";
 import { useUserRole } from "@/hooks/use-role";
 
 interface BookingModalProps {
@@ -40,33 +40,19 @@ export const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, onS
     const [useQuota, setUseQuota] = useState(false);
     const [showQRScanner, setShowQRScanner] = useState(false);
     const [paidAmount, setPaidAmount] = useState(0);
+    const [selectedCourtId, setSelectedCourtId] = useState<string>("");
+    const [selectedTime, setSelectedTime] = useState<number>(0);
 
     // Deposit Policy Logic
     const depositPolicy = currentVenue?.depositPolicy;
     const isDepositEnabled = depositPolicy?.isEnabled;
     const minDeposit = depositPolicy?.minDepositAmount || 0;
 
-    // Update hourly rate based on selected court
+    // Update hourly rate based on selected court and customer
     useEffect(() => {
-        if (!initialData && !existingBooking) return;
+        if (!selectedCourtId) return;
 
-        const targetCourtId = existingBooking ? existingBooking.courtId : initialData?.courtId;
-
-        // targetCourtId can be "1" (string number) or UUID
-        // We try to match by id or courtNumber
-        const court = courts.find(c => c.id === targetCourtId || String(c.courtNumber) === String(targetCourtId));
-
-        if (court) {
-            setHourlyRate(court.hourlyRate);
-        }
-    }, [initialData, existingBooking, courts]);
-
-    // Update hourly rate when customer changes (check for member rate)
-    useEffect(() => {
-        if (!initialData && !existingBooking) return;
-
-        const targetCourtId = existingBooking ? existingBooking.courtId : initialData?.courtId;
-        const court = courts.find(c => c.id === targetCourtId || String(c.courtNumber) === String(targetCourtId));
+        const court = courts.find(c => c.id === selectedCourtId);
 
         if (court) {
             const customer = customers.find(c => c.id === selectedCustomerId);
@@ -79,7 +65,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, onS
                 setHourlyRate(court.hourlyRate);
             }
         }
-    }, [selectedCustomerId, courts, initialData, existingBooking, customers]);
+    }, [selectedCourtId, selectedCustomerId, courts, customers]);
 
     useEffect(() => {
         if (isOpen) {
@@ -88,15 +74,18 @@ export const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, onS
                 setCustomerName(existingBooking.customerName);
                 setPhone(existingBooking.phone);
                 setDuration(existingBooking.duration);
-                // Recurring not supported for edit mode yet
                 setIsRecurring(false);
                 setRepeatWeeks(4);
-                setSelectedCustomerId(""); // Complex to match back to ID without passing it, skip for now
-                setUseQuota(false);
+                setSelectedCustomerId("");
                 setUseQuota(false);
                 setPaidAmount(existingBooking.paidAmount || 0);
+                setSelectedCourtId(existingBooking.courtId);
+                const startHour = typeof existingBooking.startTime === 'number'
+                    ? existingBooking.startTime
+                    : parseInt(existingBooking.startTime.split(':')[0]);
+                setSelectedTime(startHour);
             } else if (initialData) {
-                // New Booking Mode
+                // New Booking Mode (from Slot Click)
                 setCustomerName("");
                 setPhone("");
                 setDuration(1);
@@ -105,9 +94,33 @@ export const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, onS
                 setSelectedCustomerId("");
                 setUseQuota(false);
                 setPaidAmount(0);
+                setSelectedCourtId(initialData.courtId);
+                setSelectedTime(initialData.time);
+            } else {
+                // Manual Booking Mode (Input Booking Button)
+                setCustomerName("");
+                setPhone("");
+                setDuration(1);
+                setIsRecurring(false);
+                setRepeatWeeks(4);
+                setSelectedCustomerId("");
+                setUseQuota(false);
+                setPaidAmount(0);
+
+                // Default Court (First available)
+                if (courts.length > 0) setSelectedCourtId(courts[0].id);
+
+                // Default Time (Next Hour)
+                const now = new Date();
+                let nextHour = now.getHours() + 1;
+                const start = currentVenue?.operatingHoursStart || 8;
+                const end = currentVenue?.operatingHoursEnd || 23;
+                if (nextHour < start) nextHour = start;
+                if (nextHour >= end) nextHour = start; // Reset to morning if late
+                setSelectedTime(nextHour);
             }
         }
-    }, [isOpen, initialData, existingBooking]);
+    }, [isOpen, initialData, existingBooking, courts, currentVenue]);
 
     // Handle Member Selection
     const handleCustomerSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -134,14 +147,14 @@ export const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, onS
     };
 
     const handleSave = async () => {
-        if (!initialData && !existingBooking) return;
+        if (!selectedCourtId) return alert("Pilih lapangan terlebih dahulu!");
         if (!customerName || !phone) return alert("Nama dan No HP harus diisi!");
         if (!duration || duration < 1) return alert("Durasi minimal 1 jam!");
 
         // If editing, use existing data or fallback to initialData (which might be trickier if just passed existingBooking)
         // For simplicity, we trust parent to pass initialData matching existingBooking if editing
-        const courtId = existingBooking ? existingBooking.courtId : initialData!.courtId;
-        const startTimeStr = existingBooking ? existingBooking.startTime : `${initialData!.time.toString().padStart(2, '0')}:00:00`;
+        const courtId = selectedCourtId;
+        const startTimeStr = `${selectedTime.toString().padStart(2, '0')}:00:00`;
         const bookingDate = existingBooking ? existingBooking.bookingDate : new Date().toISOString().split('T')[0];
 
         // ... logic for baseBooking ...
@@ -230,9 +243,9 @@ export const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, onS
                 <div className="bg-white border-2 border-black shadow-neo w-full max-w-sm flex flex-col max-h-[90vh]">
                     <div className="bg-black text-white p-3 flex justify-between items-center border-b-2 border-black">
                         <h2 className="font-black text-sm uppercase">
-                            {existingBooking ? 'Edit Booking' : `Booking ${courts.find(c => c.id === initialData?.courtId)?.name || 'Lapangan'} - Jam ${initialData?.time}:00`}
+                            {existingBooking ? 'Edit Booking' : `Booking Lapangan`}
                         </h2>
-                        <button onClick={onClose} className="hover:text-brand-orange font-bold text-sm">X</button>
+                        <button onClick={onClose} className="hover:text-brand-orange font-bold text-sm min-w-[44px] min-h-[44px] flex items-center justify-center">X</button>
                     </div>
 
                     <div className="p-4 flex flex-col gap-4 overflow-y-auto">
@@ -246,6 +259,46 @@ export const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, onS
                         {existingBooking?.isNoShow && (
                             <div className="bg-red-100 border-2 border-red-600 p-2 text-center text-red-800 font-bold text-sm uppercase">
                                 ⛔ NO SHOW / TIDAK DATANG
+                            </div>
+
+                        )}
+
+                        {/* Court & Time Selector (Always visible for new bookings or if manual override needed) */}
+                        {!existingBooking && (
+                            <div className="flex gap-2 p-3 bg-gray-50 border-2 border-dashed border-gray-300">
+                                <div className="flex-1 flex flex-col gap-1">
+                                    <label className="text-[10px] font-black uppercase text-gray-500 flex items-center gap-1">
+                                        <MapPin size={10} /> Lapangan
+                                    </label>
+                                    <select
+                                        value={selectedCourtId}
+                                        onChange={(e) => setSelectedCourtId(e.target.value)}
+                                        className="w-full bg-white border border-black p-1.5 font-bold text-xs"
+                                    >
+                                        {courts.map(court => (
+                                            <option key={court.id} value={court.id}>{court.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className="w-24 flex flex-col gap-1">
+                                    <label className="text-[10px] font-black uppercase text-gray-500 flex items-center gap-1">
+                                        <Clock size={10} /> Jam
+                                    </label>
+                                    <select
+                                        value={selectedTime}
+                                        onChange={(e) => setSelectedTime(parseInt(e.target.value))}
+                                        className="w-full bg-white border border-black p-1.5 font-bold text-xs"
+                                    >
+                                        {Array.from(
+                                            { length: (currentVenue?.operatingHoursEnd || 23) - (currentVenue?.operatingHoursStart || 8) + 1 },
+                                            (_, i) => (currentVenue?.operatingHoursStart || 8) + i
+                                        ).map(hour => (
+                                            <option key={hour} value={hour}>
+                                                {hour.toString().padStart(2, '0')}:00
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
                             </div>
                         )}
 
@@ -268,7 +321,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, onS
                                     <button
                                         type="button"
                                         onClick={() => setShowQRScanner(true)}
-                                        className="flex items-center gap-1.5 bg-brand-lime hover:bg-brand-lime/80 text-black px-3 border-2 border-black font-bold text-xs uppercase transition-all"
+                                        className="flex items-center gap-1.5 bg-brand-lime hover:bg-brand-lime/80 text-black px-3 border-2 border-black font-bold text-xs uppercase transition-all min-h-[44px]"
                                         title="Scan QR Member"
                                     >
                                         <QrCode size={16} />
@@ -532,7 +585,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, onS
                         </button>
                     </div>
                 </div>
-            </div>
+            </div >
 
             <AlertDialog
                 isOpen={showDeleteAlert}

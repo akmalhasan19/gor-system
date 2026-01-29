@@ -3,17 +3,21 @@
 import React, { useState } from "react";
 import { toast } from "sonner";
 import { Booking, Court, OPERATIONAL_HOURS } from "@/lib/constants";
+import { Court as ApiCourt } from "@/lib/api/courts";
+import { MaintenanceTask as ApiMaintenanceTask, isSlotBlockedByMaintenance } from "@/lib/api/maintenance";
+import { EmptyState } from "@/components/ui/empty-state";
+import { CalendarX, Settings } from "lucide-react";
+import Link from "next/link";
 import { useAppStore } from "@/lib/store";
 import { useVenue } from "@/lib/venue-context";
 import { NeoBadge } from "@/components/ui/neo-badge";
 import { MessageSquare, Trash2, Wrench } from "lucide-react";
 import { AlertDialog } from "@/components/ui/alert-dialog";
-import { MaintenanceTask, isSlotBlockedByMaintenance } from "@/lib/api/maintenance";
 
 interface SchedulerProps {
     bookings: Booking[];
     courts: Court[];
-    maintenanceTasks?: MaintenanceTask[];
+    maintenanceTasks?: ApiMaintenanceTask[];
     onSlotClick?: (courtId: string, hour: number) => void;
     onBookingClick?: (booking: Booking) => void;
     readOnly?: boolean;
@@ -33,6 +37,30 @@ export const Scheduler: React.FC<SchedulerProps> = ({
 }) => {
     const { addToCart } = useAppStore();
     const { currentVenueId } = useVenue();
+
+    const { updateBooking } = useAppStore();
+    const [moveTarget, setMoveTarget] = useState<{ bookingId: string, courtId: string, hour: number } | null>(null);
+
+    // If no courts are defined, show empty state
+    if (!courts || courts.length === 0) {
+        return (
+            <div className="flex h-full w-full items-center justify-center p-8 bg-gray-50/50">
+                <EmptyState
+                    icon={CalendarX}
+                    title="Belum Ada Lapangan"
+                    description="Anda belum memiliki lapangan yang terdaftar. Tambahkan lapangan untuk mulai mengatur jadwal."
+                    action={
+                        <Link href="/settings">
+                            <button className="flex items-center gap-2 bg-brand-lime text-black px-4 py-2 font-black uppercase text-xs border-2 border-black shadow-neo hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all">
+                                <Settings size={14} strokeWidth={3} />
+                                Atur Lapangan
+                            </button>
+                        </Link>
+                    }
+                />
+            </div>
+        );
+    }
 
     // Generate hours based on props
     const hours = Array.from(
@@ -70,8 +98,7 @@ export const Scheduler: React.FC<SchedulerProps> = ({
         });
     };
 
-    const { updateBooking } = useAppStore();
-    const [moveTarget, setMoveTarget] = useState<{ bookingId: string, courtId: string, hour: number } | null>(null);
+
 
     const handleDragStart = (e: React.DragEvent, booking: Booking) => {
         if (readOnly) return;

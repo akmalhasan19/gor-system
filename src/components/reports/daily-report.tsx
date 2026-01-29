@@ -4,7 +4,8 @@ import React, { useState, useMemo } from "react";
 import { useAppStore } from "@/lib/store";
 import { exportTransactionsToCSV } from "@/lib/utils/csv-export";
 import { toast } from "sonner";
-import { Download, Calendar } from "lucide-react";
+import { Download, Calendar, Receipt } from "lucide-react";
+import { EmptyState } from "@/components/ui/empty-state";
 
 export const DailyReport = () => {
     const { transactions } = useAppStore();
@@ -189,10 +190,15 @@ export const DailyReport = () => {
                         <tbody>
                             {filteredTransactions.length === 0 ? (
                                 <tr>
-                                    <td colSpan={5} className="text-center py-6 text-gray-400 italic font-bold">
-                                        {useRangeFilter
-                                            ? 'Tidak ada transaksi dalam rentang tanggal ini.'
-                                            : 'Belum ada transaksi hari ini.'}
+                                    <td colSpan={5} className="py-8">
+                                        <EmptyState
+                                            icon={Receipt}
+                                            title="Tidak Ada Transaksi"
+                                            description={useRangeFilter
+                                                ? 'Tidak ada transaksi ditemukan pada rentang tanggal yang dipilih.'
+                                                : 'Belum ada transaksi yang tercatat hari ini.'}
+                                            className="border-none bg-transparent shadow-none min-h-[150px]"
+                                        />
                                     </td>
                                 </tr>
                             ) : (

@@ -142,6 +142,17 @@ export async function POST(request: NextRequest) {
             // Continue anyway - courts can be added later
         }
 
+        // Update user metadata with venue_id for middleware optimization
+        const { error: metadataError } = await supabase.auth.updateUser({
+            data: {
+                venue_id: venueRow.id
+            }
+        });
+
+        if (metadataError) {
+            console.warn('Failed to update user metadata with venue_id:', metadataError);
+        }
+
         return NextResponse.json({
             success: true,
             venueId: venueRow.id,

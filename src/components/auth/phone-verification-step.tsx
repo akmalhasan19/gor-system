@@ -292,11 +292,28 @@ export function PhoneVerificationStep({
                         </div>
                     </div>
 
-                    <div className="bg-blue-50 border-2 border-blue-300 p-3 text-sm">
-                        <p className="font-bold mb-1">📱 Belum punya aplikasi?</p>
-                        <p className="text-xs text-gray-600">
-                            Download Google Authenticator atau Authy dari App Store / Play Store
-                        </p>
+                    <div className="bg-brand-yellow border-[3px] border-black p-4 rounded-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all">
+                        <div className="flex items-start gap-4">
+                            <div className="bg-white border-2 border-black p-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex-shrink-0">
+                                <Smartphone className="w-6 h-6 text-black" />
+                            </div>
+                            <div className="flex-1">
+                                <h3 className="font-black text-lg uppercase leading-tight mb-1">
+                                    Belum punya aplikasi?
+                                </h3>
+                                <p className="text-sm font-medium opacity-90 mb-3">
+                                    Download Google Authenticator atau Authy sekarang!
+                                </p>
+                                <div className="flex gap-2 text-[10px] font-bold">
+                                    <div className="bg-black text-white px-2 py-1 rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,0.2)]">
+                                        APP STORE
+                                    </div>
+                                    <div className="bg-black text-white px-2 py-1 rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,0.2)]">
+                                        PLAY STORE
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <NeoButton

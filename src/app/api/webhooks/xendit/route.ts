@@ -23,13 +23,26 @@ export async function POST(req: Request) {
         const webhookSecret = process.env.XENDIT_WEBHOOK_SECRET;
         const validToken = process.env.XENDIT_CALLBACK_TOKEN;
 
+        console.log('[Xendit Webhook] Received webhook');
+        console.log('[Xendit Webhook] Headers:', {
+            'x-callback-signature': callbackSignature ? '(present)' : '(missing)',
+            'x-callback-token': callbackToken ? '(present)' : '(missing)',
+            'content-length': req.headers.get('content-length')
+        });
+        console.log('[Xendit Webhook] Config:', {
+            'XENDIT_WEBHOOK_SECRET': webhookSecret ? '(configured)' : '(missing)',
+            'XENDIT_CALLBACK_TOKEN': validToken ? '(configured)' : '(missing)'
+        });
+
         // Try HMAC signature verification first (more secure)
         if (webhookSecret) {
+            console.log('[Xendit Webhook] Verifying via Signature...');
             // Parse body to get timestamp for replay attack prevention
             let body: any;
             try {
                 body = JSON.parse(rawBody);
             } catch {
+                console.error('[Xendit Webhook] Invalid JSON body');
                 return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
             }
 
@@ -41,15 +54,25 @@ export async function POST(req: Request) {
             );
 
             if (!verification.valid) {
-                console.warn('Xendit webhook verification failed:', verification.error);
-                return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+                console.warn('[Xendit Webhook] Verification failed:', verification.error);
+                // Log expected vs received for debugging (be careful with secrets in prod logs usually, but helpful here)
+                // console.log('Expected:', verification.expected);
+                // console.log('Received:', verification.received);
+                return NextResponse.json({ error: 'Unauthorized', details: verification.error }, { status: 401 });
             }
+            console.log('[Xendit Webhook] Signature verified successfully');
         } else if (validToken) {
+            console.log('[Xendit Webhook] Verifying via Token...');
             // Fallback to token validation if signature not configured
             if (callbackToken !== validToken) {
-                console.warn('Invalid Xendit Callback Token');
+                console.warn('[Xendit Webhook] Invalid Xendit Callback Token');
+                console.warn(`[Xendit Webhook] Received: ${callbackToken}, Expected: ${validToken}`);
                 return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
             }
+            console.log('[Xendit Webhook] Token verified successfully');
+        } else {
+            console.warn('[Xendit Webhook] No verification method configured (Secret or Token missing)');
+            return NextResponse.json({ error: 'Server misconfiguration' }, { status: 500 });
         }
 
         // Parse the body (already parsed above if signature verification was used)

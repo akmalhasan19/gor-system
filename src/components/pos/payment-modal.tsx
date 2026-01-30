@@ -101,7 +101,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, tot
     if (createdTransaction) {
         return (
             <div className="fixed inset-0 bg-black/50 z-[100] flex items-end justify-center md:items-center p-0 md:p-4">
-                <div className="bg-white border-t-2 border-x-2 md:border-2 border-black shadow-neo w-full max-w-sm flex flex-col max-h-[85dvh] md:max-h-[90vh] rounded-t-lg md:rounded-lg">
+                <div className="bg-white border-t-2 border-x-2 md:border-2 border-black shadow-neo w-full max-w-sm flex flex-col max-h-[80dvh] md:max-h-[90vh] rounded-t-lg md:rounded-lg">
                     <div className="bg-black text-white p-3 flex justify-between items-center border-b-2 border-black">
                         <h2 className="font-black text-sm uppercase">Pembayaran Online</h2>
                         <button
@@ -133,7 +133,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, tot
 
     return (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center md:items-center p-0 md:p-4">
-            <div className="bg-white border-t-2 border-x-2 md:border-2 border-black shadow-neo w-full max-w-sm flex flex-col max-h-[85dvh] md:max-h-[90vh]">
+            <div className="bg-white border-t-2 border-x-2 md:border-2 border-black shadow-neo w-full max-w-sm flex flex-col max-h-[80dvh] md:max-h-[90vh]">
                 <div className="bg-black text-white p-3 flex justify-between items-center border-b-2 border-black">
                     <h2 className="font-black text-sm uppercase">Pembayaran</h2>
                     <button onClick={onClose} className="hover:text-brand-orange font-bold text-sm">X</button>

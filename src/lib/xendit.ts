@@ -65,7 +65,8 @@ export const XenditService = {
     },
 
     simulateVA: async (externalId: string, amount: number) => {
-        const response = await xenditClient.post(`/callback_virtual_accounts/${externalId}/simulate_payment`, {
+        // According to docs, URL format is: /callback_virtual_accounts/external_id={external_id}/simulate_payment
+        const response = await xenditClient.post(`/callback_virtual_accounts/external_id=${externalId}/simulate_payment`, {
             amount: amount
         });
         return response.data;

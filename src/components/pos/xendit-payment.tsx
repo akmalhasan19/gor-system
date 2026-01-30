@@ -36,6 +36,12 @@ export const XenditPayment: React.FC<XenditPaymentProps> = ({
         setStatus('IDLE');
     }, [method, channel]);
 
+    // Use ref for callback to avoid re-subscribing when parent re-renders
+    const onSuccessRef = React.useRef(onSuccess);
+    useEffect(() => {
+        onSuccessRef.current = onSuccess;
+    }, [onSuccess]);
+
     // Setup Realtime Subscription when we have a payment ID
     useEffect(() => {
         if (!paymentData?.xendit_id) return;
@@ -59,7 +65,7 @@ export const XenditPayment: React.FC<XenditPaymentProps> = ({
                     if (newStatus === 'PAID') {
                         toast.success('Pembayaran Berhasil!');
                         setTimeout(() => {
-                            onSuccess();
+                            onSuccessRef.current();
                         }, 2000);
                     } else if (newStatus === 'FAILED' || newStatus === 'EXPIRED') {
                         toast.error(`Pembayaran ${newStatus}`);
@@ -73,7 +79,7 @@ export const XenditPayment: React.FC<XenditPaymentProps> = ({
         return () => {
             supabase.removeChannel(channel);
         };
-    }, [paymentData?.xendit_id, supabase, onSuccess]);
+    }, [paymentData?.xendit_id, supabase]);
 
 
     const handleGenerate = async () => {

@@ -4,11 +4,12 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { NeoButton } from '@/components/ui/neo-button';
 import { NeoInput } from '@/components/ui/neo-input';
-import { Building2, MapPin, Phone, Grid3x3, Clock, Check, ArrowRight, ArrowLeft, Sparkles, LogOut } from 'lucide-react';
+import { Building2, MapPin, Phone, Grid3x3, Clock, Check, ArrowRight, ArrowLeft, Sparkles, LogOut, Crown, Zap, AlertTriangle } from 'lucide-react';
 import { useVenue } from '@/lib/venue-context';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { getCsrfHeaders } from '@/lib/hooks/use-csrf';
+import { PLAN_FEATURES, SubscriptionPlan } from '@/lib/constants/plans';
 
 interface OnboardingData {
     venueName: string;
@@ -18,9 +19,10 @@ interface OnboardingData {
     operatingHoursStart: number;
     operatingHoursEnd: number;
     hourlyRatePerCourt: number;
+    subscriptionPlan: SubscriptionPlan;
 }
 
-type OnboardingStep = 1 | 2 | 3 | 4;
+type OnboardingStep = 1 | 2 | 3 | 4 | 5;
 
 export function VenueOnboarding() {
     const router = useRouter();
@@ -28,16 +30,20 @@ export function VenueOnboarding() {
     const [currentStep, setCurrentStep] = useState<OnboardingStep>(1);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState('');
+    const [skipSubscription, setSkipSubscription] = useState(true);
 
     const [data, setData] = useState<OnboardingData>({
         venueName: '',
         address: '',
         phone: '',
-        courtsCount: 4,
+        courtsCount: 3,
         operatingHoursStart: 8,
         operatingHoursEnd: 23,
         hourlyRatePerCourt: 50000,
+        subscriptionPlan: 'STARTER',
     });
+
+    const maxCourts = PLAN_FEATURES[data.subscriptionPlan].maxCourts;
 
     const updateData = (updates: Partial<OnboardingData>) => {
         setData(prev => ({ ...prev, ...updates }));
@@ -53,7 +59,6 @@ export function VenueOnboarding() {
         }
     };
 
-
     const handleNext = () => {
         setError('');
 
@@ -63,12 +68,12 @@ export function VenueOnboarding() {
             return;
         }
 
-        if (currentStep === 3 && data.operatingHoursStart >= data.operatingHoursEnd) {
+        if (currentStep === 4 && data.operatingHoursStart >= data.operatingHoursEnd) {
             setError('Jam tutup harus lebih besar dari jam buka');
             return;
         }
 
-        if (currentStep < 4) {
+        if (currentStep < 5) {
             setCurrentStep((currentStep + 1) as OnboardingStep);
         }
     };
@@ -76,6 +81,28 @@ export function VenueOnboarding() {
     const handleBack = () => {
         if (currentStep > 1) {
             setCurrentStep((currentStep - 1) as OnboardingStep);
+        }
+    };
+
+    const handleSelectPlan = (plan: SubscriptionPlan) => {
+        setSkipSubscription(false);
+        updateData({ subscriptionPlan: plan });
+        // Adjust courts if exceeds new plan limit
+        const newMax = PLAN_FEATURES[plan].maxCourts;
+        if (data.courtsCount > newMax) {
+            updateData({ courtsCount: newMax });
+        }
+    };
+
+    const handleSkipSubscription = () => {
+        setSkipSubscription(true);
+        updateData({ subscriptionPlan: 'STARTER', courtsCount: Math.min(data.courtsCount, 3) });
+        handleNext();
+    };
+
+    const handleCourtsChange = (value: number) => {
+        if (value <= maxCourts) {
+            updateData({ courtsCount: value });
         }
     };
 
@@ -96,11 +123,7 @@ export function VenueOnboarding() {
                 throw new Error(result.error || 'Gagal menyimpan data');
             }
 
-
-            // Refresh venue data to update the context immediately
             await refreshVenue();
-
-            // Redirect to dashboard on success
             router.push('/');
             router.refresh();
         } catch (err: any) {
@@ -108,6 +131,12 @@ export function VenueOnboarding() {
         } finally {
             setIsSubmitting(false);
         }
+    };
+
+    const planIcons: Record<SubscriptionPlan, React.ReactNode> = {
+        STARTER: <Zap className="w-6 h-6 text-gray-500" />,
+        PRO: <Crown className="w-6 h-6 text-amber-500" />,
+        BUSINESS: <Sparkles className="w-6 h-6 text-purple-500" />,
     };
 
     return (
@@ -153,7 +182,7 @@ export function VenueOnboarding() {
                 {/* Progress Bar */}
                 <div className="bg-gray-100 p-4 border-b-4 border-black">
                     <div className="flex items-center justify-center max-w-md mx-auto">
-                        {[1, 2, 3, 4].map((step, idx) => (
+                        {[1, 2, 3, 4, 5].map((step, idx) => (
                             <div key={step} className="flex items-center">
                                 <div
                                     className={`w-10 h-10 rounded-full border-2 flex items-center justify-center font-black ${currentStep >= step
@@ -163,9 +192,9 @@ export function VenueOnboarding() {
                                 >
                                     {currentStep > step ? <Check className="w-5 h-5" /> : step}
                                 </div>
-                                {idx < 3 && (
+                                {idx < 4 && (
                                     <div
-                                        className={`w-6 h-1 mx-1 sm:w-12 sm:mx-2 ${currentStep > step ? 'bg-brand-orange' : 'bg-gray-300'
+                                        className={`w-4 h-1 mx-0.5 sm:w-8 sm:mx-1 ${currentStep > step ? 'bg-brand-orange' : 'bg-gray-300'
                                             }`}
                                     />
                                 )}
@@ -234,12 +263,87 @@ export function VenueOnboarding() {
                         </div>
                     )}
 
-                    {/* Step 2: Courts Configuration */}
+                    {/* Step 2: Subscription Plan Selection */}
                     {currentStep === 2 && (
+                        <div className="space-y-6">
+                            <div>
+                                <h2 className="text-xl font-black uppercase mb-1">Pilih Paket Langganan</h2>
+                                <p className="text-sm text-gray-600">Pilih paket yang sesuai dengan kebutuhan GOR Anda, atau lewati untuk menggunakan paket Starter.</p>
+                            </div>
+
+                            <div className="grid gap-4">
+                                {(['STARTER', 'PRO', 'BUSINESS'] as SubscriptionPlan[]).map((planKey) => {
+                                    const planConfig = PLAN_FEATURES[planKey];
+                                    const isSelected = data.subscriptionPlan === planKey && !skipSubscription;
+
+                                    return (
+                                        <button
+                                            key={planKey}
+                                            type="button"
+                                            onClick={() => handleSelectPlan(planKey)}
+                                            className={`relative border-2 rounded-xl p-4 text-left transition-all ${isSelected
+                                                ? 'border-brand-orange bg-brand-orange/10'
+                                                : 'border-gray-200 hover:border-gray-400'
+                                                }`}
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                {planIcons[planKey]}
+                                                <div className="flex-1">
+                                                    <div className="flex items-center justify-between">
+                                                        <h4 className="font-black text-lg">{planConfig.displayName}</h4>
+                                                        <span className="font-black text-lg">Rp {planConfig.priceMonthly.toLocaleString('id-ID')}<span className="text-sm font-normal text-gray-500">/bln</span></span>
+                                                    </div>
+                                                    <p className="text-sm text-gray-600">{planConfig.description}</p>
+                                                    <p className="text-xs text-gray-500 mt-1">
+                                                        Maks. {planConfig.maxCourts === 999 ? 'Unlimited' : planConfig.maxCourts} Lapangan
+                                                        {planConfig.features.length > 0 && ` • ${planConfig.features.slice(0, 3).join(', ')}`}
+                                                    </p>
+                                                </div>
+                                                {isSelected && (
+                                                    <div className="absolute top-2 right-2 bg-brand-orange text-black text-xs font-bold px-2 py-0.5 rounded">
+                                                        Dipilih
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+
+                            <div className="flex items-center justify-center">
+                                <button
+                                    type="button"
+                                    onClick={handleSkipSubscription}
+                                    className="text-sm text-gray-500 hover:text-gray-700 font-bold underline"
+                                >
+                                    Nanti saja, gunakan paket Starter gratis
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Step 3: Courts Configuration */}
+                    {currentStep === 3 && (
                         <div className="space-y-6">
                             <div>
                                 <h2 className="text-xl font-black uppercase mb-1">Konfigurasi Lapangan</h2>
                                 <p className="text-sm text-gray-600">Berapa banyak lapangan yang Anda miliki?</p>
+                            </div>
+
+                            {/* Plan Info Banner */}
+                            <div className="bg-gray-50 border-2 border-gray-200 rounded-lg p-3 flex items-center gap-3">
+                                {planIcons[data.subscriptionPlan]}
+                                <div className="flex-1">
+                                    <p className="font-bold text-sm">Paket: {PLAN_FEATURES[data.subscriptionPlan].displayName}</p>
+                                    <p className="text-xs text-gray-500">Maksimum {maxCourts === 999 ? 'Unlimited' : maxCourts} lapangan</p>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => setCurrentStep(2)}
+                                    className="text-xs text-brand-orange font-bold hover:underline"
+                                >
+                                    Ubah Paket
+                                </button>
                             </div>
 
                             <div className="space-y-6">
@@ -250,25 +354,41 @@ export function VenueOnboarding() {
                                     <input
                                         type="range"
                                         min="1"
-                                        max="12"
+                                        max={maxCourts > 12 ? 12 : maxCourts}
                                         value={data.courtsCount}
-                                        onChange={(e) => updateData({ courtsCount: parseInt(e.target.value) })}
+                                        onChange={(e) => handleCourtsChange(parseInt(e.target.value))}
                                         className="w-full h-3 bg-gray-200 border-2 border-black appearance-none cursor-pointer"
                                         style={{
-                                            background: `linear-gradient(to right, #FFA500 0%, #FFA500 ${((data.courtsCount - 1) / 11) * 100}%, #e5e7eb ${((data.courtsCount - 1) / 11) * 100}%, #e5e7eb 100%)`
+                                            background: `linear-gradient(to right, #FFA500 0%, #FFA500 ${((data.courtsCount - 1) / ((maxCourts > 12 ? 12 : maxCourts) - 1)) * 100}%, #e5e7eb ${((data.courtsCount - 1) / ((maxCourts > 12 ? 12 : maxCourts) - 1)) * 100}%, #e5e7eb 100%)`
                                         }}
                                     />
                                     <div className="flex justify-between text-xs font-bold text-gray-500 mt-1">
                                         <span>1</span>
-                                        <span>12</span>
+                                        <span>{maxCourts > 12 ? '12+' : maxCourts}</span>
                                     </div>
+
+                                    {data.subscriptionPlan === 'STARTER' && data.courtsCount >= 3 && (
+                                        <div className="mt-3 bg-amber-50 border-2 border-amber-400 rounded-lg p-3 flex items-start gap-2">
+                                            <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+                                            <div>
+                                                <p className="text-sm font-bold text-amber-800">Butuh lebih dari 3 lapangan?</p>
+                                                <p className="text-xs text-amber-700">Upgrade ke paket PRO atau BUSINESS untuk lapangan lebih banyak.</p>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setCurrentStep(2)}
+                                                    className="mt-2 text-xs bg-amber-500 text-white font-bold px-3 py-1 rounded hover:bg-amber-600 transition-colors"
+                                                >
+                                                    Lihat Paket Lain
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Preview - Badminton Court Layout */}
                                 <div className="bg-gray-50 border-2 border-black p-4">
                                     <p className="font-black uppercase text-xs mb-3">Preview Lapangan:</p>
                                     <div className="bg-white border-4 border-black p-4">
-                                        {/* Court Grid - Responsive layout */}
                                         <div className={`grid gap-3 ${data.courtsCount <= 4 ? 'grid-cols-2' :
                                             data.courtsCount <= 6 ? 'grid-cols-3' :
                                                 data.courtsCount <= 9 ? 'grid-cols-3' :
@@ -278,51 +398,24 @@ export function VenueOnboarding() {
                                                 <div
                                                     key={i}
                                                     className="relative bg-gradient-to-b from-green-400 to-green-500 border-2 border-black shadow-neo-sm overflow-hidden"
-                                                    style={{ aspectRatio: '13/24' }} // Badminton court ratio (13.4m x 6.1m)
+                                                    style={{ aspectRatio: '13/24' }}
                                                 >
-                                                    {/* Court Lines */}
                                                     <div className="absolute inset-0 p-1">
-                                                        {/* Outer boundary */}
                                                         <div className="absolute inset-1 border-2 border-white/80"></div>
-
-                                                        {/* Service lines */}
                                                         <div className="absolute left-1 right-1 top-[30%] h-0.5 bg-white/80"></div>
                                                         <div className="absolute left-1 right-1 bottom-[30%] h-0.5 bg-white/80"></div>
-
-                                                        {/* Center line */}
                                                         <div className="absolute left-1/2 top-1 bottom-1 w-0.5 bg-white/60 -translate-x-1/2"></div>
-
-                                                        {/* Net (center) */}
                                                         <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2">
                                                             <div className="h-1 bg-black/80 border-t border-b border-white/40"></div>
-                                                            {/* Net posts */}
                                                             <div className="absolute left-0 top-1/2 w-1 h-3 bg-gray-800 -translate-y-1/2 -translate-x-1"></div>
                                                             <div className="absolute right-0 top-1/2 w-1 h-3 bg-gray-800 -translate-y-1/2 translate-x-1"></div>
                                                         </div>
                                                     </div>
-
-                                                    {/* Court Number Label */}
                                                     <div className="absolute bottom-1 left-1/2 -translate-x-1/2 bg-black text-white px-2 py-0.5 text-[10px] font-black border border-white">
                                                         {i + 1}
                                                     </div>
                                                 </div>
                                             ))}
-                                        </div>
-
-                                        {/* Legend */}
-                                        <div className="mt-4 pt-3 border-t-2 border-gray-200 flex flex-wrap gap-3 text-xs">
-                                            <div className="flex items-center gap-1.5">
-                                                <div className="w-3 h-3 bg-gradient-to-b from-green-400 to-green-500 border border-black"></div>
-                                                <span className="font-bold">Lapangan</span>
-                                            </div>
-                                            <div className="flex items-center gap-1.5">
-                                                <div className="w-3 h-0.5 bg-white border-t border-b border-gray-400"></div>
-                                                <span className="font-bold">Garis</span>
-                                            </div>
-                                            <div className="flex items-center gap-1.5">
-                                                <div className="w-3 h-1 bg-black"></div>
-                                                <span className="font-bold">Net</span>
-                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -348,8 +441,8 @@ export function VenueOnboarding() {
                         </div>
                     )}
 
-                    {/* Step 3: Operating Hours */}
-                    {currentStep === 3 && (
+                    {/* Step 4: Operating Hours */}
+                    {currentStep === 4 && (
                         <div className="space-y-6">
                             <div>
                                 <h2 className="text-xl font-black uppercase mb-1">Jam Operasional</h2>
@@ -419,8 +512,8 @@ export function VenueOnboarding() {
                         </div>
                     )}
 
-                    {/* Step 4: Review */}
-                    {currentStep === 4 && (
+                    {/* Step 5: Review */}
+                    {currentStep === 5 && (
                         <div className="space-y-6">
                             <div>
                                 <h2 className="text-xl font-black uppercase mb-1">Konfirmasi Data</h2>
@@ -446,6 +539,14 @@ export function VenueOnboarding() {
                                         <p className="font-mono text-sm">{data.phone}</p>
                                     </div>
                                 )}
+
+                                <div className="border-b-2 border-gray-300 pb-3">
+                                    <p className="text-xs font-black uppercase text-gray-500 mb-1">Paket Langganan</p>
+                                    <div className="flex items-center gap-2">
+                                        {planIcons[data.subscriptionPlan]}
+                                        <p className="font-black text-lg">{PLAN_FEATURES[data.subscriptionPlan].displayName}</p>
+                                    </div>
+                                </div>
 
                                 <div className="border-b-2 border-gray-300 pb-3">
                                     <p className="text-xs font-black uppercase text-gray-500 mb-1">Jumlah Lapangan</p>
@@ -483,14 +584,25 @@ export function VenueOnboarding() {
                         </NeoButton>
                     )}
 
-                    {currentStep < 4 ? (
-                        <NeoButton
-                            onClick={handleNext}
-                            className="bg-black text-white hover:bg-brand-orange hover:text-black"
-                        >
-                            Lanjut
-                            <ArrowRight className="w-5 h-5 ml-2" />
-                        </NeoButton>
+                    {currentStep < 5 ? (
+                        currentStep === 2 ? (
+                            <NeoButton
+                                onClick={handleNext}
+                                className="bg-black text-white hover:bg-brand-orange hover:text-black"
+                                disabled={skipSubscription && data.subscriptionPlan !== 'STARTER'}
+                            >
+                                Lanjut
+                                <ArrowRight className="w-5 h-5 ml-2" />
+                            </NeoButton>
+                        ) : (
+                            <NeoButton
+                                onClick={handleNext}
+                                className="bg-black text-white hover:bg-brand-orange hover:text-black"
+                            >
+                                Lanjut
+                                <ArrowRight className="w-5 h-5 ml-2" />
+                            </NeoButton>
+                        )
                     ) : (
                         <NeoButton
                             onClick={handleSubmit}

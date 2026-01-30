@@ -65,6 +65,8 @@ export type CreatePaymentInput = z.infer<typeof CreatePaymentSchema>;
 // Onboarding Schemas
 // ============================================
 
+export const SubscriptionPlanSchema = z.enum(['STARTER', 'PRO', 'BUSINESS']);
+
 export const OnboardingSubmitSchema = z.object({
     venueName: z.string()
         .min(1)
@@ -101,6 +103,9 @@ export const OnboardingSubmitSchema = z.object({
         .max(10_000_000)
         .optional()
         .default(50000),
+    subscriptionPlan: SubscriptionPlanSchema
+        .optional()
+        .default('STARTER'),
 }).refine(
     (data) => data.operatingHoursStart < data.operatingHoursEnd,
     { message: 'Operating end time must be after start time', path: ['operatingHoursEnd'] }

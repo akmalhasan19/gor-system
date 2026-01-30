@@ -71,6 +71,7 @@ export async function POST(request: NextRequest) {
             operatingHoursStart,
             operatingHoursEnd,
             hourlyRatePerCourt,
+            subscriptionPlan,
         } = validation.data;
 
 
@@ -84,6 +85,8 @@ export async function POST(request: NextRequest) {
                 operating_hours_start: operatingHoursStart || 8,
                 operating_hours_end: operatingHoursEnd || 23,
                 is_active: true,
+                subscription_plan: subscriptionPlan || 'STARTER',
+                subscription_status: 'TRIAL',
             })
             .select()
             .single();

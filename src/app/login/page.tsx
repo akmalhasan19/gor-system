@@ -8,6 +8,7 @@ import { NeoInput } from '@/components/ui/neo-input';
 import { PhoneVerificationStep } from '@/components/auth/phone-verification-step';
 import Image from 'next/image';
 import { User, Lock, ArrowRight, Shield, CheckCircle } from 'lucide-react';
+import { getCsrfHeaders } from '@/lib/hooks/use-csrf';
 
 type RegistrationStep = 'credentials' | 'phone-verification' | 'complete';
 
@@ -81,11 +82,11 @@ export default function LoginPage() {
             // Use admin signup route to bypass email confirmation
             const response = await fetch('/api/auth/admin-signup', {
                 method: 'POST',
-                headers: {
+                headers: getCsrfHeaders({
                     'Content-Type': 'application/json',
                     // Use secret from environment variable, fallback to dev secret for local development
                     'x-admin-secret-key': process.env.NEXT_PUBLIC_ADMIN_SIGNUP_SECRET || 'smash-dev-admin-2026'
-                },
+                }),
                 body: JSON.stringify({ email, password }),
             });
 

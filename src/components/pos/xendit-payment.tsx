@@ -5,6 +5,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { Loader2, CheckCircle, RefreshCcw, Copy } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
+import { getCsrfHeaders } from '@/lib/hooks/use-csrf';
 
 interface XenditPaymentProps {
     amount: number;
@@ -80,7 +81,7 @@ export const XenditPayment: React.FC<XenditPaymentProps> = ({
         try {
             const res = await fetch('/api/payments/create', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: getCsrfHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify({
                     transactionId,
                     amount,

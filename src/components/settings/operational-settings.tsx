@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Clock, AlertTriangle, ShieldAlert, QrCode, Loader2, CheckCircle, Trash2, RefreshCw } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { getCsrfHeaders } from '@/lib/hooks/use-csrf';
 
 export const OperationalSettings = () => {
     const { currentVenue, refreshVenue } = useVenue();
@@ -27,6 +28,7 @@ export const OperationalSettings = () => {
         try {
             const res = await fetch('/api/whatsapp/status', {
                 method: 'POST',
+                headers: getCsrfHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify({ venueId: currentVenue.id })
             });
             const data = await res.json();
@@ -45,6 +47,7 @@ export const OperationalSettings = () => {
         try {
             const res = await fetch('/api/whatsapp/connect', {
                 method: 'POST',
+                headers: getCsrfHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify({ venueId: currentVenue.id })
             });
             const data = await res.json();
@@ -69,6 +72,7 @@ export const OperationalSettings = () => {
         try {
             await fetch('/api/whatsapp/disconnect', {
                 method: 'POST',
+                headers: getCsrfHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify({ venueId: currentVenue.id })
             });
             setQrCode(null);

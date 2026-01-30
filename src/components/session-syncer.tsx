@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useVenue } from '@/lib/venue-context';
+import { getCsrfHeaders } from '@/lib/hooks/use-csrf';
 
 export function SessionSyncer() {
     const { currentVenueId } = useVenue();
@@ -26,7 +27,7 @@ export function SessionSyncer() {
                     try {
                         await fetch('/api/auth/sync-session', {
                             method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
+                            headers: getCsrfHeaders({ 'Content-Type': 'application/json' }),
                             body: JSON.stringify({ venueId: currentVenueId }),
                         });
                         console.log('✅ Session metadata synced');

@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { NeoButton } from '@/components/ui/neo-button';
 import { NeoInput } from '@/components/ui/neo-input';
 import { Smartphone, Shield, Copy, Check, RefreshCw, AlertCircle } from 'lucide-react';
+import { getCsrfHeaders } from '@/lib/hooks/use-csrf';
 
 interface PhoneVerificationStepProps {
     email: string;
@@ -50,7 +51,7 @@ export function PhoneVerificationStep({
         try {
             const response = await fetch('/api/phone-verification/initiate', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: getCsrfHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify({
                     phoneNumber: state.phoneNumber,
                     accountName: email,
@@ -126,7 +127,7 @@ export function PhoneVerificationStep({
         try {
             const response = await fetch('/api/phone-verification/verify', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: getCsrfHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify({
                     code,
                     accountName: email,

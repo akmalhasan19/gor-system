@@ -8,6 +8,7 @@ import { Building2, MapPin, Phone, Grid3x3, Clock, Check, ArrowRight, ArrowLeft,
 import { useVenue } from '@/lib/venue-context';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
+import { getCsrfHeaders } from '@/lib/hooks/use-csrf';
 
 interface OnboardingData {
     venueName: string;
@@ -85,7 +86,7 @@ export function VenueOnboarding() {
         try {
             const response = await fetch('/api/onboarding/submit', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: getCsrfHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify(data),
             });
 
@@ -269,9 +270,9 @@ export function VenueOnboarding() {
                                     <div className="bg-white border-4 border-black p-4">
                                         {/* Court Grid - Responsive layout */}
                                         <div className={`grid gap-3 ${data.courtsCount <= 4 ? 'grid-cols-2' :
-                                                data.courtsCount <= 6 ? 'grid-cols-3' :
-                                                    data.courtsCount <= 9 ? 'grid-cols-3' :
-                                                        'grid-cols-4'
+                                            data.courtsCount <= 6 ? 'grid-cols-3' :
+                                                data.courtsCount <= 9 ? 'grid-cols-3' :
+                                                    'grid-cols-4'
                                             }`}>
                                             {Array.from({ length: data.courtsCount }, (_, i) => (
                                                 <div

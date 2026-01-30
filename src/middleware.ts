@@ -1,6 +1,13 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { RateLimiter } from '@/lib/rate-limit';
+import { generateCsrfToken, verifyCsrfToken, CSRF_COOKIE_NAME, CSRF_HEADER_NAME } from '@/lib/csrf';
+
+// Routes that should be excluded from CSRF protection
+const CSRF_EXEMPT_ROUTES = [
+    '/api/webhooks/', // Webhooks have their own authentication
+    '/api/public/',   // Public endpoints (read-only)
+];
 
 // Global Re-usable Rate Limiter (In-Memory)
 // Note: In serverless, this Map is reset on cold start, but effective for high-traffic spikes on warm instances.
@@ -8,6 +15,7 @@ const limiter = new RateLimiter({
     interval: 60 * 1000, // 1 minute
     uniqueTokenPerInterval: 500, // Max 500 unique IPs per minute
 });
+
 
 export async function middleware(request: NextRequest) {
     let response = NextResponse.next({
@@ -174,6 +182,64 @@ export async function middleware(request: NextRequest) {
         } catch (error) {
             console.error('Rate limit error:', error);
             // Fail open if rate limiter fails
+        }
+
+        // --- CSRF PROTECTION (State-changing API requests) ---
+        const isStateChangingMethod = ['POST', 'PUT', 'DELETE', 'PATCH'].includes(request.method);
+        const isExemptRoute = CSRF_EXEMPT_ROUTES.some(route =>
+            request.nextUrl.pathname.startsWith(route)
+        );
+
+        if (isStateChangingMethod && !isExemptRoute) {
+            const cookieToken = request.cookies.get(CSRF_COOKIE_NAME)?.value;
+            const headerToken = request.headers.get(CSRF_HEADER_NAME);
+
+            // Validate both tokens exist and match
+            if (!cookieToken || !headerToken) {
+                console.warn('CSRF token missing', {
+                    path: request.nextUrl.pathname,
+                    hasCookie: !!cookieToken,
+                    hasHeader: !!headerToken
+                });
+                return new NextResponse(
+                    JSON.stringify({ error: 'CSRF token missing' }),
+                    {
+                        status: 403,
+                        headers: { 'Content-Type': 'application/json' }
+                    }
+                );
+            }
+
+            if (cookieToken !== headerToken || !verifyCsrfToken(cookieToken)) {
+                console.warn('CSRF token validation failed', {
+                    path: request.nextUrl.pathname
+                });
+                return new NextResponse(
+                    JSON.stringify({ error: 'CSRF token invalid' }),
+                    {
+                        status: 403,
+                        headers: { 'Content-Type': 'application/json' }
+                    }
+                );
+            }
+        }
+    }
+
+    // --- CSRF TOKEN GENERATION (For authenticated page requests) ---
+    // Generate new CSRF token on page loads (not API, not static files)
+    if (!request.nextUrl.pathname.startsWith('/api') && !isSystemRoute && user) {
+        const existingToken = request.cookies.get(CSRF_COOKIE_NAME)?.value;
+
+        // Only generate if no valid token exists
+        if (!existingToken || !verifyCsrfToken(existingToken)) {
+            const csrfToken = generateCsrfToken();
+            response.cookies.set(CSRF_COOKIE_NAME, csrfToken, {
+                httpOnly: false, // Must be readable by JavaScript
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'strict',
+                path: '/',
+                maxAge: 60 * 60 * 24, // 24 hours
+            });
         }
     }
 

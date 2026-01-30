@@ -22,6 +22,8 @@ export async function POST(req: Request) {
 
         const { transactionId, amount, paymentMethod, paymentChannel, customerName } = validation.data;
 
+        console.log('Creating Payment:', { transactionId, amount, paymentMethod, paymentChannel });
+
 
         // 1. Verify Transaction exists
         const { data: transaction, error: fetchError } = await supabaseAdmin

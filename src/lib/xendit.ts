@@ -28,7 +28,7 @@ export const XenditService = {
         is_single_use?: boolean;
         expiration_date?: Date;
     }) => {
-        const response = await xenditClient.post('/callback_virtual_accounts', {
+        const payload = {
             external_id: data.external_id,
             bank_code: data.bank_code,
             name: data.name,
@@ -36,7 +36,10 @@ export const XenditService = {
             is_closed: data.is_closed ?? true,
             is_single_use: data.is_single_use ?? true,
             expiration_date: data.expiration_date?.toISOString(),
-        });
+        };
+        console.log('Xendit VA Payload:', JSON.stringify(payload, null, 2));
+
+        const response = await xenditClient.post('/callback_virtual_accounts', payload);
         return response.data;
     },
 

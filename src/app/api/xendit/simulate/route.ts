@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
                 console.log("VA Existence Check:", vaCheck ? "Found" : "Not Found", vaCheck);
             } catch (checkErr: any) {
                 console.error("VA Existence Check Failed:", checkErr.response?.data || checkErr.message);
-                // If 404 here, then the VA truly doesn't exist
+                // Continue anyway to see if simulate works (some APIs differ)
             }
 
             const xenditData = await XenditService.simulateVA(external_id, amount);

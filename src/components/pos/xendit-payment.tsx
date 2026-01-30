@@ -236,7 +236,7 @@ export const XenditPayment: React.FC<XenditPaymentProps> = ({
                                         toast.info('Simulating payment...');
                                         const res = await fetch('/api/xendit/simulate', {
                                             method: 'POST',
-                                            headers: { 'Content-Type': 'application/json' },
+                                            headers: getCsrfHeaders({ 'Content-Type': 'application/json' }),
                                             body: JSON.stringify({
                                                 external_id: paymentData.external_id,
                                                 amount: amount

@@ -296,11 +296,20 @@ export function VenueOnboarding() {
                                                 ${baseStyle}
                                             `}
                                         >
-                                            <div className="flex items-start gap-4">
-                                                <div className="bg-white border-2 border-black p-3 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex-shrink-0">
-                                                    {planIcons[planKey]}
+                                            <div className="flex flex-col sm:flex-row items-start gap-4">
+                                                {/* Icon & Mobile Checkbox Row */}
+                                                <div className="w-full sm:w-auto flex justify-between items-start">
+                                                    <div className="bg-white border-2 border-black p-3 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex-shrink-0">
+                                                        {planIcons[planKey]}
+                                                    </div>
+
+                                                    {/* Mobile Checkbox */}
+                                                    <div className={`sm:hidden w-8 h-8 border-2 border-black flex items-center justify-center transition-colors ${isSelected ? 'bg-black text-white' : 'bg-white'}`}>
+                                                        {isSelected && <Check className="w-6 h-6" />}
+                                                    </div>
                                                 </div>
-                                                <div className="flex-1">
+
+                                                <div className="flex-1 w-full">
                                                     <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-2">
                                                         <h4 className="font-black text-2xl uppercase italic tracking-tight">{planConfig.displayName}</h4>
                                                         <span className="font-black text-xl">
@@ -326,8 +335,8 @@ export function VenueOnboarding() {
                                                     </div>
                                                 </div>
 
-                                                {/* Selection Checkbox Visual */}
-                                                <div className={`w-8 h-8 border-2 border-black flex items-center justify-center transition-colors ${isSelected ? 'bg-black text-white' : 'bg-white'}`}>
+                                                {/* Desktop Checkbox */}
+                                                <div className={`hidden sm:flex w-8 h-8 border-2 border-black items-center justify-center transition-colors flex-shrink-0 ${isSelected ? 'bg-black text-white' : 'bg-white'}`}>
                                                     {isSelected && <Check className="w-6 h-6" />}
                                                 </div>
                                             </div>

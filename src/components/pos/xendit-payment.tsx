@@ -221,9 +221,9 @@ export const XenditPayment: React.FC<XenditPaymentProps> = ({
                         {method === 'VA' && paymentData.xendit_virtual_account_number && (
                             <div className="w-full bg-white p-6 rounded-xl shadow-lg border-2 border-black text-center">
                                 <div className="text-xs font-bold text-gray-500 uppercase mb-1">Nomor Virtual Account ({channel})</div>
-                                <div className="text-2xl font-black mb-4 tracking-wider flex items-center justify-center gap-2">
+                                <div className="text-xl sm:text-2xl font-black mb-4 tracking-wide flex flex-wrap items-center justify-center gap-2 break-all">
                                     {paymentData.xendit_virtual_account_number}
-                                    <button onClick={() => copyToClipboard(paymentData.xendit_virtual_account_number)}>
+                                    <button onClick={() => copyToClipboard(paymentData.xendit_virtual_account_number)} className="shrink-0">
                                         <Copy className="w-4 h-4 text-gray-400 hover:text-black" />
                                     </button>
                                 </div>

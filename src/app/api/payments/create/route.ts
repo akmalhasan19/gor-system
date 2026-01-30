@@ -104,7 +104,13 @@ export async function POST(req: Request) {
         return NextResponse.json({ success: true, data: paymentData });
 
     } catch (e: any) {
-        console.error('Payment API Error:', e);
+        // Detailed Error Logging
+        if (e.response?.data) {
+            console.error('Xendit/API Error Response:', JSON.stringify(e.response.data, null, 2));
+        } else {
+            console.error('Payment API Error (No response data):', e);
+        }
+
         const msg = e.response?.data?.message || e.message || 'Internal Server Error';
         return NextResponse.json({ error: msg }, { status: 500 });
     }

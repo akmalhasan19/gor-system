@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { NeoButton } from '@/components/ui/neo-button';
 import { NeoInput } from '@/components/ui/neo-input';
-import { Building2, MapPin, Phone, Grid3x3, Clock, Check, ArrowRight, ArrowLeft, Sparkles, LogOut, Crown, Zap, AlertTriangle } from 'lucide-react';
+import { Building2, MapPin, Phone, Grid3x3, Clock, Check, ArrowRight, ArrowLeft, Sparkles, LogOut, Crown, Zap, AlertTriangle, Rocket, Trophy, Gem } from 'lucide-react';
 import { useVenue } from '@/lib/venue-context';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
@@ -134,9 +134,15 @@ export function VenueOnboarding() {
     };
 
     const planIcons: Record<SubscriptionPlan, React.ReactNode> = {
-        STARTER: <Zap className="w-6 h-6 text-gray-500" />,
-        PRO: <Crown className="w-6 h-6 text-amber-500" />,
-        BUSINESS: <Sparkles className="w-6 h-6 text-purple-500" />,
+        STARTER: <Rocket className="w-8 h-8 text-black" />,
+        PRO: <Trophy className="w-8 h-8 text-black" />,
+        BUSINESS: <Gem className="w-8 h-8 text-black" />,
+    };
+
+    const planStyles: Record<SubscriptionPlan, string> = {
+        STARTER: 'bg-white hover:bg-gray-50',
+        PRO: 'bg-brand-orange hover:bg-orange-400',
+        BUSINESS: 'bg-brand-lime hover:bg-lime-400', // Using Brand Lime as it's a primary brand color
     };
 
     return (
@@ -271,39 +277,59 @@ export function VenueOnboarding() {
                                 <p className="text-sm text-gray-600">Pilih paket yang sesuai dengan kebutuhan GOR Anda, atau lewati untuk menggunakan paket Starter.</p>
                             </div>
 
-                            <div className="grid gap-4">
+                            <div className="grid gap-6">
                                 {(['STARTER', 'PRO', 'BUSINESS'] as SubscriptionPlan[]).map((planKey) => {
                                     const planConfig = PLAN_FEATURES[planKey];
                                     const isSelected = data.subscriptionPlan === planKey && !skipSubscription;
+                                    const baseStyle = planStyles[planKey];
 
                                     return (
                                         <button
                                             key={planKey}
                                             type="button"
                                             onClick={() => handleSelectPlan(planKey)}
-                                            className={`relative border-2 rounded-xl p-4 text-left transition-all ${isSelected
-                                                ? 'border-brand-orange bg-brand-orange/10'
-                                                : 'border-gray-200 hover:border-gray-400'
-                                                }`}
+                                            className={`relative border-[3px] border-black rounded-xl p-6 text-left transition-all group
+                                                ${isSelected
+                                                    ? 'translate-x-[-4px] translate-y-[-4px] shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] ring-2 ring-black ring-offset-4'
+                                                    : 'shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]'
+                                                }
+                                                ${baseStyle}
+                                            `}
                                         >
-                                            <div className="flex items-center gap-3">
-                                                {planIcons[planKey]}
-                                                <div className="flex-1">
-                                                    <div className="flex items-center justify-between">
-                                                        <h4 className="font-black text-lg">{planConfig.displayName}</h4>
-                                                        <span className="font-black text-lg">Rp {planConfig.priceMonthly.toLocaleString('id-ID')}<span className="text-sm font-normal text-gray-500">/bln</span></span>
-                                                    </div>
-                                                    <p className="text-sm text-gray-600">{planConfig.description}</p>
-                                                    <p className="text-xs text-gray-500 mt-1">
-                                                        Maks. {planConfig.maxCourts === 999 ? 'Unlimited' : planConfig.maxCourts} Lapangan
-                                                        {planConfig.features.length > 0 && ` • ${planConfig.features.slice(0, 3).join(', ')}`}
-                                                    </p>
+                                            <div className="flex items-start gap-4">
+                                                <div className="bg-white border-2 border-black p-3 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex-shrink-0">
+                                                    {planIcons[planKey]}
                                                 </div>
-                                                {isSelected && (
-                                                    <div className="absolute top-2 right-2 bg-brand-orange text-black text-xs font-bold px-2 py-0.5 rounded">
-                                                        Dipilih
+                                                <div className="flex-1">
+                                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-2">
+                                                        <h4 className="font-black text-2xl uppercase italic tracking-tight">{planConfig.displayName}</h4>
+                                                        <span className="font-black text-xl">
+                                                            Rp {planConfig.priceMonthly.toLocaleString('id-ID')}
+                                                            <span className="text-sm font-bold text-black/60 ml-1">/bln</span>
+                                                        </span>
                                                     </div>
-                                                )}
+                                                    <p className="text-sm font-bold text-black/80 mb-3 leading-relaxed border-b-2 border-black/10 pb-3">
+                                                        {planConfig.description}
+                                                    </p>
+
+                                                    <div className="space-y-1">
+                                                        <div className="flex items-center gap-2 text-xs font-bold uppercase">
+                                                            <div className="w-1.5 h-1.5 bg-black rounded-full" />
+                                                            Maks. {planConfig.maxCourts === 999 ? 'Unlimited' : planConfig.maxCourts} Lapangan
+                                                        </div>
+                                                        {planConfig.features.map((feature, idx) => (
+                                                            <div key={idx} className="flex items-center gap-2 text-xs font-bold uppercase">
+                                                                <div className="w-1.5 h-1.5 bg-black rounded-full" />
+                                                                {feature}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+
+                                                {/* Selection Checkbox Visual */}
+                                                <div className={`w-8 h-8 border-2 border-black flex items-center justify-center transition-colors ${isSelected ? 'bg-black text-white' : 'bg-white'}`}>
+                                                    {isSelected && <Check className="w-6 h-6" />}
+                                                </div>
                                             </div>
                                         </button>
                                     );

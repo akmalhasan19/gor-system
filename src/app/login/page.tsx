@@ -322,13 +322,16 @@ export default function LoginPage() {
                             />
                         </div>
 
-                        <div className="bg-blue-50 border-2 border-blue-300 p-3 text-xs">
-                            <p className="font-bold flex items-center gap-1">
-                                <Shield className="w-4 h-4" /> Verifikasi Wajib
-                            </p>
-                            <p className="text-gray-600 mt-1">
-                                Setelah ini, Anda perlu memverifikasi nomor HP menggunakan aplikasi authenticator (Google Authenticator/Authy).
-                            </p>
+                        <div className="bg-brand-orange border-[3px] border-black p-4 rounded-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-start gap-4 transform rotate-1 hover:rotate-0 transition-transform">
+                            <div className="bg-white border-2 border-black p-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex-shrink-0">
+                                <Shield className="w-5 h-5 text-black" />
+                            </div>
+                            <div>
+                                <h3 className="font-black text-sm uppercase mb-1">Verifikasi Wajib</h3>
+                                <p className="text-xs font-medium leading-relaxed">
+                                    Setelah ini, Anda perlu memverifikasi nomor HP menggunakan aplikasi authenticator demi keamanan akun.
+                                </p>
+                            </div>
                         </div>
 
                         <div className="mt-2 flex flex-col gap-4">

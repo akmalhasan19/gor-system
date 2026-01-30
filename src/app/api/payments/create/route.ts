@@ -54,6 +54,7 @@ export async function POST(req: Request) {
             });
 
             paymentData = {
+                external_id: externalId,
                 xendit_id: xenditResponse.id,
                 xendit_virtual_account_number: xenditResponse.account_number,
                 xendit_expiry_date: xenditResponse.expiration_date,
@@ -70,6 +71,7 @@ export async function POST(req: Request) {
             });
 
             paymentData = {
+                external_id: externalId,
                 xendit_id: xenditResponse.id,
                 xendit_qr_string: xenditResponse.qr_string,
                 xendit_expiry_date: xenditResponse.expires_at,

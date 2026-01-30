@@ -66,7 +66,9 @@ export const XenditPayment: React.FC<XenditPaymentProps> = ({
                     }
                 }
             )
-            .subscribe();
+            .subscribe((status) => {
+                console.log(`Realtime Subscription Status for ${paymentData.xendit_id}:`, status);
+            });
 
         return () => {
             supabase.removeChannel(channel);

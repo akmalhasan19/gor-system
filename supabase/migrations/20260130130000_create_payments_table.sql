@@ -21,14 +21,33 @@ CREATE TABLE IF NOT EXISTS payments (
 ALTER TABLE payments ENABLE ROW LEVEL SECURITY;
 
 -- Create policy for authenticated users (or admins)
-CREATE POLICY "Enable read access for authenticated users" ON payments
-    FOR SELECT USING (auth.role() = 'authenticated');
+-- Create policy for authenticated users (or admins)
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies 
+        WHERE tablename = 'payments' AND policyname = 'Enable read access for authenticated users'
+    ) THEN
+        CREATE POLICY "Enable read access for authenticated users" ON payments
+            FOR SELECT USING (auth.role() = 'authenticated');
+    END IF;
 
-CREATE POLICY "Enable insert for authenticated users" ON payments
-    FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies 
+        WHERE tablename = 'payments' AND policyname = 'Enable insert for authenticated users'
+    ) THEN
+        CREATE POLICY "Enable insert for authenticated users" ON payments
+            FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+    END IF;
 
-CREATE POLICY "Enable update for authenticated users" ON payments
-    FOR UPDATE USING (auth.role() = 'authenticated');
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies 
+        WHERE tablename = 'payments' AND policyname = 'Enable update for authenticated users'
+    ) THEN
+        CREATE POLICY "Enable update for authenticated users" ON payments
+            FOR UPDATE USING (auth.role() = 'authenticated');
+    END IF;
+END $$;
 
 -- Create indexes
 CREATE INDEX IF NOT EXISTS idx_payments_transaction_id ON payments(transaction_id);

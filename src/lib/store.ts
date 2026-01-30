@@ -526,6 +526,9 @@ export const useAppStore = create<AppState>((set, get) => ({
             // Refresh bookings and products to reflect updated status/stock
             get().syncBookings(venueId);
             get().syncProducts(venueId);
+
+            // Return the transaction
+            return newTransaction;
         } catch (error: any) {
             // Check if it's a network error
             const isNetworkError =
@@ -568,7 +571,19 @@ export const useAppStore = create<AppState>((set, get) => ({
                         duration: 5000,
                     });
 
-                    return; // Don't throw error
+                    // Return a placeholder transaction for the queued item
+                    const placeholderTransaction: Transaction = {
+                        id: queuedTransaction.id,
+                        date: new Date().toISOString(),
+                        items,
+                        totalAmount: items.reduce((sum, i) => sum + i.price * i.quantity, 0),
+                        paidAmount,
+                        changeAmount: 0,
+                        paymentMethod,
+                        status: 'PENDING',
+                        cashierName: 'System'
+                    };
+                    return placeholderTransaction;
                 } else {
                     // Background Sync not supported
                     set({ error: 'Transaksi gagal. Background Sync tidak didukung di browser ini. Silakan coba lagi saat online.', isLoading: false });

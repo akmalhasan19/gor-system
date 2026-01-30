@@ -32,7 +32,8 @@ export async function createTransaction(
         type: item.type,
         name: item.name,
         quantity: item.quantity,
-        price: item.price, // Map to price column, NOT price_at_moment if schema differs, but let's check schema again. Schema has price.
+        price_at_moment: item.price,
+        price: item.price,
         subtotal: item.price * item.quantity,
     }));
 

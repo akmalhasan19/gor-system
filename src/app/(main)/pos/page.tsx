@@ -53,7 +53,7 @@ export default function POSPage() {
 
     return (
         <div className="flex-1 flex flex-col md:flex-row h-full overflow-hidden relative">
-            <div className={`flex-1 overflow-y-auto bg-gray-50 border-r-0 md:border-r-2 border-gray-200 transition-all duration-300 ${isCartOpen ? 'md:blur-[1px] md:pointer-events-none md:select-none' : ''}`}>
+            <div className={`flex-1 overflow-y-auto bg-grid-brown border-r-0 md:border-r-2 border-gray-200 transition-all duration-300 ${isCartOpen ? 'md:blur-[1px] md:pointer-events-none md:select-none' : ''}`}>
                 <div className="p-4">
                     <div className="flex justify-between items-center mb-4">
                         <h1 className="text-2xl font-display font-black uppercase italic">Kantin & Shop</h1>

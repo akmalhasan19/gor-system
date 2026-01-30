@@ -28,12 +28,11 @@ export async function createTransaction(
     // Insert transaction items
     const itemsToInsert = items.map(item => ({
         transaction_id: transactionData.id,
-        product_id: item.type === 'PRODUCT' ? item.referenceId : null,
-        booking_id: item.type === 'BOOKING' ? item.referenceId : null,
+        reference_id: item.referenceId || null,
         type: item.type,
         name: item.name,
         quantity: item.quantity,
-        price_at_moment: item.price,
+        price: item.price, // Map to price column, NOT price_at_moment if schema differs, but let's check schema again. Schema has price.
         subtotal: item.price * item.quantity,
     }));
 
@@ -107,9 +106,9 @@ export async function getTransactions(venueId: string, limit: number = 50): Prom
             id: item.id,
             type: item.type,
             name: item.name,
-            price: Number(item.price_at_moment) || 0, // Supabase DECIMAL returns string
+            price: Number(item.price) || 0,
             quantity: Number(item.quantity) || 0,
-            referenceId: item.product_id || item.booking_id,
+            referenceId: item.reference_id,
         })),
         totalAmount: Number(row.total_amount) || 0, // Supabase DECIMAL returns string
         paidAmount: Number(row.paid_amount) || 0,   // Supabase DECIMAL returns string
@@ -143,9 +142,9 @@ export async function getTransactionsRange(venueId: string, startDate: string, e
             id: item.id,
             type: item.type,
             name: item.name,
-            price: Number(item.price_at_moment) || 0, // Supabase DECIMAL returns string
+            price: Number(item.price) || 0,
             quantity: Number(item.quantity) || 0,
-            referenceId: item.product_id || item.booking_id,
+            referenceId: item.reference_id,
         })),
         totalAmount: Number(row.total_amount) || 0, // Supabase DECIMAL returns string
         paidAmount: Number(row.paid_amount) || 0,   // Supabase DECIMAL returns string

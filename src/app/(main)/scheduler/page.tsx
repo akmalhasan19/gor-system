@@ -189,6 +189,7 @@ export default function SchedulerPage() {
                 onDelete={handleDeleteBooking}
                 initialData={bookingInitialData}
                 existingBooking={selectedBooking}
+                selectedDate={selectedDate}
             />
         </div>
     );

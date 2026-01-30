@@ -42,7 +42,7 @@ export const DashboardView = () => {
 
                 <div className="bg-white border-2 border-black p-4 shadow-neo flex items-center justify-between">
                     <div>
-                        <div className="text-sm font-bold text-gray-500 uppercase">Pendapatan</div>
+                        <div className="text-sm font-bold text-gray-500 uppercase">Pendapatan Hari Ini</div>
                         <div className="text-3xl font-black">Rp {totalRevenue.toLocaleString()}</div>
                     </div>
                     <div className="bg-brand-green text-white p-3 border-2 border-black rounded-full">

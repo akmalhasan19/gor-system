@@ -68,7 +68,7 @@ export async function getBookingsRange(venueId: string, startDate: string, endDa
     }));
 }
 
-export async function createBooking(venueId: string, booking: Omit<Booking, 'id' | 'bookingDate'>): Promise<Booking> {
+export async function createBooking(venueId: string, booking: Omit<Booking, 'id'>): Promise<Booking> {
     // First, convert courtId (could be a number like "1") to actual court UUID
     let courtUuid = booking.courtId;
 
@@ -91,25 +91,32 @@ export async function createBooking(venueId: string, booking: Omit<Booking, 'id'
         courtUuid = court.id;
     }
 
+    const payload = {
+        venue_id: venueId,
+        court_id: courtUuid,
+        customer_name: booking.customerName,
+        phone: booking.phone,
+        start_time: booking.startTime,
+        duration: booking.duration,
+        price: booking.price,
+        paid_amount: booking.paidAmount || 0,
+        status: booking.status,
+        // Use passed bookingDate
+        booking_date: booking.bookingDate,
+    };
+
+    console.log('Sending Booking Payload:', payload);
+
     const { data, error } = await supabase
         .from('bookings')
-        .insert({
-            venue_id: venueId,
-            court_id: courtUuid,
-            customer_name: booking.customerName,
-            phone: booking.phone,
-            start_time: booking.startTime,
-            duration: booking.duration,
-            price: booking.price,
-            paid_amount: booking.paidAmount || 0,
-            status: booking.status,
-            // Use local date for creation too
-            booking_date: new Date().toLocaleDateString('en-CA'),
-        })
+        .insert(payload)
         .select()
         .single();
 
-    if (error) throw error;
+    if (error) {
+        console.error('Supabase Create Booking Error:', error);
+        throw error;
+    }
 
     return {
         id: data.id,

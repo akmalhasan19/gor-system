@@ -139,8 +139,8 @@ export const MemberModal: React.FC<MemberModalProps> = ({ isOpen, onClose, initi
     const isFilePreview = photoPreview?.startsWith('blob:') || false;
 
     return (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-            <div className="bg-white border-2 border-black shadow-neo w-full max-w-md flex flex-col max-h-[90vh]">
+        <div className="fixed inset-0 bg-black/50 z-[9999] flex items-center justify-center p-4">
+            <div className="bg-white border-2 border-black shadow-neo w-full max-w-md flex flex-col max-h-[80vh]">
                 <div className="bg-black text-white p-3 flex justify-between items-center border-b-2 border-black">
                     <h2 className="font-black text-sm uppercase">
                         {initialData ? "Edit Pelanggan" : "Tambah Pelanggan"}
@@ -158,7 +158,7 @@ export const MemberModal: React.FC<MemberModalProps> = ({ isOpen, onClose, initi
                                     alt="Preview"
                                     fill
                                     className="object-cover"
-                                    unoptimized={isFilePreview}
+                                    unoptimized={true}
                                 />
                             ) : (
                                 <Camera size={32} className="text-gray-400" />

@@ -21,9 +21,10 @@ interface BookingModalProps {
     onDelete?: (id: string) => void;
     initialData: { courtId: string; time: number } | null;
     existingBooking?: Booking | null;
+    selectedDate?: string;
 }
 
-export const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, onSave, onDelete, initialData, existingBooking }) => {
+export const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, onSave, onDelete, initialData, existingBooking, selectedDate }) => {
     const { customers, updateCustomer, courts, checkIn } = useAppStore();
     const { currentVenueId, currentVenue } = useVenue();
     const { hasPermission } = useUserRole();
@@ -155,7 +156,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, onS
         // For simplicity, we trust parent to pass initialData matching existingBooking if editing
         const courtId = selectedCourtId;
         const startTimeStr = `${selectedTime.toString().padStart(2, '0')}:00:00`;
-        const bookingDate = existingBooking ? existingBooking.bookingDate : new Date().toISOString().split('T')[0];
+        const bookingDate = existingBooking ? existingBooking.bookingDate : (selectedDate || new Date().toLocaleDateString('en-CA'));
 
         // ... logic for baseBooking ...
         // We need to reconstruct baseBooking carefully
@@ -238,9 +239,9 @@ export const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, onS
 
     return (
         <>
-            <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+            <div className="fixed inset-0 bg-black/50 z-[9999] flex items-center justify-center p-4">
                 {/* ... existing modal content ... */}
-                <div className="bg-white border-2 border-black shadow-neo w-full max-w-sm flex flex-col max-h-[90vh]">
+                <div className="bg-white border-2 border-black shadow-neo w-full max-w-sm flex flex-col max-h-[80vh]">
                     <div className="bg-black text-white p-3 flex justify-between items-center border-b-2 border-black">
                         <h2 className="font-black text-sm uppercase">
                             {existingBooking ? 'Edit Booking' : `Booking Lapangan`}

@@ -86,8 +86,7 @@ export function BillingSettings() {
             </div>
 
             {/* Plan Selection */}
-            <h3 className="text-xl font-black uppercase mb-4">Pilih Paket</h3>
-            <h3 className="text-xl font-black uppercase mb-4">Pilih Paket</h3>
+            <h3 className="text-xl font-black uppercase mb-4 mt-8">Pilih Paket</h3>
             <div className="flex flex-col gap-6">
                 {(Object.keys(PLAN_FEATURES) as SubscriptionPlan[]).map((planKey) => {
                     const planConfig = PLAN_FEATURES[planKey];

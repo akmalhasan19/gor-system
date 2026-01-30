@@ -5,7 +5,7 @@ import { MemberList } from "@/components/members/member-list";
 
 export default function MembersPage() {
     return (
-        <div className="flex-1 p-0 overflow-y-auto">
+        <div className="flex-1 p-0 overflow-y-auto bg-grid-brown">
             <MemberList />
         </div>
     );

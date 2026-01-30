@@ -20,5 +20,9 @@ const ReportsView = dynamic(
 );
 
 export default function ReportsPage() {
-    return <ReportsView />;
+    return (
+        <div className="flex-1 overflow-y-auto h-full bg-grid-brown">
+            <ReportsView />
+        </div>
+    );
 }

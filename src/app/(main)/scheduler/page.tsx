@@ -127,7 +127,7 @@ export default function SchedulerPage() {
     };
 
     return (
-        <div className="flex-1 p-4 overflow-y-auto">
+        <div className="flex-1 p-4 overflow-y-auto bg-grid-brown">
             <div className="mb-4 flex justify-between items-center">
                 <h1 className="text-lg font-display font-black uppercase italic">Jadwal Lapangan</h1>
                 <div className="flex gap-2">

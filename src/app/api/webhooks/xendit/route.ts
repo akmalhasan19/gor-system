@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { validateRequestBody, XenditWebhookSchema } from '@/lib/validation';
+import { verifyXenditWebhook } from '@/lib/xendit-webhook-validator';
 
 const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -14,19 +14,52 @@ const supabaseAdmin = createClient(
 
 export async function POST(req: Request) {
     try {
+        // Get raw body for signature verification (must be done before JSON parsing)
+        const rawBody = await req.text();
+
+        // Get signature headers
+        const callbackSignature = req.headers.get('x-callback-signature');
         const callbackToken = req.headers.get('x-callback-token');
+        const webhookSecret = process.env.XENDIT_WEBHOOK_SECRET;
         const validToken = process.env.XENDIT_CALLBACK_TOKEN;
 
-        if (validToken && callbackToken !== validToken) {
-            console.warn('Invalid Xendit Callback Token');
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        // Try HMAC signature verification first (more secure)
+        if (webhookSecret) {
+            // Parse body to get timestamp for replay attack prevention
+            let body: any;
+            try {
+                body = JSON.parse(rawBody);
+            } catch {
+                return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+            }
+
+            const verification = verifyXenditWebhook(
+                rawBody,
+                callbackSignature,
+                webhookSecret,
+                body.created || body.updated // Use available timestamp
+            );
+
+            if (!verification.valid) {
+                console.warn('Xendit webhook verification failed:', verification.error);
+                return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+            }
+        } else if (validToken) {
+            // Fallback to token validation if signature not configured
+            if (callbackToken !== validToken) {
+                console.warn('Invalid Xendit Callback Token');
+                return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+            }
         }
 
-        // Validate webhook body with Zod schema
-        const validation = await validateRequestBody(req, XenditWebhookSchema);
-        if (!validation.success) return validation.error;
+        // Parse the body (already parsed above if signature verification was used)
+        let body: any;
+        try {
+            body = JSON.parse(rawBody);
+        } catch {
+            return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+        }
 
-        const body = validation.data;
         console.log('Xendit Webhook:', JSON.stringify(body, null, 2));
 
         const externalId = body.external_id;

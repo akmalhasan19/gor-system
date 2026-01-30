@@ -18,6 +18,25 @@ declare const self: WorkerGlobalScope & typeof globalThis;
 const sw = self as any;
 
 /**
+ * Security: Sensitive routes that should NEVER be cached
+ * These routes handle payments, auth, and other sensitive data
+ */
+const SENSITIVE_ROUTES = [
+    '/api/payments',
+    '/api/auth',
+    '/api/onboarding',
+    '/api/webhooks',
+    '/api/phone-verification',
+    '/api/admin',
+];
+
+/**
+ * NetworkOnly strategy for sensitive endpoints
+ * Ensures sensitive data is always fetched fresh from network
+ */
+const sensitiveRoutesHandler = new NetworkOnly();
+
+/**
  * Custom caching strategies for Supabase integration
  * - Storage assets: CacheFirst (images rarely change, reduce bandwidth)
  */
@@ -52,6 +71,11 @@ const serwist = new Serwist({
     clientsClaim: true,
     navigationPreload: true,
     runtimeCaching: [
+        // SECURITY: Never cache sensitive API endpoints (must be first!)
+        {
+            matcher: ({ url }) => SENSITIVE_ROUTES.some(route => url.pathname.startsWith(route)),
+            handler: sensitiveRoutesHandler,
+        },
         ...defaultCache,
         // Cache Supabase Storage assets (images, files)
         {
@@ -231,6 +255,25 @@ self.addEventListener('message', (event: any) => {
             .catch((error) => {
                 event.ports[0]?.postMessage({ success: false, error: error.message });
             });
+    }
+
+    // SECURITY: Clear all caches on logout to prevent sensitive data persistence
+    if (event.data.type === 'LOGOUT') {
+        console.log('[ServiceWorker] Logout received - clearing all caches');
+        caches.keys().then(cacheNames => {
+            Promise.all(
+                cacheNames.map(cacheName => {
+                    console.log(`[ServiceWorker] Deleting cache: ${cacheName}`);
+                    return caches.delete(cacheName);
+                })
+            ).then(() => {
+                console.log('[ServiceWorker] All caches cleared');
+                event.ports[0]?.postMessage({ success: true });
+            });
+        }).catch((error) => {
+            console.error('[ServiceWorker] Failed to clear caches:', error);
+            event.ports[0]?.postMessage({ success: false, error: error.message });
+        });
     }
 });
 

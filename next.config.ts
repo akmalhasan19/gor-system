@@ -5,6 +5,24 @@ const withBundleAnalyzer = require('@next/bundle-analyzer')({
   enabled: process.env.ANALYZE === 'true',
 });
 
+// Content Security Policy - Tightened per SECURITY_AUDIT.md recommendations
+// - Remove 'unsafe-eval' in production to prevent eval() attacks
+// - Add frame-ancestors, base-uri, form-action for additional protection
+const isDev = process.env.NODE_ENV === 'development';
+
+const cspDirectives = [
+  "default-src 'self'",
+  // Allow 'unsafe-eval' only in development for hot reload/debugging
+  `script-src 'self' ${isDev ? "'unsafe-eval'" : ""} 'unsafe-inline'`,
+  "style-src 'self' 'unsafe-inline'",
+  `img-src 'self' blob: data: https: ${isDev ? 'http://127.0.0.1:54321' : ''}`,
+  "font-src 'self' data:",
+  `connect-src 'self' https://haknornfainyyfrnzyxp.supabase.co wss://haknornfainyyfrnzyxp.supabase.co ${isDev ? 'http://127.0.0.1:54321 ws://127.0.0.1:54321' : ''}`,
+  "frame-ancestors 'none'",  // Prevent clickjacking
+  "base-uri 'self'",         // Prevent <base> tag injection
+  "form-action 'self'",      // Restrict form submissions to same origin
+].join('; ');
+
 const nextConfig: NextConfig = {
   /* config options here */
   // Empty turbopack config to silence migration warning
@@ -60,7 +78,7 @@ const nextConfig: NextConfig = {
           },
           {
             key: 'Content-Security-Policy',
-            value: "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: https: http://127.0.0.1:54321; font-src 'self' data:; connect-src 'self' https: http://127.0.0.1:54321 ws://127.0.0.1:54321;"
+            value: cspDirectives
           }
         ]
       }

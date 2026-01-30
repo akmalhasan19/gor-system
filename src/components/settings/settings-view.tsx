@@ -5,7 +5,8 @@ import { CourtSettings } from "./court-settings";
 import { OperationalSettings } from "./operational-settings";
 import { MaintenanceSettings } from "./maintenance-settings";
 import { DepositSettings } from "./deposit-settings";
-import { Settings as SettingsIcon, LayoutGrid, Clock, Wrench, DollarSign } from "lucide-react";
+import { BillingSettings } from "./billing-settings";
+import { Settings as SettingsIcon, LayoutGrid, Clock, Wrench, DollarSign, CreditCard } from "lucide-react";
 
 import { ReminderSettingsForm } from "./reminder-settings-form";
 import { TeamManagement } from "./team-management";
@@ -13,7 +14,7 @@ import { useUserRole } from "@/hooks/use-role";
 import { Users } from "lucide-react";
 
 export const SettingsView = () => {
-    const [tab, setTab] = useState<'courts' | 'operational' | 'reminders' | 'maintenance' | 'finance' | 'team'>('operational');
+    const [tab, setTab] = useState<'courts' | 'operational' | 'reminders' | 'maintenance' | 'finance' | 'team' | 'billing'>('operational');
     const { role, hasPermission } = useUserRole();
 
     const canViewFinance = hasPermission('VIEW_FINANCE');
@@ -85,6 +86,19 @@ export const SettingsView = () => {
                     <Users size={16} />
                     Tim & Akses
                 </button>
+
+                {canViewFinance && (
+                    <button
+                        onClick={() => setTab('billing')}
+                        className={`px-4 py-2 font-black uppercase text-sm flex items-center gap-2 border-b-2 transition-all whitespace-nowrap ${tab === 'billing'
+                            ? 'border-black text-black'
+                            : 'border-transparent text-gray-400 hover:text-gray-600'
+                            }`}
+                    >
+                        <CreditCard size={16} />
+                        Langganan
+                    </button>
+                )}
             </div>
 
             <div className="mt-2 text-sm">
@@ -102,6 +116,7 @@ export const SettingsView = () => {
                 {tab === 'maintenance' && <MaintenanceSettings />}
                 {tab === 'finance' && canViewFinance && <DepositSettings />}
                 {tab === 'team' && <TeamManagement />}
+                {tab === 'billing' && canViewFinance && <BillingSettings />}
             </div>
         </div>
     );

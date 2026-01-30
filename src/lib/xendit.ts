@@ -69,5 +69,10 @@ export const XenditService = {
             amount: amount
         });
         return response.data;
+    },
+
+    getVA: async (externalId: string) => {
+        const response = await xenditClient.get(`/callback_virtual_accounts/${externalId}`);
+        return response.data;
     }
 };

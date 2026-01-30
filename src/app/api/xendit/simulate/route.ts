@@ -16,6 +16,15 @@ export async function POST(req: NextRequest) {
         console.log(`Simulating Payment for External ID: ${external_id}, Amount: ${amount}`);
 
         try {
+            // Debug: Check if VA exists first
+            try {
+                const vaCheck = await XenditService.getVA(external_id);
+                console.log("VA Existence Check:", vaCheck ? "Found" : "Not Found", vaCheck);
+            } catch (checkErr: any) {
+                console.error("VA Existence Check Failed:", checkErr.response?.data || checkErr.message);
+                // If 404 here, then the VA truly doesn't exist
+            }
+
             const xenditData = await XenditService.simulateVA(external_id, amount);
             console.log("Xendit Simulation Success:", xenditData);
 

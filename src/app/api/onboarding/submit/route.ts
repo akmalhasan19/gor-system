@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { createMultipleCourts } from '@/lib/api/courts';
+import { validateRequest, OnboardingSubmitSchema } from '@/lib/validation';
 
 export async function POST(request: NextRequest) {
     try {
@@ -48,8 +49,20 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Parse request body
-        const body = await request.json();
+        // Parse and validate request body with Zod
+        let body;
+        try {
+            body = await request.json();
+        } catch {
+            return NextResponse.json(
+                { success: false, error: 'Invalid JSON in request body' },
+                { status: 400 }
+            );
+        }
+
+        const validation = validateRequest(OnboardingSubmitSchema, body);
+        if (!validation.success) return validation.error;
+
         const {
             venueName,
             address,
@@ -57,32 +70,9 @@ export async function POST(request: NextRequest) {
             courtsCount,
             operatingHoursStart,
             operatingHoursEnd,
-            hourlyRatePerCourt = 50000,
-        } = body;
+            hourlyRatePerCourt,
+        } = validation.data;
 
-        // Validate required fields
-        if (!venueName || !courtsCount) {
-            return NextResponse.json(
-                { success: false, error: 'Missing required fields: venueName, courtsCount' },
-                { status: 400 }
-            );
-        }
-
-        // Validate court count range
-        if (courtsCount < 1 || courtsCount > 20) {
-            return NextResponse.json(
-                { success: false, error: 'Courts count must be between 1 and 20' },
-                { status: 400 }
-            );
-        }
-
-        // Validate operating hours
-        if (operatingHoursStart >= operatingHoursEnd) {
-            return NextResponse.json(
-                { success: false, error: 'Operating end time must be after start time' },
-                { status: 400 }
-            );
-        }
 
         // Create venue directly with authenticated client
         const { data: venueRow, error: venueError } = await supabase

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { disconnectFonnteDevice } from '@/lib/api/whatsapp-device';
+import { validateRequestBody, VenueIdSchema } from '@/lib/validation';
 
 const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -9,11 +10,11 @@ const supabaseAdmin = createClient(
 
 export async function POST(request: Request) {
     try {
-        const { venueId } = await request.json();
+        // Validate input with Zod schema
+        const validation = await validateRequestBody(request, VenueIdSchema);
+        if (!validation.success) return validation.error;
 
-        if (!venueId) {
-            return NextResponse.json({ error: 'Venue ID required' }, { status: 400 });
-        }
+        const { venueId } = validation.data;
 
         const { data: venue, error: venueError } = await supabaseAdmin
             .from('venues')

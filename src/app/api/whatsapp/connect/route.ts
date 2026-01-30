@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { createFonnteDevice, getFonnteQR } from '@/lib/api/whatsapp-device';
+import { validateRequestBody, VenueIdSchema } from '@/lib/validation';
 
 // Init Service Role Client for Admin operations
 const supabaseAdmin = createClient(
@@ -10,11 +11,11 @@ const supabaseAdmin = createClient(
 
 export async function POST(request: Request) {
     try {
-        const { venueId } = await request.json();
+        // Validate input with Zod schema
+        const validation = await validateRequestBody(request, VenueIdSchema);
+        if (!validation.success) return validation.error;
 
-        if (!venueId) {
-            return NextResponse.json({ error: 'Venue ID required' }, { status: 400 });
-        }
+        const { venueId } = validation.data;
 
         // Get Venue Info
         const { data: venue, error: venueError } = await supabaseAdmin

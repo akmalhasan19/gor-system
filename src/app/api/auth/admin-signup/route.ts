@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { validateRequest, AdminSignupSchema } from '@/lib/validation';
 
 // This route uses the service role key to bypass email confirmation
 // Only for admin registration during development
@@ -41,23 +42,21 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-        const body = await request.json();
-        const { email, password } = body;
-
-        if (!email || !password) {
+        // Parse and validate request body with Zod
+        let body;
+        try {
+            body = await request.json();
+        } catch {
             return NextResponse.json(
-                { success: false, error: 'Email and password are required' },
+                { success: false, error: 'Invalid JSON in request body' },
                 { status: 400 }
             );
         }
 
-        // Validate password strength
-        if (password.length < 8) {
-            return NextResponse.json(
-                { success: false, error: 'Password must be at least 8 characters' },
-                { status: 400 }
-            );
-        }
+        const validation = validateRequest(AdminSignupSchema, body);
+        if (!validation.success) return validation.error;
+
+        const { email, password } = validation.data;
 
         // Create Supabase Admin client with service role
         const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;

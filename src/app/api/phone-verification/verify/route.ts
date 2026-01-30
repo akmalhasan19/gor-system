@@ -2,26 +2,25 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { validateTOTPToken } from '@/lib/totp-utils';
+import { validateRequest, PhoneVerifyCodeSchema } from '@/lib/validation';
 
 export async function POST(request: NextRequest) {
     try {
-        const body = await request.json();
-        const { code, accountName } = body;
-
-        if (!code || !accountName) {
+        // Parse and validate request body with Zod
+        let body;
+        try {
+            body = await request.json();
+        } catch {
             return NextResponse.json(
-                { success: false, error: 'Code and account name are required' },
+                { success: false, error: 'Invalid JSON in request body' },
                 { status: 400 }
             );
         }
 
-        // Validate code format (6 digits)
-        if (!/^\d{6}$/.test(code)) {
-            return NextResponse.json(
-                { success: false, error: 'Invalid code format. Must be 6 digits.' },
-                { status: 400 }
-            );
-        }
+        const validation = validateRequest(PhoneVerifyCodeSchema, body);
+        if (!validation.success) return validation.error;
+
+        const { code, accountName } = validation.data;
 
         // Create Supabase client
         const cookieStore = await cookies();

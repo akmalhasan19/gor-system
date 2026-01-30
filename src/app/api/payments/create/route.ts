@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { XenditService } from '@/lib/xendit';
+import { validateRequestBody, CreatePaymentSchema } from '@/lib/validation';
 
 // Initialize Supabase Admin Client
 const supabaseAdmin = createClient(
@@ -15,12 +16,12 @@ const supabaseAdmin = createClient(
 
 export async function POST(req: Request) {
     try {
-        const body = await req.json();
-        const { transactionId, amount, paymentMethod, paymentChannel, customerName } = body;
+        // Validate input with Zod schema
+        const validation = await validateRequestBody(req, CreatePaymentSchema);
+        if (!validation.success) return validation.error;
 
-        if (!transactionId || !amount || !paymentMethod) {
-            return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
-        }
+        const { transactionId, amount, paymentMethod, paymentChannel, customerName } = validation.data;
+
 
         // 1. Verify Transaction exists
         const { data: transaction, error: fetchError } = await supabaseAdmin
@@ -42,7 +43,7 @@ export async function POST(req: Request) {
             // Virtual Account
             xenditResponse = await XenditService.createVA({
                 external_id: externalId,
-                bank_code: paymentChannel,
+                bank_code: paymentChannel || 'BCA',
                 name: customerName || 'PELANGGAN',
                 expected_amt: amount,
                 is_closed: true,

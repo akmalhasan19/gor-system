@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { validateRequestBody, XenditWebhookSchema } from '@/lib/validation';
 
 const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -21,7 +22,11 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const body = await req.json();
+        // Validate webhook body with Zod schema
+        const validation = await validateRequestBody(req, XenditWebhookSchema);
+        if (!validation.success) return validation.error;
+
+        const body = validation.data;
         console.log('Xendit Webhook:', JSON.stringify(body, null, 2));
 
         const externalId = body.external_id;

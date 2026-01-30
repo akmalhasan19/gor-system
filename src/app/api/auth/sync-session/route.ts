@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import { validateRequest, VenueIdSchema } from '@/lib/validation';
 
 export async function POST(request: NextRequest) {
     try {
@@ -24,12 +25,21 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
         }
 
-        const body = await request.json();
-        const { venueId } = body;
-
-        if (!venueId) {
-            return NextResponse.json({ success: false, error: 'Venue ID required' }, { status: 400 });
+        // Parse and validate request body with Zod
+        let body;
+        try {
+            body = await request.json();
+        } catch {
+            return NextResponse.json(
+                { success: false, error: 'Invalid JSON in request body' },
+                { status: 400 }
+            );
         }
+
+        const validation = validateRequest(VenueIdSchema, body);
+        if (!validation.success) return validation.error;
+
+        const { venueId } = validation.data;
 
         // Verify that the user actually belongs to this venue to prevent spoofing
         const { data: userVenue } = await supabase

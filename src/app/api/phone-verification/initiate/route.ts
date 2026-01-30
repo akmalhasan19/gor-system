@@ -8,18 +8,25 @@ import {
     isValidPhoneNumber,
     getTOTPUri
 } from '@/lib/totp-utils';
+import { validateRequest, PhoneVerifyInitiateSchema } from '@/lib/validation';
 
 export async function POST(request: NextRequest) {
     try {
-        const body = await request.json();
-        const { phoneNumber, accountName, countryCode = '+62' } = body;
-
-        if (!phoneNumber || !accountName) {
+        // Parse and validate request body with Zod
+        let body;
+        try {
+            body = await request.json();
+        } catch {
             return NextResponse.json(
-                { success: false, error: 'Phone number and account name are required' },
+                { success: false, error: 'Invalid JSON in request body' },
                 { status: 400 }
             );
         }
+
+        const validation = validateRequest(PhoneVerifyInitiateSchema, body);
+        if (!validation.success) return validation.error;
+
+        const { phoneNumber, accountName, countryCode } = validation.data;
 
         // Format and validate phone number
         const formattedPhone = formatPhoneNumber(phoneNumber, countryCode);

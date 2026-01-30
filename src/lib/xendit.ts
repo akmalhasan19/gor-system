@@ -33,6 +33,7 @@ export const XenditService = {
             bank_code: data.bank_code,
             name: data.name,
             expected_amt: data.expected_amt,
+            expected_amount: data.expected_amt, // Add duplicate key for API compatibility
             is_closed: data.is_closed ?? true,
             is_single_use: data.is_single_use ?? true,
             expiration_date: data.expiration_date?.toISOString(),

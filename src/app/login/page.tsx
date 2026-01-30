@@ -83,7 +83,8 @@ export default function LoginPage() {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'x-admin-secret-key': 'smash-dev-admin-2026' // Required for development
+                    // Use secret from environment variable, fallback to dev secret for local development
+                    'x-admin-secret-key': process.env.NEXT_PUBLIC_ADMIN_SIGNUP_SECRET || 'smash-dev-admin-2026'
                 },
                 body: JSON.stringify({ email, password }),
             });

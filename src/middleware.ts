@@ -36,6 +36,7 @@ export async function middleware(request: NextRequest) {
         request.nextUrl.pathname.startsWith('/api/public') ||
         request.nextUrl.pathname.startsWith('/api/phone-verification') ||
         request.nextUrl.pathname.startsWith('/api/onboarding') ||
+        request.nextUrl.pathname.startsWith('/api/webhooks') ||
         request.nextUrl.pathname.startsWith('/api/auth');
 
     const isSystemRoute =

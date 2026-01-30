@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { StockModal } from "@/components/pos/stock-modal";
 import { PendingTransactionsBadge } from "@/components/pos/pending-transactions-badge";
@@ -39,8 +39,17 @@ const CartSidebar = dynamic(
 export default function POSPage() {
     const [isCartOpen, setIsCartOpen] = useState(true);
     const [isStockModalOpen, setIsStockModalOpen] = useState(false);
+    const [stockModalMode, setStockModalMode] = useState<'EXISTING' | 'NEW'>('EXISTING');
     const [isPendingModalOpen, setIsPendingModalOpen] = useState(false);
     const { cart } = useAppStore();
+    const cartRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (isCartOpen && cartRef.current) {
+            // Scroll to the cart element smoothly
+            cartRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        }
+    }, [isCartOpen]);
 
     return (
         <div className="flex-1 flex flex-col md:flex-row h-full overflow-hidden relative">
@@ -63,7 +72,10 @@ export default function POSPage() {
                                 )}
                             </button>
                             <button
-                                onClick={() => setIsStockModalOpen(true)}
+                                onClick={() => {
+                                    setStockModalMode('EXISTING');
+                                    setIsStockModalOpen(true);
+                                }}
                                 className="flex items-center gap-1 text-xs font-bold uppercase bg-white border-2 border-black px-2 py-1 rounded-xl shadow-neo-sm hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all"
                             >
                                 <PackagePlus size={14} />
@@ -71,7 +83,10 @@ export default function POSPage() {
                             </button>
                         </div>
                     </div>
-                    <ProductList />
+                    <ProductList onAddProduct={() => {
+                        setStockModalMode('NEW');
+                        setIsStockModalOpen(true);
+                    }} />
                 </div>
             </div>
 
@@ -84,13 +99,15 @@ export default function POSPage() {
             )}
 
             {/* Sidebar: Overlay mode */}
-            <div className={`absolute z-40 bg-white border-black transition-transform duration-300 ease-in-out shadow-2xl
+            <div
+                ref={cartRef}
+                className={`absolute z-40 bg-white border-black transition-transform duration-300 ease-in-out shadow-2xl
                 ${isCartOpen
-                    ? "translate-y-0 translate-x-0"
-                    : "translate-y-full md:translate-y-0 md:translate-x-full"
-                }
-                bottom-0 left-0 w-full h-[40vh] border-t-[3px] rounded-t-3xl overflow-hidden
-                md:top-0 md:left-auto md:right-0 md:w-[300px] md:h-full md:border-t-0 md:border-l-2 md:rounded-none
+                        ? "translate-y-0 translate-x-0"
+                        : "translate-y-full md:translate-y-0 md:translate-x-full"
+                    }
+                bottom-0 left-0 w-full h-auto border-t-[3px] rounded-t-3xl overflow-hidden flex flex-col
+                md:top-0 md:left-auto md:right-0 md:w-[300px] md:h-full md:max-h-none md:border-t-0 md:border-l-2 md:rounded-none
             `}>
                 <CartSidebar onClose={() => setIsCartOpen(false)} />
             </div>
@@ -98,6 +115,7 @@ export default function POSPage() {
             <StockModal
                 isOpen={isStockModalOpen}
                 onClose={() => setIsStockModalOpen(false)}
+                initialMode={stockModalMode}
             />
 
             <PendingTransactionsModal

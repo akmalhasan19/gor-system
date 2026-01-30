@@ -59,7 +59,7 @@ interface AppState {
     clearCart: () => void;
 
     // Transaction actions
-    processTransaction: (venueId: string, items: CartItem[], paidAmount: number, paymentMethod: 'CASH' | 'QRIS' | 'TRANSFER') => Promise<void>;
+    processTransaction: (venueId: string, items: CartItem[], paidAmount: number, paymentMethod: 'CASH' | 'QRIS' | 'TRANSFER') => Promise<Transaction>;
     setTransactions: (transactions: Transaction[]) => void;
 
     // Product actions

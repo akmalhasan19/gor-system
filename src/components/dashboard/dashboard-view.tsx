@@ -24,7 +24,10 @@ export const DashboardView = () => {
         return tDate === activeDate;
     });
 
-    const totalRevenue = todayTransactions.reduce((sum, t) => sum + t.totalAmount, 0);
+    // Only count PAID transactions for revenue (consistent with Laporan)
+    const totalRevenue = todayTransactions
+        .filter(t => t.status === 'PAID')
+        .reduce((sum, t) => sum + t.totalAmount, 0);
 
     return (
         <div className="flex flex-col gap-6">

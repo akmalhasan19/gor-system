@@ -12,9 +12,10 @@ import { ImageCropper } from "@/components/ui/image-cropper";
 interface StockModalProps {
     isOpen: boolean;
     onClose: () => void;
+    initialMode?: 'EXISTING' | 'NEW';
 }
 
-export const StockModal: React.FC<StockModalProps> = ({ isOpen, onClose }) => {
+export const StockModal: React.FC<StockModalProps> = ({ isOpen, onClose, initialMode = 'EXISTING' }) => {
     const { products, updateProductStock, addProduct, removeProduct, currentVenueId } = useAppStore();
     const [mode, setMode] = useState<'EXISTING' | 'NEW'>('EXISTING');
 
@@ -41,6 +42,12 @@ export const StockModal: React.FC<StockModalProps> = ({ isOpen, onClose }) => {
     // Cropping State
     const [imageToCrop, setImageToCrop] = useState<string | null>(null);
 
+    React.useEffect(() => {
+        if (isOpen) {
+            setMode(initialMode);
+        }
+    }, [isOpen, initialMode]);
+
     if (!isOpen) return null;
 
     const resetForm = () => {
@@ -51,7 +58,7 @@ export const StockModal: React.FC<StockModalProps> = ({ isOpen, onClose }) => {
         setNewPrice("");
         setNewImageUrl("");
         setAmount("1");
-        setMode("EXISTING");
+        setMode(initialMode);
         setShowDeleteConfirm(false);
         setPhotoFile(null);
         setPhotoPreview(null);
@@ -241,7 +248,7 @@ export const StockModal: React.FC<StockModalProps> = ({ isOpen, onClose }) => {
                 />
             )}
 
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in">
+            <div className="fixed inset-0 z-[99] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in">
                 <div className="bg-white w-full max-w-sm border-2 border-black shadow-neo-lg relative flex flex-col max-h-[90vh] overflow-hidden">
 
                     {/* Delete Confirmation Overlay */}
@@ -359,6 +366,7 @@ export const StockModal: React.FC<StockModalProps> = ({ isOpen, onClose }) => {
                                                     alt="Preview"
                                                     fill
                                                     className="object-cover"
+                                                    unoptimized
                                                 />
                                             ) : (
                                                 <Camera size={32} className="text-gray-400" />

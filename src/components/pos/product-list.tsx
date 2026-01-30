@@ -8,7 +8,12 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { PackageOpen, Plus } from "lucide-react";
 import Link from "next/link";
 
-export const ProductList = () => {
+// ProductList interface update
+interface ProductListProps {
+    onAddProduct?: () => void;
+}
+
+export const ProductList: React.FC<ProductListProps> = ({ onAddProduct }) => {
     const { products, addToCart } = useAppStore();
 
     const handleAddProduct = (product: typeof products[0]) => {
@@ -30,12 +35,13 @@ export const ProductList = () => {
                     title="Menu Belum Tersedia"
                     description="Tambahkan produk atau menu makanan/minuman untuk mulai berjualan."
                     action={
-                        <Link href="/settings">
-                            <button className="flex items-center gap-2 bg-brand-lime text-black px-4 py-2 font-black uppercase text-xs border-2 border-black shadow-neo hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all">
-                                <Plus size={14} strokeWidth={3} />
-                                Atur Menu
-                            </button>
-                        </Link>
+                        <button
+                            onClick={onAddProduct}
+                            className="flex items-center gap-2 bg-brand-lime text-black px-4 py-2 font-black uppercase text-xs border-2 border-black shadow-neo hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all"
+                        >
+                            <Plus size={14} strokeWidth={3} />
+                            Atur Menu
+                        </button>
                     }
                 />
             </div>
@@ -58,6 +64,7 @@ export const ProductList = () => {
                                 fill
                                 className="object-cover transition-transform group-hover:scale-105"
                                 sizes="(max-width: 768px) 50vw, (max-width: 1200px) 25vw, 15vw"
+                                unoptimized
                             />
                         ) : (
                             <div className="w-full h-full border border-dashed border-gray-400 rounded-md flex items-center justify-center text-gray-400 font-bold text-[7px] uppercase text-center p-0.5">

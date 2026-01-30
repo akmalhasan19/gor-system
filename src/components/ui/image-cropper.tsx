@@ -55,7 +55,7 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({ imageSrc, onCropComp
     };
 
     return (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in">
+        <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in">
             <div className="bg-white w-full max-w-md rounded-xl overflow-hidden border-2 border-black shadow-neo-lg flex flex-col h-[500px]">
                 {/* Header */}
                 <div className="p-4 border-b-2 border-black flex justify-between items-center bg-gray-50">

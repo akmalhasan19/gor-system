@@ -16,7 +16,7 @@ export const CartSidebar: React.FC<CartSidebarProps> = ({ onClose }) => {
     const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
     return (
-        <div className="flex flex-col h-full bg-white border-l-[3px] border-black">
+        <div className="flex flex-col h-auto max-h-[85vh] md:h-full md:max-h-none bg-white md:border-l-[3px] border-black">
             {/* Header */}
             <div className="p-4 border-b-[3px] border-black bg-black text-white flex justify-between items-center">
                 <div className="flex items-center gap-3">

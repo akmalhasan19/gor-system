@@ -227,6 +227,34 @@ export const XenditPayment: React.FC<XenditPaymentProps> = ({
                             <div className="text-xs font-bold text-gray-500 uppercase">Total Tagihan</div>
                             <div className="text-2xl font-black">Rp {amount.toLocaleString()}</div>
                         </div>
+
+                        {/* Simulation Button for Dev/Test Mode */}
+                        <div className="w-full pt-4 border-t border-dashed border-gray-300">
+                            <button
+                                onClick={async () => {
+                                    try {
+                                        toast.info('Simulating payment...');
+                                        const res = await fetch('/api/xendit/simulate', {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({
+                                                external_id: paymentData.external_id,
+                                                amount: amount
+                                            })
+                                        });
+                                        const data = await res.json();
+                                        if (!res.ok) throw new Error(data.error || 'Simulation failed');
+                                        toast.success('Simulation trigger sent!');
+                                    } catch (err: any) {
+                                        console.error(err);
+                                        toast.error(err.message);
+                                    }
+                                }}
+                                className="w-full py-2 bg-indigo-50 text-indigo-600 font-bold text-xs uppercase rounded border border-indigo-200 hover:bg-indigo-100 transition-colors"
+                            >
+                                [TEST MODE] Simulate Payment
+                            </button>
+                        </div>
                     </div>
 
                     <div className="mt-auto w-full pt-4">

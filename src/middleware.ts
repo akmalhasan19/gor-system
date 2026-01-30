@@ -28,6 +28,8 @@ export async function middleware(request: NextRequest) {
     // Allow /login, /public, /verify, /_next, /favicon.ico, /api/public, /api/phone-verification, /api/auth
     const isPublicRoute =
         request.nextUrl.pathname.startsWith('/login') ||
+        request.nextUrl.pathname.startsWith('/forgot-password') ||
+        request.nextUrl.pathname.startsWith('/reset-password') ||
         request.nextUrl.pathname.startsWith('/onboarding') ||
         request.nextUrl.pathname.startsWith('/public') ||
         request.nextUrl.pathname.startsWith('/verify') ||

@@ -251,6 +251,14 @@ export default function LoginPage() {
 
                             <button
                                 type="button"
+                                onClick={() => router.push('/forgot-password')}
+                                className="text-xs font-bold uppercase text-gray-500 hover:text-black underline"
+                            >
+                                Lupa Password?
+                            </button>
+
+                            <button
+                                type="button"
                                 onClick={() => {
                                     setIsRegister(true);
                                     resetForm();

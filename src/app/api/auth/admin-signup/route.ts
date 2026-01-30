@@ -19,6 +19,11 @@ export async function POST(request: NextRequest) {
 
     // Rule 1: If in Production AND no Master Secret is set in Env, completely disable (404).
     if (!IS_DEV && !MASTER_SECRET) {
+        console.warn(
+            '[SECURITY] Admin signup route disabled in production. ' +
+            'Set ADMIN_SIGNUP_SECRET environment variable to enable. ' +
+            'See .env.example for details.'
+        );
         return NextResponse.json({ error: 'Not Found' }, { status: 404 });
     }
 

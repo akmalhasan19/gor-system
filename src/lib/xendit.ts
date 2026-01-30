@@ -59,9 +59,15 @@ export const XenditService = {
         return response.data;
     },
 
-    // Example for E-Wallet if needed later
     createEWalletCharge: async (data: any) => {
         const response = await xenditClient.post('/ewallets/charges', data);
+        return response.data;
+    },
+
+    simulateVA: async (externalId: string, amount: number) => {
+        const response = await xenditClient.post(`/callback_virtual_accounts/${externalId}/simulate_payment`, {
+            amount: amount
+        });
         return response.data;
     }
 };

@@ -59,9 +59,20 @@ export function VenueProvider({ children }: { children: React.ReactNode }) {
             if (userVenue) {
                 setVenues([userVenue]);
                 setCurrentVenueId(userVenue.id);
+            } else {
+                // User has no venue yet (probably in onboarding)
+                setVenues([]);
+                setCurrentVenueId('');
             }
-        } catch (error) {
-            console.error('Failed to load user venue:', error);
+        } catch (error: any) {
+            // Silently handle 406 errors - user likely hasn't completed onboarding yet
+            if (error?.code === 'PGRST116' || error?.message?.includes('406')) {
+                console.log('User has no venue yet (onboarding not completed)');
+                setVenues([]);
+                setCurrentVenueId('');
+            } else {
+                console.error('Failed to load user venue:', error);
+            }
         } finally {
             setIsLoading(false);
         }

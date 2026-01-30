@@ -55,9 +55,23 @@ export async function POST(request: NextRequest) {
         }
 
         // Create Supabase Admin client with service role
+        const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+        console.log('Admin Signup Debug:', {
+            hasServiceRoleKey: !!serviceRoleKey,
+            serviceRoleKeyLength: serviceRoleKey?.length,
+            supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL
+        });
+
+        if (!serviceRoleKey) {
+            return NextResponse.json(
+                { success: false, error: 'Server configuration error: Missing service role key' },
+                { status: 500 }
+            );
+        }
+
         const supabaseAdmin = createClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.SUPABASE_SERVICE_ROLE_KEY!,
+            serviceRoleKey,
             {
                 auth: {
                     autoRefreshToken: false,
@@ -78,7 +92,10 @@ export async function POST(request: NextRequest) {
         });
 
         if (createError) {
-            console.error('Error creating user:', createError);
+            console.error('Error creating user - Full error:', JSON.stringify(createError, null, 2));
+            console.error('Error creating user - Message:', createError.message);
+            console.error('Error creating user - Code:', (createError as any).code);
+            console.error('Error creating user - Status:', (createError as any).status);
             return NextResponse.json(
                 { success: false, error: createError.message },
                 { status: 400 }

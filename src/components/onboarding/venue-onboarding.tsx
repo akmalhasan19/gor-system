@@ -263,18 +263,66 @@ export function VenueOnboarding() {
                                     </div>
                                 </div>
 
-                                {/* Preview */}
+                                {/* Preview - Badminton Court Layout */}
                                 <div className="bg-gray-50 border-2 border-black p-4">
                                     <p className="font-black uppercase text-xs mb-3">Preview Lapangan:</p>
-                                    <div className="grid grid-cols-4 gap-2">
-                                        {Array.from({ length: data.courtsCount }, (_, i) => (
-                                            <div
-                                                key={i}
-                                                className="bg-brand-lime border-2 border-black p-3 font-black text-sm flex items-center justify-center aspect-square text-center"
-                                            >
-                                                Court {i + 1}
+                                    <div className="bg-white border-4 border-black p-4">
+                                        {/* Court Grid - Responsive layout */}
+                                        <div className={`grid gap-3 ${data.courtsCount <= 4 ? 'grid-cols-2' :
+                                                data.courtsCount <= 6 ? 'grid-cols-3' :
+                                                    data.courtsCount <= 9 ? 'grid-cols-3' :
+                                                        'grid-cols-4'
+                                            }`}>
+                                            {Array.from({ length: data.courtsCount }, (_, i) => (
+                                                <div
+                                                    key={i}
+                                                    className="relative bg-gradient-to-b from-green-400 to-green-500 border-2 border-black shadow-neo-sm overflow-hidden"
+                                                    style={{ aspectRatio: '13/24' }} // Badminton court ratio (13.4m x 6.1m)
+                                                >
+                                                    {/* Court Lines */}
+                                                    <div className="absolute inset-0 p-1">
+                                                        {/* Outer boundary */}
+                                                        <div className="absolute inset-1 border-2 border-white/80"></div>
+
+                                                        {/* Service lines */}
+                                                        <div className="absolute left-1 right-1 top-[30%] h-0.5 bg-white/80"></div>
+                                                        <div className="absolute left-1 right-1 bottom-[30%] h-0.5 bg-white/80"></div>
+
+                                                        {/* Center line */}
+                                                        <div className="absolute left-1/2 top-1 bottom-1 w-0.5 bg-white/60 -translate-x-1/2"></div>
+
+                                                        {/* Net (center) */}
+                                                        <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2">
+                                                            <div className="h-1 bg-black/80 border-t border-b border-white/40"></div>
+                                                            {/* Net posts */}
+                                                            <div className="absolute left-0 top-1/2 w-1 h-3 bg-gray-800 -translate-y-1/2 -translate-x-1"></div>
+                                                            <div className="absolute right-0 top-1/2 w-1 h-3 bg-gray-800 -translate-y-1/2 translate-x-1"></div>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Court Number Label */}
+                                                    <div className="absolute bottom-1 left-1/2 -translate-x-1/2 bg-black text-white px-2 py-0.5 text-[10px] font-black border border-white">
+                                                        {i + 1}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                        {/* Legend */}
+                                        <div className="mt-4 pt-3 border-t-2 border-gray-200 flex flex-wrap gap-3 text-xs">
+                                            <div className="flex items-center gap-1.5">
+                                                <div className="w-3 h-3 bg-gradient-to-b from-green-400 to-green-500 border border-black"></div>
+                                                <span className="font-bold">Lapangan</span>
                                             </div>
-                                        ))}
+                                            <div className="flex items-center gap-1.5">
+                                                <div className="w-3 h-0.5 bg-white border-t border-b border-gray-400"></div>
+                                                <span className="font-bold">Garis</span>
+                                            </div>
+                                            <div className="flex items-center gap-1.5">
+                                                <div className="w-3 h-1 bg-black"></div>
+                                                <span className="font-bold">Net</span>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
 

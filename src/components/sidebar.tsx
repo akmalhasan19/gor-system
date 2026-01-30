@@ -15,6 +15,7 @@ import {
     LogOut
 } from "lucide-react";
 import { signOut } from "@/lib/auth";
+import { AlertDialog } from "@/components/ui/alert-dialog";
 
 export const Sidebar = () => {
     const pathname = usePathname();
@@ -32,6 +33,13 @@ export const Sidebar = () => {
     const isActive = (path: string) => {
         if (path === '/dashboard' && pathname === '/') return true;
         return pathname.startsWith(path);
+    };
+
+    const [isLogoutDialogOpen, setIsLogoutDialogOpen] = React.useState(false);
+
+    const handleLogout = async () => {
+        await signOut();
+        window.location.href = '/login';
     };
 
     return (
@@ -82,11 +90,8 @@ export const Sidebar = () => {
             {/* Bottom Actions */}
             <div className="p-4 border-t border-white/20">
                 <button
-                    onClick={async () => {
-                        await signOut();
-                        window.location.href = '/login';
-                    }}
-                    className="flex w-full items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm uppercase text-red-400 hover:bg-red-900/20 hover:text-red-300 transition-colors"
+                    onClick={() => setIsLogoutDialogOpen(true)}
+                    className="flex w-full items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm uppercase text-red-500 hover:bg-red-900/20 hover:text-red-400 transition-colors"
                 >
                     <LogOut size={20} />
                     Keluar
@@ -96,6 +101,17 @@ export const Sidebar = () => {
                     v1.0.0 &bull; 2026
                 </div>
             </div>
+
+            <AlertDialog
+                isOpen={isLogoutDialogOpen}
+                onClose={() => setIsLogoutDialogOpen(false)}
+                onConfirm={handleLogout}
+                title="Konfirmasi Keluar"
+                description="Apakah Anda yakin ingin keluar dari aplikasi?"
+                confirmLabel="Ya, Keluar"
+                cancelLabel="Batal"
+                variant="danger"
+            />
         </div>
     );
 };

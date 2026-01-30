@@ -262,7 +262,7 @@ export async function getUserVenue(userId: string): Promise<Venue | null> {
         `)
         .eq('user_id', userId)
         .limit(1)
-        .single();
+        .maybeSingle();
 
     if (error || !data) return null;
 

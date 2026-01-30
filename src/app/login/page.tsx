@@ -95,8 +95,16 @@ export default function LoginPage() {
             }
 
             // User created successfully with confirmed email
+            // Wait a moment for Supabase to fully create the user
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
             // Now sign them in
-            await signIn(email, password);
+            try {
+                await signIn(email, password);
+            } catch (loginError: any) {
+                console.error('Login error after signup:', loginError);
+                throw new Error('Akun berhasil dibuat, tapi gagal login otomatis. Silakan coba login manual.');
+            }
 
             // Proceed to phone verification step
             setRegistrationStep('phone-verification');

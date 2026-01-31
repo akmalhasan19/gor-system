@@ -139,8 +139,8 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, tot
     if (createdTransaction) {
         return (
             <div className="fixed inset-0 bg-black/50 z-[100] flex items-end justify-center md:items-center p-0 md:p-4">
-                <div className="bg-white border-t-2 border-x-2 md:border-2 border-black shadow-neo w-full max-w-sm flex flex-col max-h-[80dvh] md:max-h-[90vh] rounded-t-lg md:rounded-lg">
-                    <div className="bg-black text-white p-3 flex justify-between items-center border-b-2 border-black">
+                <div className="bg-white border-t-2 border-x-2 md:border-2 border-black shadow-neo w-full max-w-sm flex flex-col max-h-[95dvh] md:max-h-[90vh] rounded-t-xl md:rounded-xl overflow-hidden">
+                    <div className="bg-black text-white p-3 flex justify-between items-center border-b-2 border-black flex-shrink-0">
                         <h2 className="font-black text-sm uppercase">Pembayaran Online</h2>
                         <button
                             onClick={() => {
@@ -172,20 +172,22 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, tot
     }
 
     return (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center md:items-center p-0 md:p-4">
-            <div className="bg-white border-t-2 border-x-2 md:border-2 border-black shadow-neo w-full max-w-sm flex flex-col max-h-[80dvh] md:max-h-[90vh]">
-                <div className="bg-black text-white p-3 flex justify-between items-center border-b-2 border-black">
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center md:items-center p-0 md:p-4">
+            <div className="bg-white border-0 md:border-2 border-black shadow-none md:shadow-neo w-full h-full md:h-auto md:max-w-sm flex flex-col md:max-h-[90vh] rounded-none md:rounded-xl overflow-hidden relative">
+                {/* Header - Fixed */}
+                <div className="bg-black text-white p-3 flex justify-between items-center border-b-2 border-black flex-shrink-0">
                     <h2 className="font-black text-sm uppercase">Pembayaran</h2>
                     <button onClick={onClose} className="hover:text-brand-orange font-bold text-sm">X</button>
                 </div>
 
-                <div className="overflow-y-auto min-h-0 flex-1">
+                {/* Scrollable Content */}
+                <div className="overflow-y-auto flex-1 w-full bg-white">
                     {/* Customer Selection - NEW SECTION */}
                     <div className="p-4 border-b-2 border-black bg-gray-50">
                         <div className="flex gap-2 mb-3">
                             <button
                                 onClick={() => setCustomerType("WALK_IN")}
-                                className={`flex-1 py-1.5 text-[10px] font-black uppercase border-2 border-black transition-all ${customerType === "WALK_IN"
+                                className={`flex-1 py-2 text-[10px] font-black uppercase border-2 border-black transition-all whitespace-nowrap ${customerType === "WALK_IN"
                                         ? "bg-black text-white shadow-none translate-x-[1px] translate-y-[1px]"
                                         : "bg-white text-black shadow-neo hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none"
                                     }`}
@@ -194,7 +196,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, tot
                             </button>
                             <button
                                 onClick={() => setCustomerType("MEMBER")}
-                                className={`flex-1 py-1.5 text-[10px] font-black uppercase border-2 border-black transition-all ${customerType === "MEMBER"
+                                className={`flex-1 py-2 text-[10px] font-black uppercase border-2 border-black transition-all whitespace-nowrap ${customerType === "MEMBER"
                                         ? "bg-brand-lime text-black shadow-none translate-x-[1px] translate-y-[1px]"
                                         : "bg-white text-black shadow-neo hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none"
                                     }`}
@@ -209,13 +211,13 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, tot
                                     placeholder="Nama Pelanggan (Opsional)"
                                     value={walkInName}
                                     onChange={(e) => setWalkInName(e.target.value)}
-                                    className="text-sm bg-white"
+                                    className="text-sm p-2 bg-white"
                                 />
                                 <NeoInput
                                     placeholder="No. HP / WhatsApp (Opsional)"
                                     value={walkInPhone}
                                     onChange={(e) => setWalkInPhone(e.target.value)}
-                                    className="text-sm bg-white"
+                                    className="text-sm p-2 bg-white"
                                 />
                             </div>
                         ) : (

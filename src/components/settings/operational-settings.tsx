@@ -222,7 +222,11 @@ export const OperationalSettings = () => {
                                         </p>
                                         <div className="bg-white p-2 border border-gray-200 rounded-lg shadow-sm">
                                             {/* eslint-disable-next-line @next/next/no-img-element */}
-                                            <img src={qrCode} alt="Scan QR" className="w-[200px] h-[200px] object-contain" />
+                                            <img
+                                                src={qrCode.startsWith('http') || qrCode.startsWith('data:') ? qrCode : `data:image/png;base64,${qrCode}`}
+                                                alt="Scan QR"
+                                                className="w-[200px] h-[200px] object-contain"
+                                            />
                                         </div>
                                         <div className="flex items-center gap-2 mt-4 text-xs text-blue-600 bg-blue-50 px-3 py-1 rounded-full">
                                             <Loader2 className="animate-spin" size={12} />

@@ -36,13 +36,29 @@ export async function runAutoCancelCheck(venueId: string, currentVenue?: Venue) 
         .is('check_in_time', null) // Not checked in
         .neq('status', 'cancelled')
         .neq('status', 'completed')
-        .neq('status', 'COMPLETED'); // Case sensitivity safety
+        .neq('status', 'COMPLETED')
+        .neq('status', 'PAID')
+        .neq('status', 'LUNAS')
+        .neq('status', 'DP'); // Exclude DP as well (commitment made)
 
     if (error) throw error;
 
     let cancelledCount = 0;
 
     for (const booking of bookings) {
+        // Double check payment status to be safe (e.g. Member Quota bookings might have status set but check logic here)
+        // If paid_amount > 0, do not auto-cancel (User Requirement: "tidak bisa memastikan datang / belum bayar")
+        // Note: supabase result properties are snake_case if we used select('*') without types mapping, 
+        // OR camelCase if we have automatic types. Looking at previous code usage `booking.booking_date`, it seems snake_case from DB?
+        // Let's check `booking.start_time` usage in the original code. It was `booking.start_time`.
+        // So we should check `booking.paid_amount` (snake_case) or `booking.paidAmount` if mapped.
+        // To be safe, we check both or assume snake_case based on `booking_date`.
+        const paidAmount = booking.paid_amount || booking.paidAmount || 0;
+
+        if (paidAmount > 0) {
+            continue;
+        }
+
         // Construct Booking Start DateTime
         // booking_date is YYYY-MM-DD string
         // start_time is HH:MM:SS string
@@ -56,7 +72,7 @@ export async function runAutoCancelCheck(venueId: string, currentVenue?: Venue) 
         const minutesSinceStart = differenceInMinutes(now, bookingStart);
 
         if (minutesSinceStart > tolerance) {
-            console.log(`[AutoCancel] Cancelling Booking ${booking.id}. Late by ${minutesSinceStart} mins (Tolerance: ${tolerance})`);
+            console.log(`[AutoCancel] Cancelling Booking ${booking.id}. Late by ${minutesSinceStart} mins (Tolerance: ${tolerance}). Status: ${booking.status}, Paid: ${paidAmount}`);
 
             // Mark as No-Show & Cancel
             // NO REFUNDING QUOTA

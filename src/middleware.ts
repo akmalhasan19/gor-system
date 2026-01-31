@@ -7,6 +7,7 @@ import { generateCsrfToken, verifyCsrfToken, CSRF_COOKIE_NAME, CSRF_HEADER_NAME 
 const CSRF_EXEMPT_ROUTES = [
     '/api/webhooks/', // Webhooks have their own authentication
     '/api/public/',   // Public endpoints (read-only)
+    '/api/cron/',     // Cron jobs (often internal or simple key auth)
 ];
 
 // Global Re-usable Rate Limiter (In-Memory)

@@ -92,7 +92,7 @@ export function MemberRatioChart({ venueId, days }: MemberRatioChartProps) {
 
             <div className="flex items-center">
                 <div className="w-1/2">
-                    <ResponsiveContainer width="100%" height={150}>
+                    <ResponsiveContainer width="100%" height={150} minWidth={100} minHeight={100}>
                         <PieChart>
                             <Pie
                                 data={pieData}

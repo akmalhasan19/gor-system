@@ -82,7 +82,7 @@ export function CourtRevenueChart({ venueId, days }: CourtRevenueChartProps) {
                 <span className="text-sm text-gray-500">{days} hari terakhir</span>
             </div>
 
-            <ResponsiveContainer width="100%" height={200}>
+            <ResponsiveContainer width="100%" height={200} minWidth={100} minHeight={100}>
                 <BarChart
                     data={data}
                     layout="vertical"

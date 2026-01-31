@@ -38,13 +38,17 @@ export async function POST(request: Request) {
                 return NextResponse.json({ error: 'System configuration error (Master Token)' }, { status: 500 });
             }
 
-            // Create unique device name: GOR Name + partial ID
-            const apiDeviceName = `${venue.name.substring(0, 10)}-${venueId.substring(0, 4)}`;
+            // Create unique device name: Short & Safe to avoid "input invalid"
+            // Format: v[ShortID]-[Random] e.g. v28a1c-x9z2
+            const randomSuffix = Math.random().toString(36).substring(2, 6);
+            const apiDeviceName = `v${venueId.substring(0, 6)}-${randomSuffix}`;
+            console.log('Fonnte Connect: Creating device with name:', apiDeviceName);
 
             const newDevice = await createFonnteDevice(apiDeviceName, masterToken);
 
-            if (!newDevice) {
-                return NextResponse.json({ error: 'Failed to create WhatsApp device instance' }, { status: 502 });
+            if ('error' in newDevice) {
+                console.error('Fonnte Device Creation Failed:', newDevice.error);
+                return NextResponse.json({ error: `Failed to create WhatsApp device: ${newDevice.error}` }, { status: 502 });
             }
 
             deviceToken = newDevice.token;

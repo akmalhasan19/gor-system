@@ -8,38 +8,67 @@ import { Clock, AlertTriangle, ShieldAlert, QrCode, Loader2, CheckCircle, Trash2
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { getCsrfHeaders } from '@/lib/hooks/use-csrf';
+import { supabase } from "@/lib/supabase";
 
 export const OperationalSettings = () => {
     const { currentVenue, refreshVenue } = useVenue();
     const [qrCode, setQrCode] = useState<string | null>(null);
     const [waLoading, setWaLoading] = useState(false);
 
-    // Polling for status when QR is shown or waiting
+    // Realtime subscription for status updates
     useEffect(() => {
-        let interval: NodeJS.Timeout;
-        if (qrCode || (currentVenue?.waStatus === 'scanned')) {
-            interval = setInterval(checkWaStatus, 3000);
-        }
-        return () => clearInterval(interval);
-    }, [qrCode, currentVenue?.waStatus]);
-
-    const checkWaStatus = async () => {
         if (!currentVenue) return;
-        try {
-            const res = await fetch('/api/whatsapp/status', {
-                method: 'POST',
-                headers: getCsrfHeaders({ 'Content-Type': 'application/json' }),
-                body: JSON.stringify({ venueId: currentVenue.id })
-            });
-            const data = await res.json();
-            if (data.status === 'connected') {
-                setQrCode(null);
-                refreshVenue();
-            }
-        } catch (e) {
-            console.error(e);
-        }
-    };
+
+        // Subscribe to changes on this venue
+        const channel = supabase
+            .channel(`venue_status_${currentVenue.id}`)
+            .on(
+                'postgres_changes',
+                {
+                    event: 'UPDATE',
+                    schema: 'public',
+                    table: 'venues',
+                    filter: `id=eq.${currentVenue.id}`
+                },
+                (payload) => {
+                    const newStatus = payload.new.wa_status;
+                    if (newStatus !== currentVenue.waStatus) {
+                        refreshVenue();
+                        if (newStatus === 'disconnected' && currentVenue.waStatus === 'connected') {
+                            toast.info("WhatsApp terputus (terdeteksi via Realtime).");
+                        } else if (newStatus === 'connected') {
+                            setQrCode(null);
+                            toast.success("WhatsApp Terhubung!");
+                        }
+                    }
+                }
+            )
+            .subscribe();
+
+        // Initial check (once) to ensure we are up to date
+        // And optional lightweight heartbeat (every 30s) instead of 5s
+        const checkWaStatus = async () => {
+            try {
+                const res = await fetch('/api/whatsapp/status', {
+                    method: 'POST',
+                    headers: getCsrfHeaders({ 'Content-Type': 'application/json' }),
+                    body: JSON.stringify({ venueId: currentVenue.id })
+                });
+                const data = await res.json();
+                if (data.status && data.status !== currentVenue.waStatus) {
+                    refreshVenue();
+                }
+            } catch (e) { console.error("Heartbeat failed", e); }
+        };
+
+        checkWaStatus();
+        const heartbeat = setInterval(checkWaStatus, 30000);
+
+        return () => {
+            supabase.removeChannel(channel);
+            clearInterval(heartbeat);
+        };
+    }, [currentVenue?.id, currentVenue?.waStatus]);
 
     const handleConnectWA = async () => {
         if (!currentVenue) return;

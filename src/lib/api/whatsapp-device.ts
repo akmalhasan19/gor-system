@@ -3,7 +3,7 @@
  * Create a new device in Fonnte
  * Requires Master Token
  */
-export async function createFonnteDevice(deviceName: string, masterToken: string): Promise<{ token: string; deviceId: string } | null> {
+export async function createFonnteDevice(deviceName: string, masterToken: string): Promise<{ token: string; deviceId: string } | { error: string }> {
     try {
         // Note: This is an assumption based on "API Add Device" capability.
         // If Fonnte requires manual creation, this flow might need adjustment.
@@ -30,10 +30,12 @@ export async function createFonnteDevice(deviceName: string, masterToken: string
                 deviceId: data.device_id || deviceName // storage fallback
             };
         }
-        return null;
-    } catch (e) {
+
+        // Fonnte usually returns 'reason' or 'detail' or just a message in 'status' if false (sometimes)
+        return { error: data.reason || data.detail || (typeof data.status === 'string' ? data.status : 'Unknown Fonnte Error') };
+    } catch (e: any) {
         console.error('Fonnte Create Device Error:', e);
-        return null;
+        return { error: e.message || 'Network Error' };
     }
 }
 

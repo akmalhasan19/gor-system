@@ -14,8 +14,8 @@ export const DashboardView = () => {
     const { bookings, products, transactions, selectedDate } = useAppStore();
 
     // Stats
-    const todayBookings = bookings.length;
-    const lowStockItems = products.filter(p => p.stock < 10);
+    const todayBookings = bookings.filter(b => b.status !== 'cancelled' && !b.isNoShow).length;
+    const lowStockItems = products.filter(p => p.stock <= 5);
 
     // Filter transactions for the selected date (or today)
     const activeDate = selectedDate || new Date().toLocaleDateString('en-CA');

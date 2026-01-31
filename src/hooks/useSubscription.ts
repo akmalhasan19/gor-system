@@ -9,6 +9,8 @@ interface SubscriptionState {
     status: SubscriptionStatus;
     validUntil: Date | null;
     maxCourts: number;
+    pendingPlan?: SubscriptionPlan | null;
+    pendingEffectiveDate?: Date | null;
     isLoading: boolean;
     error: string | null;
 }
@@ -38,17 +40,45 @@ export function useSubscription(venueId: string | null): UseSubscriptionReturn {
         try {
             const { data, error } = await supabase
                 .from('venues')
-                .select('subscription_plan, subscription_status, subscription_valid_until, max_courts')
+                .select('subscription_plan, subscription_status, subscription_valid_until, max_courts, pending_subscription_plan, pending_subscription_effective_date')
                 .eq('id', venueId)
                 .single();
 
             if (error) throw error;
 
+            let currentPlan = (data?.subscription_plan as SubscriptionPlan) || 'STARTER';
+            const pendingPlan = data?.pending_subscription_plan as SubscriptionPlan | null;
+            const pendingDate = data?.pending_subscription_effective_date ? new Date(data.pending_subscription_effective_date) : null;
+
+            // LAZY CHECK: If pending downgrade is effective
+            if (pendingPlan && pendingDate && new Date() >= pendingDate) {
+                console.log("Applying pending subscription downgrade...", pendingPlan);
+
+                // Update DB immediately
+                const { error: updateError } = await supabase
+                    .from('venues')
+                    .update({
+                        subscription_plan: pendingPlan,
+                        pending_subscription_plan: null,
+                        pending_subscription_effective_date: null
+                    })
+                    .eq('id', venueId);
+
+                if (!updateError) {
+                    currentPlan = pendingPlan; // Use new plan for state
+                    // Refresh not strictly needed if we update status locally efficiently, but good to be consistent
+                } else {
+                    console.error("Failed to apply lazy subscription update", updateError);
+                }
+            }
+
             setState({
-                plan: (data?.subscription_plan as SubscriptionPlan) || 'STARTER',
+                plan: currentPlan,
                 status: (data?.subscription_status as SubscriptionStatus) || 'TRIAL',
                 validUntil: data?.subscription_valid_until ? new Date(data.subscription_valid_until) : null,
                 maxCourts: data?.max_courts || 3,
+                pendingPlan: pendingPlan, // Add to state interface if needed, or just internal logic
+                pendingEffectiveDate: pendingDate,
                 isLoading: false,
                 error: null,
             });
@@ -59,7 +89,7 @@ export function useSubscription(venueId: string | null): UseSubscriptionReturn {
                 error: err instanceof Error ? err.message : 'Failed to fetch subscription',
             }));
         }
-    }, [venueId, supabase]);
+    }, [venueId]);
 
     useEffect(() => {
         fetchSubscription();

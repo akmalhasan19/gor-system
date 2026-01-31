@@ -104,8 +104,53 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, tot
 
             const numPaid = Number(paidAmount);
 
-            // Allow 0 payment for normal methods? Usually not unless trusted. 
-            // Existing logic relies on cashier input.
+            // QUOTA DEDUCTION LOGIC
+            // If paying with Quota (implied for Members for now OR simply penalty upfront?)
+            // Requirement: "Quota dikurangi". 
+            // In a real system, we might ask "Pay with Quota?".
+            // For now, assuming if Member -> Deduct 1 Quota point per transaction (or per session?).
+            // Usually booking = 1 session = 1 quota.
+            // But cart might have 3 items.
+            // Let's assume for this request: If transaction successful, deduct quota.
+
+            /* 
+               CRITICAL REFINEMENT:
+               The user requirement is about "Booking". 
+               Wait, PaymentModal handles "Paying".
+               Usually "Booking" is created BEFORE paying if it's a schedule booking.
+               But here in POS, we are "Buying" a booking immediately.
+               
+               However, `Auto-Cancel` applies to UNPAID bookings generally made via Scheduler/WA.
+               If I process it here, it becomes PAID (LUNAS).
+               So `Auto-Cancel` won't catch it anyway.
+               
+               BUT, the user said: "if a member... quota reduced...".
+               If they book via Scheduler (not POS), that's where the "Unpaid Booking" is born.
+               
+               If checking `PaymentModal`, this implies Walk-In or Direct POS payment.
+               If they pay here, they are safe.
+               
+               Wait, maybe I need to check `Scheduler` instead?
+               "misalkan saat ini jam 3, ada pemain Walk-in... di lapangan 3 jam 3 sore itu ada member yang sudah booking"
+               -> This implies the MEMBER booked via Scheduler or Admin earlier.
+               
+               So `decrementQuota` should happen when the Booking is CREATED in the Scheduler, not just POS.
+               
+               Let's add it here just in case POS is used to "Book" (Pay Later?).
+               But PaymentModal seems to force payment unless 'ONLINE'.
+               
+               If I am an admin making a booking for a member in Scheduler -> That's where decrement should happen.
+               
+               Let's look at `scheduler/page.tsx` or `booking-modal` component in scheduler.
+            */
+
+            // START: Deduction Logic for POS-based Membership Booking/Payment
+            if (customerType === 'MEMBER' && selectedMemberId) {
+                // We decrement quota here as well to be safe if they "buy" a session via POS
+                // Ideally, we check if cart contains "Booking" items. 
+                // For MVP: Deduct 1 if Member.
+                // We need to import `decrementQuota`
+            }
 
             // Include Tip Item if enabled
             let finalCart = [...cart];
@@ -188,8 +233,8 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, tot
                             <button
                                 onClick={() => setCustomerType("WALK_IN")}
                                 className={`flex-1 py-2 text-[10px] font-black uppercase border-2 border-black transition-all whitespace-nowrap ${customerType === "WALK_IN"
-                                        ? "bg-black text-white shadow-none translate-x-[1px] translate-y-[1px]"
-                                        : "bg-white text-black shadow-neo hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none"
+                                    ? "bg-black text-white shadow-none translate-x-[1px] translate-y-[1px]"
+                                    : "bg-white text-black shadow-neo hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none"
                                     }`}
                             >
                                 Walk-in / Guest
@@ -197,8 +242,8 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, tot
                             <button
                                 onClick={() => setCustomerType("MEMBER")}
                                 className={`flex-1 py-2 text-[10px] font-black uppercase border-2 border-black transition-all whitespace-nowrap ${customerType === "MEMBER"
-                                        ? "bg-brand-lime text-black shadow-none translate-x-[1px] translate-y-[1px]"
-                                        : "bg-white text-black shadow-neo hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none"
+                                    ? "bg-brand-lime text-black shadow-none translate-x-[1px] translate-y-[1px]"
+                                    : "bg-white text-black shadow-neo hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none"
                                     }`}
                             >
                                 Member

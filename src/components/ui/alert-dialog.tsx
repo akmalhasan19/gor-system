@@ -8,7 +8,7 @@ interface AlertDialogProps {
     onClose: () => void;
     onConfirm: () => void;
     title: string;
-    description: string;
+    description: string | React.ReactNode;
     confirmLabel?: string;
     cancelLabel?: string;
     variant?: 'danger' | 'default';
@@ -67,8 +67,8 @@ export const AlertDialog: React.FC<AlertDialogProps> = ({
                                 onClose();
                             }}
                             className={`font-black py-2 px-4 text-xs uppercase text-white border-2 border-black shadow-[2px_2px_0px_black] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 ${variant === 'danger'
-                                    ? 'bg-red-600 hover:bg-red-700 focus:ring-red-500'
-                                    : 'bg-black hover:bg-brand-orange hover:text-black focus:ring-brand-orange'
+                                ? 'bg-red-600 hover:bg-red-700 focus:ring-red-500'
+                                : 'bg-black hover:bg-brand-orange hover:text-black focus:ring-brand-orange'
                                 }`}
                         >
                             {confirmLabel}

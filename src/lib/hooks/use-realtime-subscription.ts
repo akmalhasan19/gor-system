@@ -3,6 +3,7 @@ import { supabase } from '../supabase';
 import { useAppStore } from '../store';
 import { useVenue } from '../venue-context';
 import { toast } from 'sonner';
+import { logger } from '../logger';
 
 export function useRealtimeSubscription() {
     const {
@@ -12,7 +13,9 @@ export function useRealtimeSubscription() {
     const { currentVenueId } = useVenue();
 
     useEffect(() => {
-        console.log('🔌 Initializing Realtime Subscriptions...');
+        if (!currentVenueId) return;
+
+        logger.info('🔌 Initializing Realtime Subscriptions...');
 
         const channel = supabase
             .channel('db-changes')
@@ -22,13 +25,12 @@ export function useRealtimeSubscription() {
                     event: '*',
                     schema: 'public',
                     table: 'bookings',
+                    filter: `venue_id=eq.${currentVenueId}`
                 },
                 async (payload) => {
-                    console.log('📅 Booking updated:', payload);
+                    logger.debug('📅 Booking updated:', payload);
                     toast.info('Data Booking diperbarui');
-                    if (currentVenueId) {
-                        handleRealtimeBooking(payload);
-                    }
+                    handleRealtimeBooking(payload);
                 }
             )
             .on(
@@ -37,12 +39,11 @@ export function useRealtimeSubscription() {
                     event: '*',
                     schema: 'public',
                     table: 'products',
+                    filter: `venue_id=eq.${currentVenueId}`
                 },
                 async (payload) => {
-                    console.log('📦 Product updated:', payload);
-                    if (currentVenueId) {
-                        handleRealtimeProduct(payload);
-                    }
+                    logger.debug('📦 Product updated:', payload);
+                    handleRealtimeProduct(payload);
                 }
             )
             .on(
@@ -51,12 +52,11 @@ export function useRealtimeSubscription() {
                     event: '*',
                     schema: 'public',
                     table: 'customers',
+                    filter: `venue_id=eq.${currentVenueId}`
                 },
                 async (payload) => {
-                    console.log('👥 Customer updated:', payload);
-                    if (currentVenueId) {
-                        handleRealtimeCustomer(payload);
-                    }
+                    logger.debug('👥 Customer updated:', payload);
+                    handleRealtimeCustomer(payload);
                 }
             )
             .on(
@@ -65,12 +65,11 @@ export function useRealtimeSubscription() {
                     event: '*',
                     schema: 'public',
                     table: 'transactions',
+                    filter: `venue_id=eq.${currentVenueId}`
                 },
                 async (payload) => {
-                    console.log('💰 Transaction updated:', payload);
-                    if (currentVenueId) {
-                        await syncTransactions(currentVenueId);
-                    }
+                    logger.debug('💰 Transaction updated:', payload);
+                    await syncTransactions(currentVenueId);
                 }
             )
             .on(
@@ -79,27 +78,22 @@ export function useRealtimeSubscription() {
                     event: '*',
                     schema: 'public',
                     table: 'courts',
+                    filter: `venue_id=eq.${currentVenueId}`
                 },
                 async (payload) => {
-                    console.log('🏸 Court updated:', payload);
-                    if (currentVenueId) {
-                        handleRealtimeCourt(payload);
-                    }
+                    logger.debug('🏸 Court updated:', payload);
+                    handleRealtimeCourt(payload);
                 }
             )
             .subscribe((status) => {
                 if (status === 'SUBSCRIBED') {
-                    console.log('✅ Connected to Supabase Realtime');
+                    logger.info('✅ Connected to Supabase Realtime');
                 }
             });
 
         return () => {
-            console.log('🔌 Disconnecting Realtime...');
+            logger.info('🔌 Disconnecting Realtime...');
             supabase.removeChannel(channel);
         };
-    }, [
-        syncBookings, syncProducts, syncCustomers, syncTransactions, syncCourts,
-        handleRealtimeBooking, handleRealtimeProduct, handleRealtimeCustomer, handleRealtimeCourt,
-        currentVenueId
-    ]);
+    }, [currentVenueId]); // Simplified dependencies to avoid re-renders
 }

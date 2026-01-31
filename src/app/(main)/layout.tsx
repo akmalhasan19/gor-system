@@ -9,6 +9,7 @@ import { FloatingCart } from '@/components/floating-cart';
 import { Receipt } from '@/components/pos/receipt';
 import { useAppStore } from '@/lib/store';
 import { DataSyncProvider } from '@/components/data-sync-provider';
+import { AutoCancelTrigger } from '@/components/auto-cancel-trigger';
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
     // Need access to transactions for the global Receipt component (hidden print)
@@ -18,6 +19,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
     return (
         <AuthGuard>
             <DataSyncProvider>
+                <AutoCancelTrigger />
                 <div className="min-h-screen bg-white flex flex-col lg:flex-row">
                     {/* Sidebar for Desktop */}
                     <Sidebar />

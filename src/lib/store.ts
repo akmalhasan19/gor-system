@@ -59,7 +59,7 @@ interface AppState {
     clearCart: () => void;
 
     // Transaction actions
-    processTransaction: (venueId: string, items: CartItem[], paidAmount: number, paymentMethod: 'CASH' | 'QRIS' | 'TRANSFER') => Promise<Transaction>;
+    processTransaction: (venueId: string, items: CartItem[], paidAmount: number, paymentMethod: 'CASH' | 'QRIS' | 'TRANSFER', customerInfo?: { name?: string; phone?: string; id?: string }) => Promise<Transaction>;
     setTransactions: (transactions: Transaction[]) => void;
 
     // Product actions
@@ -398,7 +398,18 @@ export const useAppStore = create<AppState>((set, get) => ({
                     [bookingItem],
                     newBooking.paidAmount,
                     'CASH',
-                    status
+                    status,
+                    {
+                        name: newBooking.customerName,
+                        phone: newBooking.phone,
+                        // We don't have customer ID here easily unless we query it, but name/phone is enough for now 
+                        // or we could try to look it up if we wanted strict linking, but for "Booking" usually name/phone is from input.
+                        // If it came from a "Member" booking, we might want to pass that ID. 
+                        // But strictly speaking, Booking object doesn't have customerId field usually? 
+                        // Wait, looking at Booking interface: customerName, phone. No customerId.
+                        // However, createBooking implementation MIGHT have it if we upgraded it? 
+                        // For now, let's just pass name and phone.
+                    }
                 );
 
                 // Update store with new transaction
@@ -506,7 +517,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     clearCart: () => set({ cart: [] }),
 
     // Transaction actions
-    processTransaction: async (venueId: string, items, paidAmount, paymentMethod) => {
+    processTransaction: async (venueId: string, items, paidAmount, paymentMethod, customerInfo) => {
         set({ isLoading: true, error: null });
         try {
             const newTransaction = await transactionsApi.createTransaction(
@@ -514,7 +525,8 @@ export const useAppStore = create<AppState>((set, get) => ({
                 items,
                 paidAmount,
                 paymentMethod,
-                paidAmount >= items.reduce((sum, i) => sum + i.price * i.quantity, 0) ? 'PAID' : 'PARTIAL'
+                paidAmount >= items.reduce((sum, i) => sum + i.price * i.quantity, 0) ? 'PAID' : 'PARTIAL',
+                customerInfo
             );
 
             set((state) => ({
@@ -551,7 +563,8 @@ export const useAppStore = create<AppState>((set, get) => ({
                         paidAmount,
                         paymentMethod,
                         timestamp: Date.now(),
-                        retryCount: 0
+                        retryCount: 0,
+                        customerInfo
                     };
 
                     await addToQueue(queuedTransaction);
@@ -581,7 +594,10 @@ export const useAppStore = create<AppState>((set, get) => ({
                         changeAmount: 0,
                         paymentMethod,
                         status: 'PENDING',
-                        cashierName: 'System'
+                        cashierName: 'System',
+                        customerId: customerInfo?.id,
+                        customerName: customerInfo?.name,
+                        customerPhone: customerInfo?.phone
                     };
                     return placeholderTransaction;
                 } else {

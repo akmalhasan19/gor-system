@@ -136,4 +136,7 @@ export interface Transaction {
     paymentMethod: 'CASH' | 'QRIS' | 'TRANSFER';
     status: 'PAID' | 'PENDING' | 'PARTIAL' | 'UNPAID';
     cashierName: string;
+    customerId?: string;
+    customerName?: string;
+    customerPhone?: string;
 }

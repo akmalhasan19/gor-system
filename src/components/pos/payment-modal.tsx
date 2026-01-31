@@ -16,12 +16,18 @@ interface PaymentModalProps {
 }
 
 export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, totalAmount }) => {
-    const { cart, processTransaction } = useAppStore();
+    const { cart, processTransaction, customers } = useAppStore();
     const { currentVenueId } = useVenue();
     const [paidAmount, setPaidAmount] = useState<string>("");
     const [paymentMethod, setPaymentMethod] = useState<"CASH" | "QRIS" | "TRANSFER" | "ONLINE">("CASH");
     const [change, setChange] = useState(0);
     const [createdTransaction, setCreatedTransaction] = useState<Transaction | null>(null);
+
+    // Customer Selection State
+    const [customerType, setCustomerType] = useState<"WALK_IN" | "MEMBER">("WALK_IN");
+    const [selectedMemberId, setSelectedMemberId] = useState<string>("");
+    const [walkInName, setWalkInName] = useState<string>("");
+    const [walkInPhone, setWalkInPhone] = useState<string>("");
 
     const [isTipEnabled, setIsTipEnabled] = useState(false);
 
@@ -39,6 +45,10 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, tot
             setCreatedTransaction(null);
             setPaymentMethod("CASH");
             setPaidAmount("");
+            setCustomerType("WALK_IN");
+            setSelectedMemberId("");
+            setWalkInName("");
+            setWalkInPhone("");
         }
     }, [isOpen]);
 
@@ -54,12 +64,40 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, tot
             return;
         }
 
+        // Validate customer info if Member
+        if (customerType === 'MEMBER' && !selectedMemberId) {
+            alert('Silakan pilih member terlebih dahulu');
+            return;
+        }
+
+        // Prepare Customer Info
+        let customerInfo: { name?: string; phone?: string; id?: string } | undefined = undefined;
+
+        if (customerType === 'MEMBER') {
+            const member = customers.find(c => c.id === selectedMemberId);
+            if (member) {
+                customerInfo = {
+                    id: member.id,
+                    name: member.name,
+                    phone: member.phone
+                };
+            }
+        } else {
+            // Walk-in
+            if (walkInName || walkInPhone) {
+                customerInfo = {
+                    name: walkInName || 'Guest',
+                    phone: walkInPhone || '-'
+                };
+            }
+        }
+
         try {
             // Check for ONLINE payment
             if (paymentMethod === 'ONLINE') {
                 // For online payment, we create a transaction with 0 paid amount initially (PENDING/PARTIAL)
                 // We use 'TRANSFER' as the base method, will be updated to specific method upon callback
-                const txn = await processTransaction(currentVenueId, cart, 0, 'TRANSFER');
+                const txn = await processTransaction(currentVenueId, cart, 0, 'TRANSFER', customerInfo);
                 setCreatedTransaction(txn);
                 return;
             }
@@ -82,7 +120,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, tot
                 });
             }
 
-            await processTransaction(currentVenueId, finalCart, numPaid, paymentMethod as "CASH" | "QRIS" | "TRANSFER");
+            await processTransaction(currentVenueId, finalCart, numPaid, paymentMethod as "CASH" | "QRIS" | "TRANSFER", customerInfo);
             onClose();
 
             // Trigger window print for receipt
@@ -123,7 +161,9 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, tot
                                 onClose();
                                 setTimeout(() => window.print(), 500);
                             }}
-                            customerName={'Pelanggan'}
+                            customerName={customerType === 'MEMBER'
+                                ? customers.find(c => c.id === selectedMemberId)?.name || 'Pelanggan'
+                                : walkInName || 'Pelanggan'}
                         />
                     </div>
                 </div>
@@ -139,138 +179,196 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, tot
                     <button onClick={onClose} className="hover:text-brand-orange font-bold text-sm">X</button>
                 </div>
 
-                {/* Payment Method Selector - Always visible */}
-                <div className="p-4 border-b-2 border-black">
-                    <div className="text-center mb-3">
-                        <div className="text-[10px] font-bold text-gray-500 uppercase">Total Tagihan</div>
-                        <div className="text-3xl font-black">Rp {totalAmount.toLocaleString()}</div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                        {(["CASH", "QRIS", "TRANSFER", "ONLINE"] as const).map((method) => (
+                <div className="overflow-y-auto min-h-0 flex-1">
+                    {/* Customer Selection - NEW SECTION */}
+                    <div className="p-4 border-b-2 border-black bg-gray-50">
+                        <div className="flex gap-2 mb-3">
                             <button
-                                key={method}
-                                onClick={() => setPaymentMethod(method)}
-                                className={`border border-black p-2 font-bold text-[10px] uppercase transition-all ${paymentMethod === method
-                                    ? "bg-black text-white"
-                                    : "bg-white hover:bg-gray-100"
+                                onClick={() => setCustomerType("WALK_IN")}
+                                className={`flex-1 py-1.5 text-[10px] font-black uppercase border-2 border-black transition-all ${customerType === "WALK_IN"
+                                        ? "bg-black text-white shadow-none translate-x-[1px] translate-y-[1px]"
+                                        : "bg-white text-black shadow-neo hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none"
                                     }`}
                             >
-                                {method === 'ONLINE' ? 'ONLINE' : method}
+                                Walk-in / Guest
                             </button>
-                        ))}
-                    </div>
-                </div>
+                            <button
+                                onClick={() => setCustomerType("MEMBER")}
+                                className={`flex-1 py-1.5 text-[10px] font-black uppercase border-2 border-black transition-all ${customerType === "MEMBER"
+                                        ? "bg-brand-lime text-black shadow-none translate-x-[1px] translate-y-[1px]"
+                                        : "bg-white text-black shadow-neo hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none"
+                                    }`}
+                            >
+                                Member
+                            </button>
+                        </div>
 
-                {/* Payment Method Specific Content */}
-                <div className="overflow-y-auto min-h-0 flex-1">
-                    {/* CASH Payment UI */}
-                    {paymentMethod === 'CASH' && (
-                        <div className="p-4 flex flex-col gap-4">
+                        {customerType === "WALK_IN" ? (
                             <div className="flex flex-col gap-2">
-                                <label className="font-bold text-[10px] uppercase">Jumlah Bayar</label>
                                 <NeoInput
-                                    type="number"
-                                    placeholder="0"
-                                    value={paidAmount}
-                                    onChange={(e) => setPaidAmount(e.target.value)}
-                                    className="text-right text-lg p-2 h-10"
+                                    placeholder="Nama Pelanggan (Opsional)"
+                                    value={walkInName}
+                                    onChange={(e) => setWalkInName(e.target.value)}
+                                    className="text-sm bg-white"
                                 />
-                                <div className="flex gap-1.5 flex-wrap">
-                                    {quickMoney.map((amount) => (
-                                        <button
-                                            key={amount}
-                                            onClick={() => setPaidAmount(amount.toString())}
-                                            className="border border-black px-2 py-1 text-[10px] font-bold bg-gray-50 hover:bg-white"
-                                        >
-                                            {amount / 1000}k
-                                        </button>
+                                <NeoInput
+                                    placeholder="No. HP / WhatsApp (Opsional)"
+                                    value={walkInPhone}
+                                    onChange={(e) => setWalkInPhone(e.target.value)}
+                                    className="text-sm bg-white"
+                                />
+                            </div>
+                        ) : (
+                            <div className="flex flex-col gap-2">
+                                <select
+                                    value={selectedMemberId}
+                                    onChange={(e) => setSelectedMemberId(e.target.value)}
+                                    className="w-full border-2 border-black p-2 text-sm font-bold bg-white focus:outline-none focus:ring-0"
+                                >
+                                    <option value="">-- Pilih Member --</option>
+                                    {customers.filter(c => !c.isDeleted).map((c) => (
+                                        <option key={c.id} value={c.id}>
+                                            {c.name} ({c.phone})
+                                        </option>
                                     ))}
-                                </div>
+                                </select>
                             </div>
+                        )}
+                    </div>
 
-                            {/* Change Display */}
-                            <div className={`p-3 border-2 border-black ${change >= 0 ? 'bg-brand-lime' : 'bg-red-100'} transition-colors`}>
-                                <div className="flex justify-between items-center">
-                                    <span className="font-bold uppercase text-[10px]">
-                                        {isTipEnabled ? 'Tip (Masuk ke Omzet)' : 'Kembalian'}
-                                    </span>
-                                    <span className={`font-black text-lg ${isTipEnabled ? 'text-brand-orange' : 'text-black'}`}>
-                                        Rp {change > 0 ? change.toLocaleString() : 0}
-                                    </span>
-                                </div>
+                    {/* Payment Method Selector */}
+                    <div className="p-4 border-b-2 border-black">
+                        <div className="text-center mb-3">
+                            <div className="text-[10px] font-bold text-gray-500 uppercase">Total Tagihan</div>
+                            <div className="text-3xl font-black">Rp {totalAmount.toLocaleString()}</div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                            {(["CASH", "QRIS", "TRANSFER", "ONLINE"] as const).map((method) => (
+                                <button
+                                    key={method}
+                                    onClick={() => setPaymentMethod(method)}
+                                    className={`border border-black p-2 font-bold text-[10px] uppercase transition-all ${paymentMethod === method
+                                        ? "bg-black text-white"
+                                        : "bg-white hover:bg-gray-100"
+                                        }`}
+                                >
+                                    {method === 'ONLINE' ? 'ONLINE' : method}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
 
-                                {/* Tip Toggle */}
-                                {change > 0 && (
-                                    <div className="mt-2 pt-2 border-t border-black/20">
-                                        <label className="flex items-center gap-2 cursor-pointer select-none">
-                                            <div className={`w-4 h-4 border-2 border-black flex items-center justify-center transition-colors ${isTipEnabled ? 'bg-black' : 'bg-white'}`}>
-                                                {isTipEnabled && <div className="w-2 h-2 bg-white" />}
-                                            </div>
-                                            <input
-                                                type="checkbox"
-                                                className="hidden"
-                                                checked={isTipEnabled}
-                                                onChange={() => setIsTipEnabled(!isTipEnabled)}
-                                            />
-                                            <span className="text-[10px] font-bold uppercase hover:underline">
-                                                Pelanggan tidak minta kembalian? (Jadikan Tip)
-                                            </span>
-                                        </label>
+                    {/* Payment Method Specific Content */}
+                    <div>
+                        {/* CASH Payment UI */}
+                        {paymentMethod === 'CASH' && (
+                            <div className="p-4 flex flex-col gap-4">
+                                <div className="flex flex-col gap-2">
+                                    <label className="font-bold text-[10px] uppercase">Jumlah Bayar</label>
+                                    <NeoInput
+                                        type="number"
+                                        placeholder="0"
+                                        value={paidAmount}
+                                        onChange={(e) => setPaidAmount(e.target.value)}
+                                        className="text-right text-lg p-2 h-10"
+                                    />
+                                    <div className="flex gap-1.5 flex-wrap">
+                                        {quickMoney.map((amount) => (
+                                            <button
+                                                key={amount}
+                                                onClick={() => setPaidAmount(amount.toString())}
+                                                className="border border-black px-2 py-1 text-[10px] font-bold bg-gray-50 hover:bg-white"
+                                            >
+                                                {amount / 1000}k
+                                            </button>
+                                        ))}
                                     </div>
-                                )}
+                                </div>
+
+                                {/* Change Display */}
+                                <div className={`p-3 border-2 border-black ${change >= 0 ? 'bg-brand-lime' : 'bg-red-100'} transition-colors`}>
+                                    <div className="flex justify-between items-center">
+                                        <span className="font-bold uppercase text-[10px]">
+                                            {isTipEnabled ? 'Tip (Masuk ke Omzet)' : 'Kembalian'}
+                                        </span>
+                                        <span className={`font-black text-lg ${isTipEnabled ? 'text-brand-orange' : 'text-black'}`}>
+                                            Rp {change > 0 ? change.toLocaleString() : 0}
+                                        </span>
+                                    </div>
+
+                                    {/* Tip Toggle */}
+                                    {change > 0 && (
+                                        <div className="mt-2 pt-2 border-t border-black/20">
+                                            <label className="flex items-center gap-2 cursor-pointer select-none">
+                                                <div className={`w-4 h-4 border-2 border-black flex items-center justify-center transition-colors ${isTipEnabled ? 'bg-black' : 'bg-white'}`}>
+                                                    {isTipEnabled && <div className="w-2 h-2 bg-white" />}
+                                                </div>
+                                                <input
+                                                    type="checkbox"
+                                                    className="hidden"
+                                                    checked={isTipEnabled}
+                                                    onChange={() => setIsTipEnabled(!isTipEnabled)}
+                                                />
+                                                <span className="text-[10px] font-bold uppercase hover:underline">
+                                                    Pelanggan tidak minta kembalian? (Jadikan Tip)
+                                                </span>
+                                            </label>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <button
+                                    onClick={handleProcess}
+                                    className="w-full bg-black text-white font-black py-3 text-sm uppercase hover:bg-brand-orange hover:text-black border-2 border-transparent hover:border-black transition-all"
+                                >
+                                    Proses & Cetak
+                                </button>
                             </div>
+                        )}
 
-                            <button
-                                onClick={handleProcess}
-                                className="w-full bg-black text-white font-black py-3 text-sm uppercase hover:bg-brand-orange hover:text-black border-2 border-transparent hover:border-black transition-all"
-                            >
-                                Proses & Cetak
-                            </button>
-                        </div>
-                    )}
+                        {/* QRIS Payment UI */}
+                        {paymentMethod === 'QRIS' && (
+                            <QRISPayment
+                                amount={totalAmount}
+                                onConfirm={handleProcess}
+                                onCancel={() => setPaymentMethod('CASH')}
+                            />
+                        )}
 
-                    {/* QRIS Payment UI */}
-                    {paymentMethod === 'QRIS' && (
-                        <QRISPayment
-                            amount={totalAmount}
-                            onConfirm={handleProcess}
-                            onCancel={() => setPaymentMethod('CASH')}
-                        />
-                    )}
+                        {/* Transfer Payment UI */}
+                        {paymentMethod === 'TRANSFER' && (
+                            <TransferPayment
+                                amount={totalAmount}
+                                onConfirm={handleProcess}
+                                onCancel={() => setPaymentMethod('CASH')}
+                            />
+                        )}
 
-                    {/* Transfer Payment UI */}
-                    {paymentMethod === 'TRANSFER' && (
-                        <TransferPayment
-                            amount={totalAmount}
-                            onConfirm={handleProcess}
-                            onCancel={() => setPaymentMethod('CASH')}
-                        />
-                    )}
+                        {/* ONLINE Payment UI */}
+                        {paymentMethod === 'ONLINE' && (
+                            <div className="p-4 flex flex-col gap-4">
+                                {/* Show Total Amount */}
+                                <div className="text-center border-2 border-black bg-brand-lime p-4">
+                                    <div className="text-xs font-bold text-gray-700 uppercase mb-1">Total Tagihan</div>
+                                    <div className="text-3xl font-black">Rp {totalAmount.toLocaleString()}</div>
+                                </div>
 
-                    {/* ONLINE Payment UI */}
-                    {paymentMethod === 'ONLINE' && (
-                        <div className="p-4 flex flex-col gap-4">
-                            {/* Show Total Amount */}
-                            <div className="text-center border-2 border-black bg-brand-lime p-4">
-                                <div className="text-xs font-bold text-gray-700 uppercase mb-1">Total Tagihan</div>
-                                <div className="text-3xl font-black">Rp {totalAmount.toLocaleString()}</div>
+                                <div className="bg-blue-50 border border-blue-200 p-3 rounded text-center">
+                                    <p className="text-xs text-blue-800 font-bold">
+                                        Pembuatan tagihan otomatis via Xendit VA / QRIS.
+                                        <br />
+                                        Klik 'Proses' untuk memilih metode pembayaran.
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={handleProcess}
+                                    className="w-full bg-black text-white font-black py-3 text-sm uppercase hover:bg-brand-orange hover:text-black border-2 border-transparent hover:border-black transition-all"
+                                >
+                                    Lanjut ke Pembayaran
+                                </button>
                             </div>
-
-                            <div className="bg-blue-50 border border-blue-200 p-3 rounded text-center">
-                                <p className="text-xs text-blue-800 font-bold">
-                                    Pembuatan tagihan otomatis via Xendit VA / QRIS.
-                                    <br />
-                                    Klik 'Proses' untuk memilih metode pembayaran.
-                                </p>
-                            </div>
-                            <button
-                                onClick={handleProcess}
-                                className="w-full bg-black text-white font-black py-3 text-sm uppercase hover:bg-brand-orange hover:text-black border-2 border-transparent hover:border-black transition-all"
-                            >
-                                Lanjut ke Pembayaran
-                            </button>
-                        </div>
-                    )}
+                        )}
+                    </div>
                 </div>
             </div>
         </div>

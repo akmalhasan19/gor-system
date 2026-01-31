@@ -18,10 +18,19 @@ alter table public.api_keys enable row level security;
 
 -- Create policy for admins (assuming we have an admins table or checking logic, 
 -- but for now let's just allow service_role to do everything)
-create policy "Allow service_role full access" on public.api_keys
-  for all
-  to service_role
-  using (true)
-  with check (true);
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies 
+    where policyname = 'Allow service_role full access' 
+    and tablename = 'api_keys'
+  ) then
+    create policy "Allow service_role full access" on public.api_keys
+      for all
+      to service_role
+      using (true)
+      with check (true);
+  end if;
+end $$;
 
 -- Functions to help manage keys if needed (optional)

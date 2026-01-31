@@ -295,53 +295,63 @@ export async function getTopCustomers(
     const endDate = new Date();
     const startDate = subDays(endDate, days - 1);
 
-    // Get bookings
-    const { data: bookings, error: bookingsError } = await supabase
-        .from('bookings')
-        .select('customer_name, phone, price')
+    // Get transactions with customer info
+    const { data: transactions, error } = await supabase
+        .from('transactions')
+        .select('customer_id, customer_name, customer_phone, total_amount, paid_amount')
         .eq('venue_id', venueId)
-        .gte('booking_date', format(startDate, 'yyyy-MM-dd'))
-        .lte('booking_date', format(endDate, 'yyyy-MM-dd'));
+        .gte('created_at', format(startDate, 'yyyy-MM-dd') + 'T00:00:00')
+        .lte('created_at', format(endDate, 'yyyy-MM-dd') + 'T23:59:59');
 
-    if (bookingsError) throw bookingsError;
+    if (error) throw error;
 
-    // Get customers
-    const { data: customers, error: customersError } = await supabase
-        .from('customers')
-        .select('id, name, phone, is_member')
-        .eq('venue_id', venueId);
+    // Aggregate by phone (primary identifier) or name if phone missing
+    const spendingMap: Record<string, {
+        id: string;
+        name: string;
+        phone: string;
+        spending: number;
+        count: number;
+        isMember: boolean;
+    }> = {};
 
-    if (customersError) throw customersError;
+    (transactions || []).forEach((t) => {
+        // Skip if no customer info
+        if (!t.customer_name && !t.customer_phone) return;
 
-    const customerMap: Record<string, { id: string; name: string; isMember: boolean }> = {};
-    (customers || []).forEach((c) => {
-        customerMap[c.phone] = { id: c.id, name: c.name, isMember: c.is_member };
-    });
+        // Use phone as key if available, else name
+        const key = t.customer_phone || t.customer_name;
 
-    // Aggregate by phone
-    const spendingMap: Record<string, { spending: number; count: number; name: string }> = {};
-
-    (bookings || []).forEach((b) => {
-        const key = b.phone || b.customer_name;
         if (!spendingMap[key]) {
-            spendingMap[key] = { spending: 0, count: 0, name: b.customer_name };
+            spendingMap[key] = {
+                id: t.customer_id || '',
+                name: t.customer_name || 'Pelanggan',
+                phone: t.customer_phone || '-',
+                spending: 0,
+                count: 0,
+                isMember: !!t.customer_id // If has ID, likely a member
+            };
         }
-        spendingMap[key].spending += Number(b.price) || 0;
+
+        spendingMap[key].spending += Number(t.total_amount) || 0;
         spendingMap[key].count += 1;
+
+        // Update member status if found in any transaction
+        if (t.customer_id) spendingMap[key].isMember = true;
     });
 
     // Sort and limit
-    const sorted = Object.entries(spendingMap)
-        .map(([phone, data]) => ({
-            customerId: customerMap[phone]?.id || '',
-            customerName: customerMap[phone]?.name || data.name,
-            phone,
-            isMember: customerMap[phone]?.isMember || false,
-            totalSpending: data.spending,
-            bookingCount: data.count,
-        }))
-        .sort((a, b) => b.totalSpending - a.totalSpending)
-        .slice(0, limit);
+    const sorted = Object.values(spendingMap)
+        .sort((a, b) => b.spending - a.spending)
+        .slice(0, limit)
+        .map(item => ({
+            customerId: item.id,
+            customerName: item.name,
+            phone: item.phone,
+            isMember: item.isMember,
+            totalSpending: item.spending,
+            bookingCount: item.count // Renaming 'bookingCount' to just 'transactionCount' might be better but keeping interface for now
+        }));
 
     return sorted;
 }

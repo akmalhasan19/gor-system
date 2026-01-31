@@ -6,7 +6,12 @@ export async function createTransaction(
     items: CartItem[],
     paidAmount: number,
     paymentMethod: string,
-    status: 'PAID' | 'PARTIAL' | 'UNPAID'
+    status: 'PAID' | 'PARTIAL' | 'UNPAID',
+    customerInfo?: {
+        name?: string;
+        phone?: string;
+        id?: string;
+    }
 ): Promise<Transaction> {
     const totalAmount = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
@@ -19,6 +24,9 @@ export async function createTransaction(
             paid_amount: paidAmount,
             payment_method: paymentMethod,
             status: status,
+            customer_name: customerInfo?.name || null,
+            customer_phone: customerInfo?.phone || null,
+            customer_id: customerInfo?.id || null,
         })
         .select()
         .single();
@@ -84,6 +92,9 @@ export async function createTransaction(
         paymentMethod: paymentMethod as any,
         status: status,
         cashierName: 'Admin',
+        customerId: transactionData.customer_id,
+        customerName: transactionData.customer_name,
+        customerPhone: transactionData.customer_phone,
     };
 }
 
@@ -119,6 +130,9 @@ export async function getTransactions(venueId: string, limit: number = 50): Prom
         paymentMethod: row.payment_method as any,
         status: row.status,
         cashierName: 'Admin',
+        customerId: row.customer_id,
+        customerName: row.customer_name,
+        customerPhone: row.customer_phone,
     }));
 }
 
@@ -155,6 +169,9 @@ export async function getTransactionsRange(venueId: string, startDate: string, e
         paymentMethod: row.payment_method as any,
         status: row.status,
         cashierName: 'Admin',
+        customerId: row.customer_id,
+        customerName: row.customer_name,
+        customerPhone: row.customer_phone,
     }));
 }
 

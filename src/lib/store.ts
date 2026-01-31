@@ -657,6 +657,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             await productsApi.archiveProduct(id); // Soft delete by default
             set((state) => ({
                 products: state.products.filter((p) => p.id !== id),
+                cart: state.cart.filter((c) => c.id !== id && c.referenceId !== id), // Also remove from cart
                 isLoading: false
             }));
         } catch (error: any) {

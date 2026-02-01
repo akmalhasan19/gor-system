@@ -10,42 +10,29 @@ interface QRISPaymentProps {
 }
 
 export const QRISPayment: React.FC<QRISPaymentProps> = ({ amount, onConfirm, onCancel }) => {
-    // Generate QR code data - this could be a payment URL or encoded payment data
-    // Format: Company.{amount}.{timestamp} - customize based on your QRIS provider
-    const qrData = `QRIS.SMASH.${amount}.${Date.now()}`;
-
     return (
         <div className="flex flex-col gap-4 p-4 items-center">
-            {/* Instructions */}
-            <div className="text-center">
-                <div className="text-xs font-bold text-gray-500 uppercase mb-1">Scan QR Code dengan aplikasi</div>
-                <div className="text-lg font-black">QRIS / E-Wallet</div>
-            </div>
-
-            {/* QR Code */}
-            <div className="bg-white p-4 border-4 border-black shadow-neo">
-                <QRCodeSVG
-                    value={qrData}
-                    size={220}
-                    level="H"
-                    includeMargin={true}
-                />
-            </div>
-
             {/* Amount Display */}
             <div className="w-full border-2 border-black bg-brand-lime p-3 text-center">
                 <div className="text-xs font-bold text-gray-700 uppercase">Total Pembayaran</div>
                 <div className="text-2xl font-black">Rp {amount.toLocaleString()}</div>
             </div>
 
-            {/* Instructions */}
-            <div className="bg-blue-50 border border-blue-200 p-3 rounded w-full">
+            {/* Manual QRIS Instructions */}
+            <div className="bg-gray-50 border-2 border-black p-6  text-center w-full shadow-neo flex flex-col items-center justify-center min-h-[200px] gap-2">
+                <div className="bg-black text-white p-2 w-12 h-12 flex items-center justify-center font-black text-xl mb-2">QR</div>
+                <h3 className="font-black uppercase text-lg">Pembayaran QRIS</h3>
+                <p className="text-sm font-medium text-gray-600">
+                    Silakan arahkan pelanggan untuk scan <br />
+                    <strong className="text-black">QRIS Fisik / Tent Card</strong><br />
+                    yang tersedia di meja kasir.
+                </p>
+            </div>
+
+            {/* Check Status */}
+            <div className="bg-blue-50 border border-blue-200 p-3 rounded w-full text-center">
                 <p className="text-xs text-blue-800 font-semibold">
-                    📱 Buka aplikasi e-wallet (GoPay, OVO, Dana, LinkAja, ShopeePay, dll)
-                    <br />
-                    📸 Scan QR code di atas
-                    <br />
-                    ✅ Setelah pembayaran berhasil, klik &quot;Konfirmasi&quot;
+                    ⚠️ Pastikan notifikasi uang masuk sudah diterima di aplikasi/merchant QRIS Anda sebelum konfirmasi.
                 </p>
             </div>
 

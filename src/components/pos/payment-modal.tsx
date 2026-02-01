@@ -180,41 +180,8 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, tot
 
     const quickMoney = [5000, 10000, 20000, 50000, 100000];
 
-    // If online transaction is created, show Xendit Payment UI
-    if (createdTransaction) {
-        return (
-            <div className="fixed inset-0 bg-black/50 z-[100] flex items-end justify-center md:items-center p-0 md:p-4">
-                <div className="bg-white border-t-2 border-x-2 md:border-2 border-black shadow-neo w-full max-w-sm flex flex-col max-h-[95dvh] md:max-h-[90vh] rounded-t-xl md:rounded-xl overflow-hidden">
-                    <div className="bg-black text-white p-3 flex justify-between items-center border-b-2 border-black flex-shrink-0">
-                        <h2 className="font-black text-sm uppercase">Pembayaran Online</h2>
-                        <button
-                            onClick={() => {
-                                setCreatedTransaction(null);
-                                onClose();
-                            }}
-                            className="hover:text-brand-orange font-bold text-sm"
-                        >
-                            X
-                        </button>
-                    </div>
-                    <div className="p-0 overflow-y-auto flex-1 h-full min-h-[400px]">
-                        <XenditPayment
-                            amount={createdTransaction.totalAmount}
-                            transactionId={createdTransaction.id}
-                            onSuccess={() => {
-                                setCreatedTransaction(null);
-                                onClose();
-                                setTimeout(() => window.print(), 500);
-                            }}
-                            customerName={customerType === 'MEMBER'
-                                ? customers.find(c => c.id === selectedMemberId)?.name || 'Pelanggan'
-                                : walkInName || 'Pelanggan'}
-                        />
-                    </div>
-                </div>
-            </div>
-        );
-    }
+    // If online transaction is created, show Xendit Payment UI - REMOVED for Manual Pivot
+    // if (createdTransaction) { ... }
 
     return (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center md:items-center p-0 md:p-4">
@@ -290,7 +257,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, tot
                             <div className="text-3xl font-black">Rp {totalAmount.toLocaleString()}</div>
                         </div>
                         <div className="grid grid-cols-2 gap-2">
-                            {(["CASH", "QRIS", "TRANSFER", "ONLINE"] as const).map((method) => (
+                            {(["CASH", "QRIS", "TRANSFER"] as const).map((method) => (
                                 <button
                                     key={method}
                                     onClick={() => setPaymentMethod(method)}
@@ -299,7 +266,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, tot
                                         : "bg-white hover:bg-gray-100"
                                         }`}
                                 >
-                                    {method === 'ONLINE' ? 'ONLINE' : method}
+                                    {method}
                                 </button>
                             ))}
                         </div>

@@ -26,7 +26,7 @@ export const PLAN_FEATURES: Record<SubscriptionPlan, PlanConfig> = {
     STARTER: {
         name: 'STARTER',
         displayName: 'Starter',
-        priceMonthly: 199000,
+        priceMonthly: 99000,
         maxCourts: 3,
         features: [],
         description: 'Untuk GOR kecil dengan 1-3 lapangan. Cocok untuk memulai.',
@@ -34,7 +34,7 @@ export const PLAN_FEATURES: Record<SubscriptionPlan, PlanConfig> = {
     PRO: {
         name: 'PRO',
         displayName: 'Pro',
-        priceMonthly: 399000,
+        priceMonthly: 299000,
         maxCourts: 8,
         features: ['POS', 'INVENTORY', 'STAFF_REPORT', 'WHATSAPP_NOTIF', 'EXPORT_DATA'],
         description: 'Untuk GOR menengah. Termasuk POS dan Inventory management.',
@@ -42,7 +42,7 @@ export const PLAN_FEATURES: Record<SubscriptionPlan, PlanConfig> = {
     BUSINESS: {
         name: 'BUSINESS',
         displayName: 'Business',
-        priceMonthly: 699000,
+        priceMonthly: 499000,
         maxCourts: 999, // Effectively unlimited
         features: ['POS', 'INVENTORY', 'STAFF_REPORT', 'WHATSAPP_NOTIF', 'MULTI_STAFF', 'ADVANCED_ANALYTICS', 'EXPORT_DATA'],
         description: 'Untuk GOR besar atau chain. Fitur lengkap tanpa batasan.',

@@ -29,8 +29,12 @@ export const TransferPayment: React.FC<TransferPaymentProps> = ({ amount, onConf
             </div>
 
             {/* Instructions */}
-            <div className="bg-blue-50 border border-blue-200 p-3 rounded text-center">
-                <p className="text-xs text-blue-800 font-semibold">
+            {/* Instructions - NEO-BRUTALIST STYLE */}
+            <div className="bg-yellow-300 border-2 border-black p-4 text-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] relative mt-2">
+                <div className="absolute -top-3 -left-2 bg-black text-white px-2 py-0.5 text-xs font-black transform -rotate-2">
+                    IMPORTANT
+                </div>
+                <p className="text-sm text-black font-bold uppercase leading-tight">
                     ⚠️ Pastikan notifikasi uang masuk sudah diterima (cek mutasi) sebelum konfirmasi.
                 </p>
             </div>

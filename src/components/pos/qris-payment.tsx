@@ -30,8 +30,12 @@ export const QRISPayment: React.FC<QRISPaymentProps> = ({ amount, onConfirm, onC
             </div>
 
             {/* Check Status */}
-            <div className="bg-blue-50 border border-blue-200 p-3 rounded w-full text-center">
-                <p className="text-xs text-blue-800 font-semibold">
+            {/* Check Status - NEO-BRUTALIST STYLE */}
+            <div className="bg-yellow-300 border-2 border-black p-4 w-full text-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] relative">
+                <div className="absolute -top-3 -left-2 bg-black text-white px-2 py-0.5 text-xs font-black transform -rotate-2">
+                    IMPORTANT
+                </div>
+                <p className="text-sm text-black font-bold uppercase leading-tight">
                     ⚠️ Pastikan notifikasi uang masuk sudah diterima di aplikasi/merchant QRIS Anda sebelum konfirmasi.
                 </p>
             </div>

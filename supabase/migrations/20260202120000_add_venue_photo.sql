@@ -5,7 +5,8 @@ ALTER TABLE venues ADD COLUMN IF NOT EXISTS photo_url TEXT;
 -- but user said it exists. We will ensure policies exist for public access)
 
 -- Enable RLS on objects if not already
-ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
+-- Enable RLS on objects if not already
+-- ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY; -- Skipped: User does not have permission
 
 -- 1. Policy: Public can view venue photos (SELECT)
 DO $$

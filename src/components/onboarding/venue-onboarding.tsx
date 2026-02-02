@@ -8,7 +8,7 @@ import { Building2, MapPin, Phone, Grid3x3, Clock, Check, ArrowRight, ArrowLeft,
 import { useVenue } from '@/lib/venue-context';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
-import { getCsrfHeaders } from '@/lib/hooks/use-csrf';
+import { getCsrfHeaders, fetchWithCsrf } from '@/lib/hooks/use-csrf';
 import { PLAN_FEATURES, SubscriptionPlan } from '@/lib/constants/plans';
 
 interface OnboardingData {
@@ -133,7 +133,7 @@ export function VenueOnboarding() {
                     formData.append('file', data.photoFile);
                     formData.append('venueId', result.venueId);
 
-                    await fetch('/api/venues/photo', {
+                    await fetchWithCsrf('/api/venues/photo', {
                         method: 'POST',
                         body: formData
                     });

@@ -6,6 +6,7 @@ import { updateVenue } from "@/lib/api/venues";
 import { toast } from "sonner";
 import { Camera, Image as ImageIcon, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { fetchWithCsrf } from "@/lib/hooks/use-csrf";
 
 export const VenueProfileSettings = () => {
     const { currentVenue, refreshVenue } = useVenue();
@@ -34,7 +35,7 @@ export const VenueProfileSettings = () => {
         formData.append('venueId', currentVenue.id);
 
         try {
-            const res = await fetch('/api/venues/photo', {
+            const res = await fetchWithCsrf('/api/venues/photo', {
                 method: 'POST',
                 body: formData
             });

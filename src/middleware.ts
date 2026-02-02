@@ -2,6 +2,7 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { RateLimiter } from '@/lib/rate-limit';
 import { generateCsrfToken, verifyCsrfToken, CSRF_COOKIE_NAME, CSRF_HEADER_NAME } from '@/lib/csrf';
+import { jwtVerify } from 'jose';
 
 // Routes that should be excluded from CSRF protection
 const CSRF_EXEMPT_ROUTES = [
@@ -9,15 +10,14 @@ const CSRF_EXEMPT_ROUTES = [
     '/api/public/',   // Public endpoints (read-only)
     '/api/cron/',     // Cron jobs (often internal or simple key auth)
     '/api/auth/admin-signup', // Header-based authentication
+    '/api/v1/',       // External API (JWT authenticated)
 ];
 
 // Global Re-usable Rate Limiter (In-Memory)
-// Note: In serverless, this Map is reset on cold start, but effective for high-traffic spikes on warm instances.
 const limiter = new RateLimiter({
     interval: 60 * 1000, // 1 minute
     uniqueTokenPerInterval: 500, // Max 500 unique IPs per minute
 });
-
 
 export async function middleware(request: NextRequest) {
     let response = NextResponse.next({
@@ -25,6 +25,55 @@ export async function middleware(request: NextRequest) {
             headers: request.headers,
         },
     })
+
+    // --- 1. EXTERNAL API v1 PROTECTION (JWT + CORS) ---
+    if (request.nextUrl.pathname.startsWith('/api/v1')) {
+        // A. CORS Check
+        const origin = request.headers.get('origin');
+        const allowedOrigin = process.env.WEBSITE_SMASH_URL;
+
+        // Handle Preflight locally effectively or just let browser handle failure if headers missing
+        // For simplicity in middleware, we usually handle actual logic. 
+        // We will set CORS headers on the response.
+        if (origin && allowedOrigin && origin !== allowedOrigin) {
+            return new NextResponse(JSON.stringify({ error: 'CORS policy violation' }), { status: 403 });
+        }
+
+        // B. JWT Authentication
+        const authHeader = request.headers.get('authorization');
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            return new NextResponse(JSON.stringify({ error: 'Missing or invalid Authorization header' }), { status: 401 });
+        }
+
+        const token = authHeader.split(' ')[1];
+        const secret = new TextEncoder().encode(process.env.API_JWT_SECRET);
+
+        try {
+            await jwtVerify(token, secret);
+            // Token is valid, proceed.
+        } catch (err) {
+            console.error('JWT Verification failed:', err);
+            return new NextResponse(JSON.stringify({ error: 'Invalid or expired token' }), { status: 401 });
+        }
+
+        // C. Rate Limiting for API v1 (Shared or Distinct?)
+        // Reuse global limiter for now
+        const ip = request.headers.get('x-forwarded-for') ?? '127.0.0.1';
+        const { success, limit, remaining, reset } = await limiter.check(60, ip); // 60 requests per minute for API
+
+        if (!success) {
+            return new NextResponse(JSON.stringify({ error: 'Too Many Requests' }), { status: 429 });
+        }
+
+        // Add CORS headers to success response (needed for browser fetch)
+        if (allowedOrigin) {
+            response.headers.set('Access-Control-Allow-Origin', allowedOrigin);
+            response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS');
+            response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+        }
+
+        return response;
+    }
 
     // Protect admin routes
     // Allow /login, /public, /verify, /_next, /favicon.ico, /api/public, /api/phone-verification, /api/auth
@@ -106,21 +155,11 @@ export async function middleware(request: NextRequest) {
             const isPhoneVerified = user.user_metadata?.phone_verified === true;
 
             if (!isPhoneVerified) {
-                // Optimization: Skip DB check in middleware to reduce latency.
-                // We rely on AuthGuard (client-side) to check DB if metadata is missing.
-                // Or if we really want to enforce it for legacy users without blocking middleware,
-                // we assume "not verified" only if we are STRICT, but here we perform optimistic allow 
-                // and let the Client Guard catch it.
-
-                // However, for strict security, if metadata SAYS false (explicitly), we might redirect.
-                // But undefined means "maybe legacy".
                 if (user.user_metadata?.phone_verified === false) {
                     const loginUrl = new URL('/login', request.url);
                     loginUrl.searchParams.set('verify_phone', 'true');
                     return NextResponse.redirect(loginUrl);
                 }
-
-                // If undefined, pass through to AuthGuard
             }
 
             // Check if user has completed onboarding
@@ -129,16 +168,7 @@ export async function middleware(request: NextRequest) {
                 const venueId = user.user_metadata?.venue_id;
 
                 if (!venueId) {
-                    // No database query here.
-                    // We trust SessionSyncer/AuthGuard on client to handle this edge case (legacy users).
-                    // This allows 0ms IO latency in middleware for 99% of requests.
-                    // If we really want to be strict, we could redirect to a /sync-session page, 
-                    // but falling through to the app (which will redirect to onboarding/login) is cleaner.
-
-                    // Actually, if we don't have venueId in metadata, we should likely let them pass 
-                    // and let AuthGuard catch it, OR redirect to onboarding if we want to be strict.
-                    // But without DB check, we can't be sure if they REALLY need onboarding or just need a sync.
-                    // So we pass them through.
+                    // Pass through
                 }
             }
         }
@@ -150,9 +180,6 @@ export async function middleware(request: NextRequest) {
         if (venueId) {
             return NextResponse.redirect(new URL('/', request.url));
         }
-        // If no venueId in metadata, we let them view onboarding. 
-        // If they actually HAVE a venue but just no metadata, the onboarding form will detect "User already has venue"
-        // or our SessionSyncer will fix it eventually.
     }
 
     // If user is logged in with verified phone and tries to access login, redirect to dashboard
@@ -162,15 +189,10 @@ export async function middleware(request: NextRequest) {
         if (isPhoneVerified) {
             return NextResponse.redirect(new URL('/', request.url));
         }
-
-        // Optimization: We no longer do a blocking DB check here for "pending" verification.
-        // We rely on the client-side AuthGuard to catch edge cases where metadata is stale.
-        // If a user is truly verified but metadata says false, they might see the login page for a moment
-        // before AuthGuard redirects them, OR they can just log in again and we update metadata.
     }
 
-    // --- RATE LIMITING (API Routes Only) ---
-    if (request.nextUrl.pathname.startsWith('/api')) {
+    // --- RATE LIMITING (Other API Routes) ---
+    if (request.nextUrl.pathname.startsWith('/api') && !request.nextUrl.pathname.startsWith('/api/v1')) {
         const ip = request.headers.get('x-forwarded-for') ?? '127.0.0.1';
         try {
             const { success, limit, remaining, reset } = await limiter.check(20, ip); // 20 requests per minute
@@ -186,7 +208,6 @@ export async function middleware(request: NextRequest) {
             }
         } catch (error) {
             console.error('Rate limit error:', error);
-            // Fail open if rate limiter fails
         }
 
         // --- CSRF PROTECTION (State-changing API requests) ---
@@ -199,13 +220,7 @@ export async function middleware(request: NextRequest) {
             const cookieToken = request.cookies.get(CSRF_COOKIE_NAME)?.value;
             const headerToken = request.headers.get(CSRF_HEADER_NAME);
 
-            // Validate both tokens exist and match
             if (!cookieToken || !headerToken) {
-                console.warn('CSRF token missing', {
-                    path: request.nextUrl.pathname,
-                    hasCookie: !!cookieToken,
-                    hasHeader: !!headerToken
-                });
                 return new NextResponse(
                     JSON.stringify({ error: 'CSRF token missing' }),
                     {
@@ -216,9 +231,6 @@ export async function middleware(request: NextRequest) {
             }
 
             if (cookieToken !== headerToken || !verifyCsrfToken(cookieToken)) {
-                console.warn('CSRF token validation failed', {
-                    path: request.nextUrl.pathname
-                });
                 return new NextResponse(
                     JSON.stringify({ error: 'CSRF token invalid' }),
                     {

@@ -11,10 +11,11 @@ import { Settings as SettingsIcon, LayoutGrid, Clock, Wrench, DollarSign, Credit
 import { ReminderSettingsForm } from "./reminder-settings-form";
 import { TeamManagement } from "./team-management";
 import { useUserRole } from "@/hooks/use-role";
-import { Users } from "lucide-react";
+import { Users, Image as ImageIcon } from "lucide-react"; // Import Image Icon
+import { VenueProfileSettings } from "./venue-profile-settings";
 
 export const SettingsView = () => {
-    const [tab, setTab] = useState<'courts' | 'operational' | 'reminders' | 'maintenance' | 'finance' | 'team' | 'billing'>('operational');
+    const [tab, setTab] = useState<'profile' | 'courts' | 'operational' | 'reminders' | 'maintenance' | 'finance' | 'team' | 'billing'>('operational');
     const { role, hasPermission } = useUserRole();
 
     const canViewFinance = hasPermission('VIEW_FINANCE');
@@ -31,6 +32,16 @@ export const SettingsView = () => {
                 >
                     <SettingsIcon size={16} />
                     Operasional
+                </button>
+                <button
+                    onClick={() => setTab('profile')}
+                    className={`px-4 py-2 font-black uppercase text-sm flex items-center gap-2 border-b-2 transition-all whitespace-nowrap ${tab === 'profile'
+                        ? 'border-black text-black'
+                        : 'border-transparent text-gray-400 hover:text-gray-600'
+                        }`}
+                >
+                    <ImageIcon size={16} />
+                    Profil Venue
                 </button>
                 <button
                     onClick={() => setTab('courts')}
@@ -102,6 +113,7 @@ export const SettingsView = () => {
             </div>
 
             <div className="mt-2 text-sm">
+                {tab === 'profile' && <VenueProfileSettings />}
                 {tab === 'operational' && <OperationalSettings />}
                 {tab === 'courts' && <CourtSettings />}
                 {tab === 'reminders' && (

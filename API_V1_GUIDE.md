@@ -11,7 +11,7 @@ In your Booking Website project (e.g., Next.js), add these to your `.env` or Ver
 
 | Variable Name | Description | Example Value |
 | :--- | :--- | :--- |
-| `NEXT_PUBLIC_SMASH_API_BASE_URL` | The URL of the deployed PWA Smash. | `https://pwa-smash.vercel.app/api/v1` |
+| `NEXT_PUBLIC_SMASH_API_BASE_URL` | The URL of the deployed PWA Smash. **Must use HTTPS**. | `https://pwa-smash.vercel.app/api/v1` |
 | `SMASH_API_TOKEN` | The long JWT token generated from PWA Smash. | `eyJhbGciOiJIUz...` |
 
 > **⚠️ Security Note:** Do not expose `SMASH_API_TOKEN` to the browser (client-side) if possible. Use Next.js API Routes (Server Components) to proxy requests to this API to keep the token hidden.

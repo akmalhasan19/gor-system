@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { NeoButton } from '@/components/ui/neo-button';
 import { NeoInput } from '@/components/ui/neo-input';
-import { Building2, MapPin, Phone, Grid3x3, Clock, Check, ArrowRight, ArrowLeft, Sparkles, LogOut, Crown, Zap, AlertTriangle, Rocket, Trophy, Gem } from 'lucide-react';
+import { Building2, MapPin, Phone, Grid3x3, Clock, Check, ArrowRight, ArrowLeft, Sparkles, LogOut, Crown, Zap, AlertTriangle, Rocket, Trophy, Gem, Image as ImageIcon } from 'lucide-react';
 import { useVenue } from '@/lib/venue-context';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
@@ -19,7 +19,9 @@ interface OnboardingData {
     operatingHoursStart: number;
     operatingHoursEnd: number;
     hourlyRatePerCourt: number;
+
     subscriptionPlan: SubscriptionPlan;
+    photoFile: File | null;
 }
 
 type OnboardingStep = 1 | 2 | 3 | 4 | 5;
@@ -41,6 +43,7 @@ export function VenueOnboarding() {
         operatingHoursEnd: 23,
         hourlyRatePerCourt: 50000,
         subscriptionPlan: 'STARTER',
+        photoFile: null,
     });
 
     const maxCourts = PLAN_FEATURES[data.subscriptionPlan].maxCourts;
@@ -123,9 +126,25 @@ export function VenueOnboarding() {
                 throw new Error(result.error || 'Gagal menyimpan data');
             }
 
+            // Upload photo if exists
+            if (data.photoFile && result.venueId) {
+                try {
+                    const formData = new FormData();
+                    formData.append('file', data.photoFile);
+                    formData.append('venueId', result.venueId);
+
+                    await fetch('/api/venues/photo', {
+                        method: 'POST',
+                        body: formData
+                    });
+                } catch (uploadError) {
+                    console.error("Photo upload failed but venue created", uploadError);
+                    toast.error("Venue dibuat tapi foto gagal diupload");
+                }
+            }
+
             await refreshVenue();
             router.push('/');
-            router.refresh();
         } catch (err: any) {
             setError(err.message || 'Terjadi kesalahan');
         } finally {
@@ -222,10 +241,50 @@ export function VenueOnboarding() {
                         <div className="space-y-6">
                             <div>
                                 <h2 className="text-xl font-black uppercase mb-1">Informasi Venue</h2>
+
                                 <p className="text-sm text-gray-600">Ceritakan sedikit tentang GOR Anda</p>
                             </div>
 
                             <div className="space-y-4">
+                                { /* Photo Upload */}
+                                <div>
+                                    <label className="font-black uppercase text-sm flex items-center gap-2 mb-2">
+                                        <ImageIcon className="w-4 h-4" /> Foto Venue
+                                    </label>
+                                    <div className="relative w-full aspect-video bg-gray-100 border-2 border-black border-dashed rounded-lg overflow-hidden flex items-center justify-center hover:bg-gray-50 transition-colors cursor-pointer"
+                                        onClick={() => document.getElementById('venue-photo-input')?.click()}
+                                    >
+                                        {data.photoFile ? (
+                                            // eslint-disable-next-line @next/next/no-img-element
+                                            <img
+                                                src={URL.createObjectURL(data.photoFile)}
+                                                alt="Preview"
+                                                className="w-full h-full object-cover"
+                                            />
+                                        ) : (
+                                            <div className="flex flex-col items-center gap-2 text-gray-400">
+                                                <ImageIcon size={32} />
+                                                <span className="text-xs font-bold">Klik untuk upload foto cover</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <input
+                                        id="venue-photo-input"
+                                        type="file"
+                                        accept="image/*"
+                                        className="hidden"
+                                        onChange={(e) => {
+                                            const file = e.target.files?.[0];
+                                            if (file) {
+                                                if (file.size > 5 * 1024 * 1024) {
+                                                    setError("Ukuran foto maksimal 5MB");
+                                                    return;
+                                                }
+                                                updateData({ photoFile: file });
+                                            }
+                                        }}
+                                    />
+                                </div>
                                 <div>
                                     <label className="font-black uppercase text-sm flex items-center gap-2 mb-2">
                                         <Building2 className="w-4 h-4" /> Nama Venue <span className="text-red-500">*</span>

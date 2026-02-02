@@ -41,6 +41,7 @@ export interface Venue {
     winbackConfiguration?: WinbackConfiguration;
     // Deposit Policy
     depositPolicy?: DepositPolicy;
+    photo_url?: string;
 }
 
 export async function getVenues(): Promise<Venue[]> {
@@ -70,6 +71,7 @@ export async function getVenues(): Promise<Venue[]> {
         waStatus: row.wa_status,
         winbackConfiguration: row.winback_configuration,
         depositPolicy: row.deposit_policy,
+        photo_url: row.photo_url,
     }));
 }
 
@@ -100,6 +102,7 @@ export async function getVenueById(id: string): Promise<Venue | null> {
         waStatus: data.wa_status,
         winbackConfiguration: data.winback_configuration,
         depositPolicy: data.deposit_policy,
+        photo_url: data.photo_url,
     };
 }
 
@@ -166,6 +169,7 @@ export async function updateVenue(id: string, updates: Partial<Venue>): Promise<
     if (updates.waStatus !== undefined) dbUpdates.wa_status = updates.waStatus;
     if (updates.winbackConfiguration !== undefined) dbUpdates.winback_configuration = updates.winbackConfiguration;
     if (updates.depositPolicy !== undefined) dbUpdates.deposit_policy = updates.depositPolicy;
+    if (updates.photo_url !== undefined) dbUpdates.photo_url = updates.photo_url;
 
     const { error } = await supabase
         .from('venues')
@@ -257,7 +261,9 @@ export async function getUserVenue(userId: string): Promise<Venue | null> {
                 wa_template_reminder,
                 deposit_policy,
                 wa_device_id,
-                wa_status
+                wa_device_id,
+                wa_status,
+                photo_url
             )
         `)
         .eq('user_id', userId)
@@ -287,5 +293,6 @@ export async function getUserVenue(userId: string): Promise<Venue | null> {
         waStatus: venue.wa_status,
         winbackConfiguration: venue.winback_configuration,
         depositPolicy: venue.deposit_policy,
+        photo_url: venue.photo_url,
     };
 }

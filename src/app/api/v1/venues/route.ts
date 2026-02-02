@@ -21,7 +21,7 @@ export async function GET(request: Request) {
 
         let query = supabase
             .from('venues')
-            .select('*', { count: 'exact' });
+            .select('*, courts(count)', { count: 'exact' });
 
         // Filtering
         if (isActive !== null) {
@@ -46,8 +46,15 @@ export async function GET(request: Request) {
             return NextResponse.json({ error: error.message }, { status: 500 });
         }
 
+        // Transform data to flatten courts count
+        const formattedData = data?.map((venue: any) => ({
+            ...venue,
+            courts_count: venue.courts?.[0]?.count || 0,
+            courts: undefined // Remove the raw courts object
+        }));
+
         return NextResponse.json({
-            data,
+            data: formattedData,
             meta: {
                 total: count,
                 page,

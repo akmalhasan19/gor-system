@@ -44,8 +44,23 @@ export async function GET(request: Request) {
             return NextResponse.json({ error: error.message }, { status: 500 });
         }
 
+        const validData = (data || []).map((court: any) => ({
+            id: court.id,
+            name: court.name,
+            court_number: court.court_number,
+            hourly_rate: court.hourly_rate,
+            is_active: court.is_active,
+            // Map notes to description, fallback to default
+            description: court.notes || "Lantai Karpet Vinyl Standar Internasional, Pencahayaan LED 500 Lux, Atap Tinggi Sirkulasi Udara Baik.",
+            // Add static/placeholder photo_url
+            photo_url: [
+                `https://placehold.co/600x400?text=${encodeURIComponent(court.name)}`
+            ],
+            venue: court.venues
+        }));
+
         return NextResponse.json({
-            data,
+            data: validData,
             meta: {
                 timestamp: new Date().toISOString(),
                 source: 'Smash Partner External API'

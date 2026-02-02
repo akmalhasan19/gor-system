@@ -15,6 +15,12 @@ Semua request ke External API harus menyertakan header `x-api-key`.
 
 ---
 
+> [!IMPORTANT]
+> **API KEY BARU (Efektif per 2026-02-02)**
+> Gunakan key yang telah diberikan secara aman (lihat .env Anda). Key tidak ditulis di dokumen ini untuk keamanan.
+
+---
+
 ## 📡 Endpoints
 
 Base URL: `https://[BERUBAH-SESUAI-DOMAIN-ANDA]/api/external/v1`
@@ -53,7 +59,7 @@ Mengecek slot mana yang sudah terisi pada tanggal tertentu.
 ---
 
 ### 2. Membuat Booking Baru (`POST /bookings`)
-Membuat reservasi baru. Status default adalah `pending` (menunggu pembayaran).
+Membuat reservasi baru. Status default adalah `pending` (menunggu pembayaran), namun Anda bisa mengirim status `LUNAS` jika user sudah membayar.
 
 **Request:**
 `POST /bookings`
@@ -72,8 +78,16 @@ Membuat reservasi baru. Status default adalah `pending` (menunggu pembayaran).
   "duration": 1,
   "customerName": "Rizky (Online)",
   "phone": "081234567890",
-  "price": 50000
+  "phone": "081234567890",
+  "price": 50000,
+  "status": "LUNAS"
 }
+```
+**Field `status` (Optional):**
+*   `pending` (Default): Belum bayar / Menunggu pembayaran.
+*   `LUNAS`: Sudah dibayar lunas.
+*   `DP`: Sudah bayar DP.
+*   `BELUM_BAYAR`: Belum bayar (sama dengan pending tapi status eksplisit).
 ```
 
 **Response Success (200):**
@@ -90,7 +104,56 @@ Membuat reservasi baru. Status default adalah `pending` (menunggu pembayaran).
 
 ---
 
-### 3. Mendapatkan Info Lapangan & Harga (`GET /courts`)
+---
+
+### 3. Update Status Booking (`PATCH /bookings/:id/payment`)
+Mengupdate status pembayaran booking (misal menjadi `LUNAS`).
+
+**Request:**
+`PATCH /bookings/[BOOKING_UUID]/payment`
+
+**Body:**
+```json
+{
+  "status": "LUNAS"
+}
+```
+*Valid Status*: `"LUNAS"`, `"DP"`, `"BELUM_BAYAR"`, `"pending"`, `"cancelled"`.
+
+**Response Success (200):**
+```json
+{
+  "success": true,
+  "message": "Booking ... status updated to LUNAS"
+}
+```
+
+---
+
+### 4. Mendapatkan Profil GOR (`GET /venues/:id`)
+Mendapatkan detail lengkap venue termasuk fasilitas dan foto (jika ada).
+
+**Request:**
+`GET /venues/[VENUE_UUID]`
+
+**Response Success (200):**
+```json
+{
+  "id": "...",
+  "name": "GOR Smash Juara",
+  "address": "Jl. Raya...",
+  "maps_url": "https://maps.google.com/...",
+  "description": "...",
+  "start_hour": "08:00",
+  "end_hour": "23:00",
+  "facilities": ["Toilet", "Musholla", "Parkir"],
+  "photos": ["url1.jpg", "url2.jpg"]
+}
+```
+
+---
+
+### 5. Mendapatkan Info Lapangan & Harga (`GET /courts`)
 Mendapatkan daftar lapangan aktif beserta harganya.
 
 **Request:**
@@ -104,7 +167,9 @@ Mendapatkan daftar lapangan aktif beserta harganya.
       "id": "uuid-court",
       "name": "LAPANGAN 1",
       "hourly_rate": 50000,
-      "is_active": true
+      "is_active": true,
+      "description": "Lantai Karpet Vinyl...",
+      "photo_url": ["https://..."]
     },
     ...
   ]

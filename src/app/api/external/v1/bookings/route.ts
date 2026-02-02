@@ -23,7 +23,7 @@ export async function POST(request: Request) {
 
     try {
         const body = await request.json();
-        const { venueId, courtId, bookingDate, startTime, duration, customerName, phone, price } = body;
+        const { venueId, courtId, bookingDate, startTime, duration, customerName, phone, price, status } = body;
 
         // Basic Validation
         if (!venueId || !courtId || !bookingDate || !startTime || !customerName || !phone) {
@@ -45,7 +45,7 @@ export async function POST(request: Request) {
             customerName,
             phone,
             price: Number(price) || 0,
-            status: 'pending', // External bookings start as pending usually (until payment)
+            status: status || 'pending', // Use provided status or default to pending
             paidAmount: 0,
         });
 

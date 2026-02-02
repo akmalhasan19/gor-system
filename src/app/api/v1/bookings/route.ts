@@ -102,6 +102,20 @@ export async function POST(request: Request) {
             );
         }
 
+        // 2.5. Calculate Price
+        // Fetch court hourly rate
+        const { data: court, error: courtError } = await supabase
+            .from('courts')
+            .select('hourly_rate')
+            .eq('id', payload.court_id)
+            .single();
+
+        if (courtError || !court) {
+            return NextResponse.json({ error: 'Court not found or invalid' }, { status: 404 });
+        }
+
+        const totalPrice = court.hourly_rate * payload.duration;
+
         // 3. Create Booking
         const { data, error } = await supabase
             .from('bookings')
@@ -114,6 +128,7 @@ export async function POST(request: Request) {
                 customer_name: payload.customer_name,
                 phone: payload.phone,
                 status: 'pending', // Default status
+                price: totalPrice,
                 created_at: new Date().toISOString()
             })
             .select()

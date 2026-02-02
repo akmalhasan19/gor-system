@@ -44,7 +44,7 @@ export function VenueProvider({ children }: { children: React.ReactNode }) {
             const { data: { user }, error } = await supabase.auth.getUser();
 
             if (error || !user) {
-                console.log('No authenticated user');
+                console.debug('No authenticated user');
                 if (error) {
                     // Start fresh if the session is invalid (e.g. user deleted on server)
                     await supabase.auth.signOut();

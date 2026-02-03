@@ -29,6 +29,10 @@ export interface Venue {
     operatingHoursStart: number;
     operatingHoursEnd: number;
     isActive: boolean;
+    // Location fields for location-based filtering
+    latitude?: number;
+    longitude?: number;
+    city?: string;
     // Operational Settings
     bookingTolerance?: number; // minutes
     overtimePolicy?: 'allow' | 'charge' | 'strict';
@@ -62,6 +66,9 @@ export async function getVenues(): Promise<Venue[]> {
         operatingHoursStart: row.operating_hours_start,
         operatingHoursEnd: row.operating_hours_end,
         isActive: row.is_active,
+        latitude: row.latitude,
+        longitude: row.longitude,
+        city: row.city,
         bookingTolerance: row.booking_tolerance,
         overtimePolicy: row.overtime_policy,
         waNotificationTime: row.wa_notification_time,
@@ -93,6 +100,9 @@ export async function getVenueById(id: string): Promise<Venue | null> {
         operatingHoursStart: data.operating_hours_start,
         operatingHoursEnd: data.operating_hours_end,
         isActive: data.is_active,
+        latitude: data.latitude,
+        longitude: data.longitude,
+        city: data.city,
         bookingTolerance: data.booking_tolerance,
         overtimePolicy: data.overtime_policy,
         waNotificationTime: data.wa_notification_time,

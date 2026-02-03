@@ -40,7 +40,7 @@ const response = await fetch(`${process.env.NEXT_PUBLIC_SMASH_API_BASE_URL}/venu
 ## 📡 3. Key Endpoints for Booking System
 
 ### A. Get Available Venues
-Display list of venues on your homepage. Now includes photo and total courts.
+Display list of venues on your homepage. Includes photo, total courts, and location data for distance-based filtering.
 
 *   **Endpoint:** `GET /venues`
 *   **Query Params:**
@@ -55,6 +55,9 @@ Display list of venues on your homepage. Now includes photo and total courts.
           "id": "uuid",
           "name": "GOR Badminton Center",
           "address": "Jl. Olahraga No. 123",
+          "latitude": -7.4797,
+          "longitude": 110.2177,
+          "city": "Magelang",
           "photo_url": "https://.../venue-photos/uuid.jpg", 
           "courts_count": 3,
           "operating_hours_start": 8,
@@ -65,8 +68,13 @@ Display list of venues on your homepage. Now includes photo and total courts.
     }
     ```
 
+> **📍 Location Fields:**
+> - `latitude` and `longitude` can be `null` if not configured for a venue
+> - Use these coordinates with Haversine formula on the frontend to calculate distance from user location
+> - `city` is a human-readable display label (e.g., "Jakarta", "Magelang")
+
 ### B. Get Venue Details (with Courts)
-Fetch detailed information about a specific venue, including its list of courts.
+Fetch detailed information about a specific venue, including its list of courts and location data.
 
 *   **Endpoint:** `GET /venues/:id`
 *   **Response Codes:** `200 OK`
@@ -76,6 +84,10 @@ Fetch detailed information about a specific venue, including its list of courts.
       "data": {
         "id": "uuid",
         "name": "GOR Badminton Center",
+        "address": "Jl. Olahraga No. 123",
+        "latitude": -7.4797,
+        "longitude": 110.2177,
+        "city": "Magelang",
         "photo_url": "https://...",
         "courts": [
           {

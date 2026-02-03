@@ -1,6 +1,6 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
-import { RateLimiter } from '@/lib/rate-limit';
+import { apiRateLimiter, externalApiRateLimiter, isUpstashConfigured, fallbackLimiter } from '@/lib/rate-limit';
 import { generateCsrfToken, verifyCsrfToken, CSRF_COOKIE_NAME, CSRF_HEADER_NAME } from '@/lib/csrf';
 import { jwtVerify } from 'jose';
 
@@ -12,12 +12,6 @@ const CSRF_EXEMPT_ROUTES = [
     '/api/auth/admin-signup', // Header-based authentication
     '/api/v1/',       // External API (JWT authenticated)
 ];
-
-// Global Re-usable Rate Limiter (In-Memory)
-const limiter = new RateLimiter({
-    interval: 60 * 1000, // 1 minute
-    uniqueTokenPerInterval: 500, // Max 500 unique IPs per minute
-});
 
 export async function middleware(request: NextRequest) {
     let response = NextResponse.next({
@@ -56,13 +50,24 @@ export async function middleware(request: NextRequest) {
             return new NextResponse(JSON.stringify({ error: 'Invalid or expired token' }), { status: 401 });
         }
 
-        // C. Rate Limiting for API v1 (Shared or Distinct?)
-        // Reuse global limiter for now
+        // C. Rate Limiting for API v1 (Distributed via Upstash Redis)
         const ip = request.headers.get('x-forwarded-for') ?? '127.0.0.1';
-        const { success, limit, remaining, reset } = await limiter.check(60, ip); // 60 requests per minute for API
-
-        if (!success) {
-            return new NextResponse(JSON.stringify({ error: 'Too Many Requests' }), { status: 429 });
+        try {
+            if (isUpstashConfigured()) {
+                const { success, limit, remaining, reset } = await externalApiRateLimiter.limit(ip);
+                if (!success) {
+                    return new NextResponse(JSON.stringify({ error: 'Too Many Requests' }), { status: 429 });
+                }
+            } else {
+                // Fallback for dev environments without Redis
+                const { success } = await fallbackLimiter.check(60, ip);
+                if (!success) {
+                    return new NextResponse(JSON.stringify({ error: 'Too Many Requests' }), { status: 429 });
+                }
+            }
+        } catch (error) {
+            console.error('Rate limit error:', error);
+            // Fail open - allow request if rate limiting fails
         }
 
         // Add CORS headers to success response (needed for browser fetch)
@@ -193,23 +198,39 @@ export async function middleware(request: NextRequest) {
         }
     }
 
-    // --- RATE LIMITING (Other API Routes) ---
+    // --- RATE LIMITING (Other API Routes via Distributed Redis) ---
     if (request.nextUrl.pathname.startsWith('/api') && !request.nextUrl.pathname.startsWith('/api/v1')) {
         const ip = request.headers.get('x-forwarded-for') ?? '127.0.0.1';
         try {
-            const { success, limit, remaining, reset } = await limiter.check(20, ip); // 20 requests per minute
-            response.headers.set('X-RateLimit-Limit', limit.toString());
-            response.headers.set('X-RateLimit-Remaining', remaining.toString());
-            response.headers.set('X-RateLimit-Reset', reset.toString());
+            if (isUpstashConfigured()) {
+                const { success, limit, remaining, reset } = await apiRateLimiter.limit(ip);
+                response.headers.set('X-RateLimit-Limit', limit.toString());
+                response.headers.set('X-RateLimit-Remaining', remaining.toString());
+                response.headers.set('X-RateLimit-Reset', reset.toString());
 
-            if (!success) {
-                return new NextResponse('Too Many Requests', {
-                    status: 429,
-                    headers: response.headers
-                });
+                if (!success) {
+                    return new NextResponse('Too Many Requests', {
+                        status: 429,
+                        headers: response.headers
+                    });
+                }
+            } else {
+                // Fallback for dev environments without Redis
+                const { success, limit, remaining, reset } = await fallbackLimiter.check(20, ip);
+                response.headers.set('X-RateLimit-Limit', limit.toString());
+                response.headers.set('X-RateLimit-Remaining', remaining.toString());
+                response.headers.set('X-RateLimit-Reset', reset.toString());
+
+                if (!success) {
+                    return new NextResponse('Too Many Requests', {
+                        status: 429,
+                        headers: response.headers
+                    });
+                }
             }
         } catch (error) {
             console.error('Rate limit error:', error);
+            // Fail open - allow request if rate limiting fails
         }
 
         // --- CSRF PROTECTION (State-changing API requests) ---

@@ -48,7 +48,7 @@ export const Sidebar = () => {
             <div className="p-6 flex items-center gap-3 border-b border-white/20">
                 <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
                     <Image
-                        src="/smash-logo.svg"
+                        src="/smash-logo.png"
                         alt="Smash Logo"
                         width={32}
                         height={32}

@@ -183,3 +183,52 @@ Update payment status or confirm a booking after payment gateway success.
 | `403` | **Forbidden** | Check CORS (Origin) or Invalid Token. |
 | `404` | **Not Found** | Wrong Endpoint URL or Venue/Booking ID. |
 | `409` | **Conflict** | Slot already double-booked. |
+
+---
+
+## 🎫 4. Partner Registration Invite
+
+### G. Generate Partner Invite
+Called when admin approves a partner application. Generates a unique URL for partner registration.
+
+*   **Endpoint:** `POST /partner-invites`
+*   **Payload:**
+    ```json
+    {
+      "email": "newpartner@example.com",
+      "partner_name": "GOR Sejahtera"
+    }
+    ```
+*   **Response (201 Created):**
+    ```json
+    {
+      "success": true,
+      "invite_url": "https://pwa.smash.com/register?token=abc123...",
+      "token": "abc123...",
+      "expires_at": "2026-02-10T12:00:00Z"
+    }
+    ```
+*   **Notes:**
+    - Token expires after **7 days**
+    - If a pending invite already exists for the email, returns the existing invite URL
+    - Partner must use the invite URL to access the registration page
+
+### H. Check Invite Status (Optional)
+Check the invite status for a specific email.
+
+*   **Endpoint:** `GET /partner-invites?email=example@email.com`
+*   **Response:**
+    ```json
+    {
+      "success": true,
+      "has_invite": true,
+      "invite": {
+        "email": "example@email.com",
+        "partner_name": "GOR Sejahtera",
+        "status": "pending",
+        "is_valid": true,
+        "is_expired": false,
+        "expires_at": "2026-02-10T12:00:00Z"
+      }
+    }
+    ```

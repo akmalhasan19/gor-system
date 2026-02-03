@@ -81,12 +81,14 @@ export async function middleware(request: NextRequest) {
         request.nextUrl.pathname.startsWith('/login') ||
         request.nextUrl.pathname.startsWith('/forgot-password') ||
         request.nextUrl.pathname.startsWith('/reset-password') ||
+        request.nextUrl.pathname.startsWith('/register') ||
         request.nextUrl.pathname.startsWith('/onboarding') ||
         request.nextUrl.pathname.startsWith('/public') ||
         request.nextUrl.pathname.startsWith('/verify') ||
         request.nextUrl.pathname.startsWith('/api/public') ||
         request.nextUrl.pathname.startsWith('/api/phone-verification') ||
         request.nextUrl.pathname.startsWith('/api/onboarding') ||
+        request.nextUrl.pathname.startsWith('/api/partner-invites') ||
         request.nextUrl.pathname.startsWith('/api/webhooks') ||
         request.nextUrl.pathname.startsWith('/api/auth');
 

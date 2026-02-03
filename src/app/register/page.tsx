@@ -236,13 +236,24 @@ function RegisterContent() {
 
                 {/* Welcome Partner Message */}
                 {inviteData?.partner_name && registrationStep === 'credentials' && (
-                    <div className="bg-green-100 border-2 border-green-500 p-4 mb-6 text-center">
-                        <p className="text-sm font-bold text-green-700">
-                            Selamat datang, <span className="uppercase">{inviteData.partner_name}</span>! 🎉
-                        </p>
-                        <p className="text-xs text-green-600 mt-1">
-                            Silakan lengkapi registrasi akun Anda.
-                        </p>
+                    <div className="bg-[#DCFCE7] border-[3px] border-black p-5 mb-8 relative shadow-[5px_5px_0px_0px_rgba(0,0,0,1)]">
+                        <div className="absolute -top-3 -right-3 bg-brand-orange border-2 border-black p-1.5 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] rotate-3">
+                            <span className="text-xl">🎉</span>
+                        </div>
+
+                        <div className="flex flex-col gap-1">
+                            <h3 className="font-black text-xs uppercase tracking-widest text-green-800 mb-1">
+                                Selamat Datang Partner
+                            </h3>
+                            <div className="flex items-center gap-2">
+                                <h2 className="text-xl font-black uppercase text-black bg-white border-2 border-black px-3 py-1 inline-block transform -rotate-1">
+                                    {inviteData.partner_name}
+                                </h2>
+                            </div>
+                            <p className="text-sm font-bold text-gray-700 mt-3 border-t-2 border-black/10 pt-2">
+                                Silakan lengkapi registrasi akun Anda untuk memulai.
+                            </p>
+                        </div>
                     </div>
                 )}
 

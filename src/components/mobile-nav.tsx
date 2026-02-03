@@ -38,7 +38,7 @@ export const MobileNav = () => {
                 <div className="flex items-center gap-2 group">
                     <div className="w-8 h-8 flex items-center justify-center transition-transform group-hover:scale-110">
                         <Image
-                            src="/smash-logo.png"
+                            src="/smash-logo.svg"
                             alt="Smash Logo"
                             width={32}
                             height={32}

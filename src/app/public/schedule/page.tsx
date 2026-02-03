@@ -30,7 +30,7 @@ export default function PublicSchedulePage() {
                 <div className="w-full flex justify-center items-center gap-2">
                     <div className="w-10 h-10 flex items-center justify-center">
                         <Image
-                            src="/smash-logo.png"
+                            src="/smash-logo.svg"
                             alt="Smash Logo"
                             width={40}
                             height={40}

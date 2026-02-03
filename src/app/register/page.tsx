@@ -219,7 +219,7 @@ function RegisterContent() {
                 <div className="flex flex-col items-center mb-8">
                     <div className="w-16 h-16 bg-black flex items-center justify-center mb-4 shadow-neo">
                         <Image
-                            src="/smash-logo.png"
+                            src="/smash-logo.svg"
                             alt="Logo"
                             width={40}
                             height={40}

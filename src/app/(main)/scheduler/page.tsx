@@ -29,7 +29,7 @@ const Scheduler = dynamic(
 
 export default function SchedulerPage() {
     const {
-        bookings, addBooking, courts, customers, updateCustomer,
+        bookings, addBooking, updateBooking, courts, customers, updateCustomer,
         selectedDate, setSelectedDate
     } = useAppStore();
     const { currentVenueId, currentVenue } = useVenue();
@@ -99,8 +99,16 @@ export default function SchedulerPage() {
                 }
             }
 
-            await addBooking(currentVenueId, finalBooking);
-            toast.success('Booking berhasil disimpan!');
+            if (selectedBooking) {
+                // Update existing booking
+                await updateBooking(currentVenueId, selectedBooking.id, finalBooking);
+                toast.success('Booking berhasil diperbarui!');
+            } else {
+                // Create new booking
+                await addBooking(currentVenueId, finalBooking);
+                toast.success('Booking berhasil disimpan!');
+            }
+
             handleCloseModal();
         } catch (error) {
             console.error('Failed to save booking:', error);

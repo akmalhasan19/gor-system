@@ -2,8 +2,8 @@
 
 import React from "react";
 import Image from "next/image";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+
+import { usePathname, useRouter } from "next/navigation";
 import {
     LayoutDashboard,
     CalendarDays,
@@ -19,6 +19,7 @@ import { AlertDialog } from "@/components/ui/alert-dialog";
 
 export const Sidebar = () => {
     const pathname = usePathname();
+    const router = useRouter();
 
     const menuItems = [
         { id: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -67,24 +68,32 @@ export const Sidebar = () => {
 
             {/* Navigation Items */}
             <div className="flex-1 py-6 px-3 flex flex-col gap-2 overflow-y-auto scrollbar-none [scrollbar-width:none] [-ms-overflow-style:none]">
-                {menuItems.map((item) => (
-                    <Link
-                        key={item.id}
-                        href={item.id}
-                        className={`flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm uppercase transition-all duration-200 group
-                        ${isActive(item.id)
-                                ? "bg-brand-lime text-black shadow-[4px_4px_0px_white] translate-x-[-2px] translate-y-[-2px]"
-                                : "text-gray-400 hover:bg-white/10 hover:text-white"
-                            }`}
-                    >
-                        <item.icon
-                            size={20}
-                            strokeWidth={isActive(item.id) ? 2.5 : 2}
-                            className={`transition-transform duration-200 ${isActive(item.id) ? "scale-110" : "group-hover:scale-110"}`}
-                        />
-                        {item.label}
-                    </Link>
-                ))}
+                {menuItems.map((item) => {
+                    const active = isActive(item.id);
+                    return (
+                        <div
+                            key={item.id}
+                            onClick={() => {
+                                if (pathname !== item.id) {
+                                    router.push(item.id);
+                                    router.refresh();
+                                }
+                            }}
+                            className={`flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm uppercase transition-all duration-200 group cursor-pointer select-none
+                        ${active
+                                    ? "bg-brand-lime text-black shadow-[4px_4px_0px_white] translate-x-[-2px] translate-y-[-2px]"
+                                    : "text-gray-400 hover:bg-white/10 hover:text-white"
+                                }`}
+                        >
+                            <item.icon
+                                size={20}
+                                strokeWidth={active ? 2.5 : 2}
+                                className={`transition-transform duration-200 ${active ? "scale-110" : "group-hover:scale-110"}`}
+                            />
+                            {item.label}
+                        </div>
+                    );
+                })}
             </div>
 
             {/* Bottom Actions */}

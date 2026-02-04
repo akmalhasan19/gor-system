@@ -41,6 +41,17 @@ export const Scheduler: React.FC<SchedulerProps> = ({
     const { updateBooking } = useAppStore();
     const [moveTarget, setMoveTarget] = useState<{ bookingId: string, courtId: string, hour: number } | null>(null);
 
+    // Real-time timer state
+    const [now, setNow] = useState(new Date());
+
+    React.useEffect(() => {
+        // Update "now" every second to trigger re-renders for timers
+        const interval = setInterval(() => {
+            setNow(new Date());
+        }, 1000);
+        return () => clearInterval(interval);
+    }, []);
+
     // If no courts are defined, show empty state
     if (!courts || courts.length === 0) {
         return (
@@ -185,7 +196,7 @@ export const Scheduler: React.FC<SchedulerProps> = ({
         }
 
         const createdTime = new Date(booking.createdAt).getTime();
-        const currentTime = new Date().getTime();
+        const currentTime = now.getTime(); // Use "now" state
         const minutesElapsed = (currentTime - createdTime) / (1000 * 60);
 
         return minutesElapsed > 60;
@@ -235,7 +246,7 @@ export const Scheduler: React.FC<SchedulerProps> = ({
                                     const isStale = isBookingStale(booking);
 
                                     // Check if booking is finished but not paid
-                                    const now = new Date();
+                                    // Use "now" state for current hour check
                                     const currentHour = now.getHours();
                                     const isToday = booking.bookingDate === now.toLocaleDateString('en-CA');
                                     const endHour = startHour + booking.duration;
@@ -268,7 +279,7 @@ export const Scheduler: React.FC<SchedulerProps> = ({
                                             const createdTime = new Date(booking.createdAt).getTime();
                                             const toleranceMs = bookingToleranceMinutes * 60 * 1000;
                                             const expireTime = createdTime + toleranceMs;
-                                            const nowMs = new Date().getTime();
+                                            const nowMs = now.getTime(); // Use "now" state
                                             const diffMs = expireTime - nowMs;
 
                                             if (diffMs > 0) {

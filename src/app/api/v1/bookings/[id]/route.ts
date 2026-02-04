@@ -19,17 +19,32 @@ export async function PATCH(
         // 1. Validation
         const payload = updateBookingSchema.parse(body);
 
-        // 2. Logic: Ensure booking exists
-        // We could fetch first, but update checks existence too usually.
-        // But to be safe and return 404:
+        // 2. If status is LUNAS/DP and paid_amount not provided, fetch booking price
+        let updateData: any = {
+            ...payload,
+            updated_at: new Date().toISOString()
+        };
+
+        if ((payload.status === 'LUNAS' || payload.status === 'DP') && payload.paid_amount === undefined) {
+            // Fetch current booking to get the price
+            const { data: currentBooking, error: fetchError } = await supabase
+                .from('bookings')
+                .select('price')
+                .eq('id', id)
+                .single();
+
+            if (!fetchError && currentBooking) {
+                // Set paid_amount = price for LUNAS, or keep existing logic for DP
+                if (payload.status === 'LUNAS') {
+                    updateData.paid_amount = currentBooking.price;
+                }
+            }
+        }
 
         // 3. Update
         const { data, error } = await supabase
             .from('bookings')
-            .update({
-                ...payload,
-                updated_at: new Date().toISOString()
-            })
+            .update(updateData)
             .eq('id', id)
             .select()
             .single();

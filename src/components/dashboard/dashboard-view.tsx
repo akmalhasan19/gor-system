@@ -24,10 +24,11 @@ export const DashboardView = () => {
         return tDate === activeDate;
     });
 
-    // Only count PAID transactions for revenue (consistent with Laporan)
-    const totalRevenue = todayTransactions
-        .filter(t => t.status === 'PAID')
-        .reduce((sum, t) => sum + t.totalAmount, 0);
+    // Calculate revenue from LUNAS/DP bookings (works for both POS and PWA flows)
+    // This is more reliable than transactions because PWA bookings don't create transactions
+    const totalRevenue = bookings
+        .filter(b => b.status === 'LUNAS' || b.status === 'DP')
+        .reduce((sum, b) => sum + (b.paidAmount || 0), 0);
 
     return (
         <div className="flex flex-col gap-6">

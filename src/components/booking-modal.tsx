@@ -25,9 +25,11 @@ interface BookingModalProps {
 }
 
 export const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, onSave, onDelete, initialData, existingBooking, selectedDate }) => {
-    const { customers, updateCustomer, courts, checkIn } = useAppStore();
+    const { customers, updateCustomer, courts, checkIn, updateBooking } = useAppStore();
     const { currentVenueId, currentVenue } = useVenue();
     const { hasPermission } = useUserRole();
+
+
 
     const [hourlyRate, setHourlyRate] = useState(50000); // Default fallback
 
@@ -225,7 +227,17 @@ export const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, onS
         if (!existingBooking) return;
         try {
             await checkIn(existingBooking.id);
-            toast.success("Check-in berhasil!");
+
+            // Automatically mark as LUNAS/Paid if not already
+            if (existingBooking.status !== 'LUNAS' && updateBooking && currentVenueId) {
+                await updateBooking(currentVenueId, existingBooking.id, {
+                    status: 'LUNAS',
+                    paidAmount: existingBooking.price
+                });
+                toast.success("Check-in & Status LUNAS berhasil!");
+            } else {
+                toast.success("Check-in berhasil!");
+            }
             onClose();
         } catch (error: any) {
             console.error("Check-in error:", error);

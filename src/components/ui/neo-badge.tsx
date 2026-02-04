@@ -15,6 +15,7 @@ export const NeoBadge = ({ status, className }: NeoBadgeProps) => {
                 return "bg-yellow-400 text-black";
             case "BELUM_BAYAR":
             case "BELUM":
+            case "PENDING":
                 return "bg-red-400 text-white";
             default:
                 return "bg-gray-200 text-black";

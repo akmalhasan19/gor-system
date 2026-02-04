@@ -174,7 +174,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, onS
         }
 
         // Determine status
-        let status: Booking['status'] = existingBooking ? existingBooking.status : 'BELUM_BAYAR';
+        let status: Booking['status'] = existingBooking ? existingBooking.status : 'pending';
 
         if (useQuota) {
             status = 'LUNAS';
@@ -183,7 +183,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, onS
         } else if (paidAmount > 0) {
             status = 'DP';
         } else {
-            status = 'BELUM_BAYAR';
+            status = 'pending';
         }
 
         const baseBooking: Omit<Booking, "id"> = {

@@ -149,6 +149,28 @@ export async function POST(req: Request) {
 
             console.log(`Payment ${payment.id} and Transaction ${payment.transaction_id} updated to PAID`);
 
+            // Fetch transaction items to update related bookings
+            const { data: items, error: itemsError } = await supabaseAdmin
+                .from('transaction_items')
+                .select('*')
+                .eq('transaction_id', payment.transaction_id);
+
+            if (!itemsError && items && items.length > 0) {
+                for (const item of items) {
+                    if (item.type === 'BOOKING' && item.reference_id) {
+                        await supabaseAdmin
+                            .from('bookings')
+                            .update({
+                                status: 'LUNAS',
+                                paid_amount: item.price, // Assuming full payment for the item
+                                in_cart_since: null
+                            })
+                            .eq('id', item.reference_id);
+                        console.log(`Booking ${item.reference_id} status updated to LUNAS`);
+                    }
+                }
+            }
+
         } else if (status === 'EXPIRED' || status === 'FAILED') {
             await supabaseAdmin
                 .from('payments')

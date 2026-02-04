@@ -186,7 +186,7 @@ export const Scheduler: React.FC<SchedulerProps> = ({
 
     const isBookingStale = (booking: Booking): boolean => {
         // Only check unpaid bookings
-        if (booking.status !== 'BELUM_BAYAR' && booking.status !== 'pending') {
+        if (booking.status !== 'pending' && booking.status !== 'BELUM_BAYAR') {
             return false;
         }
 
@@ -242,7 +242,7 @@ export const Scheduler: React.FC<SchedulerProps> = ({
 
                             if (booking) {
                                 if (isStart) {
-                                    const isPaid = booking.status === "LUNAS";
+                                    const isPaid = booking.status === "LUNAS" || (booking.price > 0 && booking.paidAmount >= booking.price);
                                     const isStale = isBookingStale(booking);
 
                                     // Check if booking is finished but not paid

@@ -70,7 +70,7 @@ export async function createTransaction(
 
         // Update booking status
         if (item.type === 'BOOKING' && item.referenceId) {
-            const newStatus = status === 'PAID' ? 'LUNAS' : (status === 'PARTIAL' ? 'DP' : 'BELUM_BAYAR');
+            const newStatus = status === 'PAID' ? 'LUNAS' : (status === 'PARTIAL' ? 'DP' : 'pending');
 
             await supabase
                 .from('bookings')

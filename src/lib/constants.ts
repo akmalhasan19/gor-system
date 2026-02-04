@@ -33,6 +33,7 @@ export interface Booking {
     createdAt?: string; // ISO timestamp
     checkInTime?: string; // ISO timestamp
     isNoShow?: boolean;
+    inCartSince?: string; // ISO timestamp - when added to cart (pauses timer)
 }
 
 // Operational hours 08:00 - 23:00

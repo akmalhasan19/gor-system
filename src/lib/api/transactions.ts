@@ -76,7 +76,8 @@ export async function createTransaction(
                 .from('bookings')
                 .update({
                     status: newStatus,
-                    paid_amount: status === 'PAID' ? item.price : paidAmount
+                    paid_amount: status === 'PAID' ? item.price : paidAmount,
+                    in_cart_since: null
                 })
                 .eq('id', item.referenceId);
         }

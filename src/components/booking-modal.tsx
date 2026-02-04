@@ -573,29 +573,78 @@ export const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, onS
                     </div>
 
                     <div className="p-3 border-t-2 border-black bg-gray-50 flex gap-2">
-                        {existingBooking && !existingBooking.checkInTime && !existingBooking.isNoShow && (
-                            <button
-                                onClick={handleCheckIn}
-                                className="flex-1 bg-blue-600 text-white font-black py-3 text-sm uppercase hover:bg-blue-700 border-2 border-transparent hover:border-black transition-all"
-                            >
-                                Check-In
-                            </button>
-                        )}
+                        {/* For existing unpaid bookings: Hapus + Tambahkan ke Keranjang */}
+                        {existingBooking && existingBooking.status !== 'LUNAS' && (() => {
+                            const minDpPercent = currentVenue?.minDpPercentage ?? 50;
+                            const dpPercent = existingBooking.price > 0 ? (existingBooking.paidAmount / existingBooking.price) * 100 : 0;
+                            const isUnderMinDp = dpPercent < minDpPercent;
 
-                        {existingBooking && hasPermission('DELETE_BOOKING') && (
+                            if (isUnderMinDp) {
+                                return (
+                                    <>
+                                        {hasPermission('DELETE_BOOKING') && (
+                                            <button
+                                                onClick={handleDelete}
+                                                className="flex-1 bg-red-600 text-white font-black py-3 text-sm uppercase hover:bg-red-700 border-2 border-transparent hover:border-black transition-all"
+                                            >
+                                                Hapus
+                                            </button>
+                                        )}
+                                        <button
+                                            onClick={() => {
+                                                // Add booking to cart
+                                                const { addToCart } = useAppStore.getState();
+                                                const remainingPrice = existingBooking.price - (existingBooking.paidAmount || 0);
+                                                addToCart({
+                                                    id: `booking-${existingBooking.id}`,
+                                                    type: 'BOOKING',
+                                                    name: `Sewa ${existingBooking.duration} Jam (${existingBooking.customerName})`,
+                                                    price: remainingPrice,
+                                                    quantity: 1,
+                                                    referenceId: existingBooking.id
+                                                });
+                                                toast.success('Booking ditambahkan ke keranjang!');
+                                                onClose();
+                                            }}
+                                            className="flex-1 bg-brand-lime text-black font-black py-3 text-sm uppercase hover:bg-lime-400 border-2 border-black transition-all"
+                                        >
+                                            + Keranjang
+                                        </button>
+                                    </>
+                                );
+                            }
+                            return null;
+                        })()}
+
+                        {/* For LUNAS or DP >= minDp: only Hapus */}
+                        {existingBooking && (() => {
+                            const isLunas = existingBooking.status === 'LUNAS';
+                            const minDpPercent = currentVenue?.minDpPercentage ?? 50;
+                            const dpPercent = existingBooking.price > 0 ? (existingBooking.paidAmount / existingBooking.price) * 100 : 0;
+                            const isSecured = isLunas || dpPercent >= minDpPercent;
+
+                            if (isSecured && hasPermission('DELETE_BOOKING')) {
+                                return (
+                                    <button
+                                        onClick={handleDelete}
+                                        className="flex-1 bg-red-600 text-white font-black py-3 text-sm uppercase hover:bg-red-700 border-2 border-transparent hover:border-black transition-all"
+                                    >
+                                        Hapus
+                                    </button>
+                                );
+                            }
+                            return null;
+                        })()}
+
+                        {/* For new bookings: Simpan Booking */}
+                        {!existingBooking && (
                             <button
-                                onClick={handleDelete}
-                                className="flex-1 bg-red-600 text-white font-black py-3 text-sm uppercase hover:bg-red-700 border-2 border-transparent hover:border-black transition-all"
+                                onClick={handleSave}
+                                className="flex-1 bg-black text-white font-black py-3 text-sm uppercase hover:bg-brand-orange hover:text-black border-2 border-transparent hover:border-black transition-all"
                             >
-                                Hapus
+                                Simpan Booking
                             </button>
                         )}
-                        <button
-                            onClick={handleSave}
-                            className="flex-1 bg-black text-white font-black py-3 text-sm uppercase hover:bg-brand-orange hover:text-black border-2 border-transparent hover:border-black transition-all"
-                        >
-                            {existingBooking ? 'Simpan' : 'Simpan Booking'}
-                        </button>
                     </div>
                 </div>
             </div >

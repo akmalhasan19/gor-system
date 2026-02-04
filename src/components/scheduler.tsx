@@ -36,7 +36,7 @@ export const Scheduler: React.FC<SchedulerProps> = ({
     operatingHoursEnd = 23
 }) => {
     const { addToCart } = useAppStore();
-    const { currentVenueId } = useVenue();
+    const { currentVenueId, currentVenue } = useVenue();
 
     const { updateBooking } = useAppStore();
     const [moveTarget, setMoveTarget] = useState<{ bookingId: string, courtId: string, hour: number } | null>(null);
@@ -241,8 +241,50 @@ export const Scheduler: React.FC<SchedulerProps> = ({
                                     const endHour = startHour + booking.duration;
                                     const isFinishedAndUnpaid = isToday && endHour <= currentHour && !isPaid;
 
+                                    // Payment Timeout Logic
+                                    const bookingToleranceMinutes = currentVenue?.bookingTolerance || 15;
+                                    const minDpPercent = currentVenue?.minDpPercentage || 50;
+                                    const dpPercent = booking.price > 0 ? (booking.paidAmount / booking.price) * 100 : 0;
+                                    const isSecured = isPaid || dpPercent >= minDpPercent;
+
+                                    // Calculate Time Left if not secured
+                                    let timeLeftStr = "";
+                                    let isExpired = false;
+
+                                    if (!isSecured && booking.createdAt && !isPaid) {
+                                        // If in_cart_since is set, timer is paused
+                                        // We treat the time spent in cart as "free time", so we only count time BEFORE cart + time AFTER cart (if any)
+                                        // But simplified logic per requirement: "start timer, pause if in cart"
+
+                                        // Actually the requirement is: "auto-delete after 15 mins".
+                                        // If in_cart_since is present, we pause. 
+                                        // Visual Logic:
+                                        // If in_cart: SHOW "IN CART" (Paused)
+                                        // If not in_cart: SHOW Time Left
+
+                                        if (booking.inCartSince) {
+                                            timeLeftStr = "IN CART";
+                                        } else {
+                                            const createdTime = new Date(booking.createdAt).getTime();
+                                            const toleranceMs = bookingToleranceMinutes * 60 * 1000;
+                                            const expireTime = createdTime + toleranceMs;
+                                            const nowMs = new Date().getTime();
+                                            const diffMs = expireTime - nowMs;
+
+                                            if (diffMs > 0) {
+                                                const mins = Math.floor(diffMs / 60000);
+                                                const secs = Math.floor((diffMs % 60000) / 1000);
+                                                timeLeftStr = `⏱ ${mins}:${secs.toString().padStart(2, '0')}`;
+                                            } else {
+                                                timeLeftStr = "EXPIRED";
+                                                isExpired = true;
+                                            }
+                                        }
+                                    }
+
+
                                     // Determine background color based on payment and stale status
-                                    const bgColor = isPaid ? "bg-brand-lime" : isFinishedAndUnpaid ? "bg-red-200" : isStale ? "bg-red-400" : "bg-white";
+                                    const bgColor = isPaid ? "bg-brand-lime" : isFinishedAndUnpaid ? "bg-red-200" : isExpired ? "bg-red-500" : isStale ? "bg-red-400" : "bg-white";
                                     const patternClass = !isPaid
                                         ? "bg-[linear-gradient(45deg,#00000010_25%,transparent_25%,transparent_50%,#00000010_50%,#00000010_75%,transparent_75%,transparent)] bg-[length:20px_20px]"
                                         : "";
@@ -267,15 +309,17 @@ export const Scheduler: React.FC<SchedulerProps> = ({
                                                         <div className="font-black text-[10px] leading-snug uppercase break-words flex-1">
                                                             {readOnly ? booking.customerName.charAt(0) + "***" : booking.customerName}
                                                         </div>
-                                                        {isStale && !readOnly && (
-                                                            <div
-                                                                className="bg-red-600 border border-black px-1 py-0.5 text-[7px] font-black text-white shadow-[1px_1px_0px_black] whitespace-nowrap flex-shrink-0"
-                                                                title="Booking lebih dari 1 jam, belum bayar"
-                                                            >
-                                                                ⚠️ STALE
+                                                        {/* Payment Timer Badge */}
+                                                        {timeLeftStr && !readOnly && !isPaid && (
+                                                            <div className={`
+                                                                ${booking.inCartSince ? 'bg-blue-500' : isExpired ? 'bg-black' : 'bg-red-600'} 
+                                                                border border-black px-1 py-0.5 text-[8px] font-black text-white shadow-[1px_1px_0px_black] whitespace-nowrap flex-shrink-0 flex items-center gap-1
+                                                            `}>
+                                                                {timeLeftStr}
                                                             </div>
                                                         )}
-                                                        {isFinishedAndUnpaid && !readOnly && (
+
+                                                        {isFinishedAndUnpaid && !readOnly && !timeLeftStr && (
                                                             <div
                                                                 className="bg-brand-orange border border-black px-1 py-0.5 text-[7px] font-black text-black shadow-[1px_1px_0px_black] whitespace-nowrap flex-shrink-0 animate-pulse"
                                                                 title="Main selesai tapi belum lunas!"

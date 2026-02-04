@@ -35,6 +35,7 @@ export interface Venue {
     city?: string;
     // Operational Settings
     bookingTolerance?: number; // minutes
+    minDpPercentage?: number; // 0-100, default 50
     overtimePolicy?: 'allow' | 'charge' | 'strict';
     waNotificationTime?: string; // "HH:MM"
     fonnteToken?: string;
@@ -47,6 +48,7 @@ export interface Venue {
     depositPolicy?: DepositPolicy;
     photo_url?: string;
 }
+
 
 export async function getVenues(): Promise<Venue[]> {
     const { data, error } = await supabase
@@ -70,6 +72,7 @@ export async function getVenues(): Promise<Venue[]> {
         longitude: row.longitude,
         city: row.city,
         bookingTolerance: row.booking_tolerance,
+        minDpPercentage: row.min_dp_percentage,
         overtimePolicy: row.overtime_policy,
         waNotificationTime: row.wa_notification_time,
         fonnteToken: row.fonnte_token,
@@ -104,6 +107,7 @@ export async function getVenueById(id: string): Promise<Venue | null> {
         longitude: data.longitude,
         city: data.city,
         bookingTolerance: data.booking_tolerance,
+        minDpPercentage: data.min_dp_percentage,
         overtimePolicy: data.overtime_policy,
         waNotificationTime: data.wa_notification_time,
         fonnteToken: data.fonnte_token,
@@ -171,6 +175,7 @@ export async function updateVenue(id: string, updates: Partial<Venue>): Promise<
 
     // Operational Updates
     if (updates.bookingTolerance !== undefined) dbUpdates.booking_tolerance = updates.bookingTolerance;
+    if (updates.minDpPercentage !== undefined) dbUpdates.min_dp_percentage = updates.minDpPercentage;
     if (updates.overtimePolicy !== undefined) dbUpdates.overtime_policy = updates.overtimePolicy;
     if (updates.waNotificationTime !== undefined) dbUpdates.wa_notification_time = updates.waNotificationTime;
     if (updates.fonnteToken !== undefined) dbUpdates.fonnte_token = updates.fonnteToken;

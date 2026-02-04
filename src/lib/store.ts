@@ -492,27 +492,46 @@ export const useAppStore = create<AppState>((set, get) => ({
         }
     },
 
-    // Cart actions (local only)
-    addToCart: (item) => set((state) => {
+    // Cart actions (local + DB sync for bookings)
+    addToCart: (item) => {
+        const state = get();
         const existingItem = state.cart.find((i) => i.id === item.id);
 
         if (item.type === 'BOOKING' && existingItem) {
-            return state;
+            return;
+        }
+
+        // For BOOKING type, update in_cart_since in database to pause timer
+        if (item.type === 'BOOKING' && item.referenceId && state.currentVenueId) {
+            bookingsApi.updateBooking(state.currentVenueId, item.referenceId, {
+                inCartSince: new Date().toISOString()
+            }).catch(console.error);
         }
 
         if (existingItem) {
-            return {
+            set({
                 cart: state.cart.map((i) =>
                     i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i
                 )
-            };
+            });
+        } else {
+            set({ cart: [...state.cart, item] });
         }
-        return { cart: [...state.cart, item] };
-    }),
+    },
 
-    removeFromCart: (itemId) => set((state) => ({
-        cart: state.cart.filter((i) => i.id !== itemId)
-    })),
+    removeFromCart: (itemId) => {
+        const state = get();
+        const item = state.cart.find((i) => i.id === itemId);
+
+        // For BOOKING type, clear in_cart_since to resume timer
+        if (item?.type === 'BOOKING' && item.referenceId && state.currentVenueId) {
+            bookingsApi.updateBooking(state.currentVenueId, item.referenceId, {
+                inCartSince: undefined
+            }).catch(console.error);
+        }
+
+        set({ cart: state.cart.filter((i) => i.id !== itemId) });
+    },
 
     clearCart: () => set({ cart: [] }),
 

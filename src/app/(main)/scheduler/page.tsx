@@ -60,6 +60,51 @@ export default function SchedulerPage() {
         setSelectedDate(newDateStr);
     };
 
+    // Auto-delete expired bookings (Client-side check)
+    useEffect(() => {
+        if (!currentVenueId || !bookings.length) return;
+
+        const checkExpiredBookings = async () => {
+            const now = new Date().getTime();
+            const toleranceMinutes = currentVenue?.bookingTolerance || 15;
+            const minDpPercentage = currentVenue?.minDpPercentage || 50;
+
+            const expiredBookings = bookings.filter(booking => {
+                // Must be not LUNAS
+                if (booking.status === 'LUNAS') return false;
+
+                // Must not be in cart (paused)
+                if (booking.inCartSince) return false;
+
+                // DP check (if paid enough, no timeout)
+                const dpPercent = booking.price > 0 ? (booking.paidAmount / booking.price) * 100 : 0;
+                if (dpPercent >= minDpPercentage) return false;
+
+                // CreatedAt check
+                if (!booking.createdAt) return false;
+                const createdTime = new Date(booking.createdAt).getTime();
+                const expireTime = createdTime + (toleranceMinutes * 60 * 1000);
+
+                return now > expireTime;
+            });
+
+            for (const booking of expiredBookings) {
+                try {
+                    // Call delete directly from store/api
+                    await useAppStore.getState().deleteBooking(booking.id);
+                    toast.info(`Booking ${booking.customerName} otomatis dihapus (Waktu pembayaran habis)`);
+                } catch (e) {
+                    console.error("Auto-delete failed", e);
+                }
+            }
+        };
+
+        const interval = setInterval(checkExpiredBookings, 30000); // Check every 30s
+        checkExpiredBookings(); // Check immediately on mount/update
+
+        return () => clearInterval(interval);
+    }, [bookings, currentVenueId, currentVenue?.bookingTolerance, currentVenue?.minDpPercentage]);
+
     const handleSaveBooking = async (newBooking: Omit<Booking, "id">, customerId?: string, useQuota?: boolean) => {
         try {
             if (!currentVenueId) {

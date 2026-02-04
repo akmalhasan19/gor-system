@@ -143,20 +143,41 @@ export const OperationalSettings = () => {
                         <div className="bg-blue-100 p-2 rounded-full border-2 border-black">
                             <Clock size={20} className="text-blue-600" />
                         </div>
-                        <h3 className="text-lg font-black uppercase">Toleransi Check-in</h3>
+                        <h3 className="text-lg font-black uppercase">Batas Waktu Pembayaran</h3>
                     </div>
-                    <div className="flex flex-col gap-2">
-                        <p className="text-xs text-gray-500 font-bold">
-                            Berapa lama booking ditahan jika member belum datang (Check-in)? Lewat dari ini, slot akan otomatis batal (TBD).
-                        </p>
-                        <div className="flex items-center gap-2">
-                            <input
-                                type="number"
-                                defaultValue={currentVenue.bookingTolerance || 15}
-                                onBlur={(e) => handleUpdate('bookingTolerance', parseInt(e.target.value))}
-                                className="border-2 border-black p-2 font-bold w-20 text-center"
-                            />
-                            <span className="font-bold text-sm">Menit</span>
+                    <div className="flex flex-col gap-4">
+                        <div className="flex flex-col gap-2">
+                            <p className="text-xs text-gray-500 font-bold">
+                                Berapa lama booking ditahan sebelum otomatis dibatalkan jika belum ada pembayaran?
+                            </p>
+                            <div className="flex items-center gap-2">
+                                <input
+                                    type="number"
+                                    defaultValue={currentVenue.bookingTolerance || 15}
+                                    onBlur={(e) => handleUpdate('bookingTolerance', parseInt(e.target.value))}
+                                    className="border-2 border-black p-2 font-bold w-20 text-center"
+                                />
+                                <span className="font-bold text-sm">Menit</span>
+                            </div>
+                        </div>
+                        <div className="flex flex-col gap-2 border-t border-gray-100 pt-3">
+                            <p className="text-xs text-gray-500 font-bold">
+                                DP Minimal (%) untuk mengamankan booking dari auto-cancel:
+                            </p>
+                            <div className="flex items-center gap-2">
+                                <input
+                                    type="number"
+                                    min={0}
+                                    max={100}
+                                    defaultValue={currentVenue.minDpPercentage ?? 50}
+                                    onBlur={(e) => handleUpdate('minDpPercentage', parseInt(e.target.value))}
+                                    className="border-2 border-black p-2 font-bold w-20 text-center"
+                                />
+                                <span className="font-bold text-sm">%</span>
+                            </div>
+                            <p className="text-[10px] text-gray-400 italic">
+                                Jika DP &ge; nilai ini, timer tidak berlaku. Contoh: 50% berarti booking aman jika sudah bayar setengah.
+                            </p>
                         </div>
                     </div>
                 </div>

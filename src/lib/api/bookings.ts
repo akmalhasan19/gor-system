@@ -32,6 +32,7 @@ export async function getBookings(venueId: string, date?: string): Promise<Booki
         createdAt: row.created_at,
         checkInTime: row.check_in_time,
         isNoShow: row.is_no_show,
+        inCartSince: row.in_cart_since,
     }));
 }
 
@@ -65,6 +66,7 @@ export async function getBookingsRange(venueId: string, startDate: string, endDa
         createdAt: row.created_at,
         checkInTime: row.check_in_time,
         isNoShow: row.is_no_show,
+        inCartSince: row.in_cart_since,
     }));
 }
 
@@ -141,6 +143,7 @@ export async function updateBooking(venueId: string, id: string, updates: Partia
     if (updates.bookingDate !== undefined) dbUpdates.booking_date = updates.bookingDate;
     if (updates.checkInTime !== undefined) dbUpdates.check_in_time = updates.checkInTime;
     if (updates.isNoShow !== undefined) dbUpdates.is_no_show = updates.isNoShow;
+    if (updates.inCartSince !== undefined) dbUpdates.in_cart_since = updates.inCartSince;
 
     // Handle courtId update (convert number string to UUID)
     if (updates.courtId !== undefined) {

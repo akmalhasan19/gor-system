@@ -101,7 +101,8 @@ export async function POST(req: Request) {
 
         if (error || !payment) {
             console.warn('Payment not found for external_id:', externalId);
-            return NextResponse.json({ message: 'Payment not found' }, { status: 200 });
+            // Don't return yet! PWA bookings might not have a payment record.
+            // We will attempt to update the booking directly in the IS_PAID block below.
         }
 
         // Check for success status
@@ -112,110 +113,126 @@ export async function POST(req: Request) {
         let isPaid = false;
         if (status === 'COMPLETED' || status === 'PAID' || status === 'SETTLED') {
             isPaid = true;
-        } else if (body.amount && payment.payment_method === 'VA') {
+        } else if (body.amount && payment?.payment_method === 'VA') {
             // Callback for VA usually implies payment received
             isPaid = true;
         }
 
         if (isPaid) {
-            // Update Payment Status
-            const { error: updateError } = await supabaseAdmin
-                .from('payments')
-                .update({
-                    status: 'PAID',
-                    updated_at: new Date().toISOString(),
-                    metadata: body
-                })
-                .eq('id', payment.id);
+            // Update Payment Status (If payment record exists)
+            if (payment) {
+                const { error: updateError } = await supabaseAdmin
+                    .from('payments')
+                    .update({
+                        status: 'PAID',
+                        updated_at: new Date().toISOString(),
+                        metadata: body
+                    })
+                    .eq('id', payment.id);
 
-            if (updateError) throw updateError;
+                if (updateError) throw updateError;
 
-            // Map payment method for transaction
-            let transactionMethod = 'TRANSFER';
-            if (payment.payment_method === 'QRIS') transactionMethod = 'QRIS';
+                // Map payment method for transaction
+                let transactionMethod = 'TRANSFER';
+                if (payment.payment_method === 'QRIS') transactionMethod = 'QRIS';
 
-            // Update Transaction Status
-            const { error: txnError } = await supabaseAdmin
-                .from('transactions')
-                .update({
-                    status: 'PAID',
-                    payment_method: transactionMethod,
-                    paid_amount: body.amount || payment.amount, // Use actual paid amount if available
-                    updated_at: new Date().toISOString()
-                })
-                .eq('id', payment.transaction_id);
+                // Update Transaction Status
+                const { error: txnError } = await supabaseAdmin
+                    .from('transactions')
+                    .update({
+                        status: 'PAID',
+                        payment_method: transactionMethod,
+                        paid_amount: body.amount || payment.amount, // Use actual paid amount if available
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', payment.transaction_id);
 
-            if (txnError) throw txnError;
+                if (txnError) throw txnError;
 
-            console.log(`Payment ${payment.id} and Transaction ${payment.transaction_id} updated to PAID`);
+                console.log(`Payment ${payment.id} and Transaction ${payment.transaction_id} updated to PAID`);
 
-            // Fetch transaction items to update related bookings
-            const { data: items, error: itemsError } = await supabaseAdmin
-                .from('transaction_items')
-                .select('*')
-                .eq('transaction_id', payment.transaction_id);
+                // Fetch transaction items to update related bookings
+                const { data: items, error: itemsError } = await supabaseAdmin
+                    .from('transaction_items')
+                    .select('*')
+                    .eq('transaction_id', payment.transaction_id);
 
-            if (!itemsError && items && items.length > 0) {
-                for (const item of items) {
-                    if (item.type === 'BOOKING' && item.reference_id) {
-                        await supabaseAdmin
-                            .from('bookings')
-                            .update({
-                                status: 'LUNAS',
-                                paid_amount: item.price, // Assuming full payment for the item
-                                in_cart_since: null
-                            })
-                            .eq('id', item.reference_id);
-                        console.log(`Booking ${item.reference_id} status updated to LUNAS`);
+                if (!itemsError && items && items.length > 0) {
+                    for (const item of items) {
+                        if (item.type === 'BOOKING' && item.reference_id) {
+                            await supabaseAdmin
+                                .from('bookings')
+                                .update({
+                                    status: 'LUNAS',
+                                    paid_amount: item.price, // Assuming full payment for the item
+                                    in_cart_since: null
+                                })
+                                .eq('id', item.reference_id);
+                            console.log(`Booking ${item.reference_id} status updated to LUNAS`);
+                        }
+                    }
+                    // Return success here since we handled the "normal" flow
+                    return NextResponse.json({ success: true });
+                }
+            }
+
+            // FALLBACK / DIRECT BOOKING UPDATE
+            // Reachable if:
+            // 1. Payment record missing (PWA case)
+            // 2. Payment exists but no transaction items (Rare)
+
+            console.log('[Xendit Webhook] Trying direct booking update (PWA Fallback)...');
+
+            let bookingId: string | null = null;
+
+            // Try to extract booking ID from external_id
+            if (externalId.startsWith('booking-') || externalId.startsWith('BOOKING-')) {
+                bookingId = externalId.replace(/^(booking-|BOOKING-)/i, '');
+            } else if (externalId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+                // external_id is a UUID, might be the booking_id itself
+                bookingId = externalId;
+            }
+
+            if (bookingId) {
+                const { data: booking, error: bookingError } = await supabaseAdmin
+                    .from('bookings')
+                    .select('id, status, paid_amount')
+                    .eq('id', bookingId)
+                    .single();
+
+                if (booking && !bookingError) {
+                    const paidAmount = body.amount || body.paid_amount || (payment ? payment.amount : 0);
+
+                    const { error: updateBookingError } = await supabaseAdmin
+                        .from('bookings')
+                        .update({
+                            status: 'LUNAS',
+                            paid_amount: paidAmount > 0 ? paidAmount : booking.price, // Fallback if amount 0
+                            in_cart_since: null
+                        })
+                        .eq('id', bookingId);
+
+                    if (!updateBookingError) {
+                        console.log(`[Xendit Webhook] PWA Booking ${bookingId} updated to LUNAS with paid_amount: ${paidAmount}`);
+                        return NextResponse.json({ success: true, message: "Booking updated directly" });
+                    } else {
+                        console.error(`[Xendit Webhook] Failed to update PWA booking ${bookingId}:`, updateBookingError);
+                        return NextResponse.json({ error: 'Failed to update booking' }, { status: 500 });
+                    }
+                } else {
+                    console.warn(`[Xendit Webhook] Booking not found for ID: ${bookingId}`);
+                    // If neither payment nor booking found, then it's truly not found
+                    if (!payment) {
+                        return NextResponse.json({ message: 'Payment and Booking not found' }, { status: 200 });
                     }
                 }
             } else {
-                // FALLBACK: For PWA bookings that don't use transaction_items
-                // Try to find booking directly from external_id
-                // Common patterns: "booking-{booking_id}" or "BOOKING-{booking_id}" or just the booking_id
-                console.log('[Xendit Webhook] No transaction_items found, trying direct booking update...');
-
-                let bookingId: string | null = null;
-
-                // Try to extract booking ID from external_id
-                if (externalId.startsWith('booking-') || externalId.startsWith('BOOKING-')) {
-                    bookingId = externalId.replace(/^(booking-|BOOKING-)/i, '');
-                } else if (externalId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
-                    // external_id is a UUID, might be the booking_id itself
-                    bookingId = externalId;
-                }
-
-                if (bookingId) {
-                    const { data: booking, error: bookingError } = await supabaseAdmin
-                        .from('bookings')
-                        .select('id, status, paid_amount')
-                        .eq('id', bookingId)
-                        .single();
-
-                    if (booking && !bookingError) {
-                        const paidAmount = body.amount || body.paid_amount || payment.amount;
-
-                        const { error: updateBookingError } = await supabaseAdmin
-                            .from('bookings')
-                            .update({
-                                status: 'LUNAS',
-                                paid_amount: paidAmount,
-                                in_cart_since: null
-                            })
-                            .eq('id', bookingId);
-
-                        if (!updateBookingError) {
-                            console.log(`[Xendit Webhook] PWA Booking ${bookingId} updated to LUNAS with paid_amount: ${paidAmount}`);
-                        } else {
-                            console.error(`[Xendit Webhook] Failed to update PWA booking ${bookingId}:`, updateBookingError);
-                        }
-                    } else {
-                        console.warn(`[Xendit Webhook] Booking not found for ID: ${bookingId}`);
-                    }
-                } else {
-                    console.warn(`[Xendit Webhook] Could not extract booking ID from external_id: ${externalId}`);
+                console.warn(`[Xendit Webhook] Could not extract booking ID from external_id: ${externalId}`);
+                if (!payment) {
+                    return NextResponse.json({ message: 'Payment not found and external_id not a booking ID' }, { status: 200 });
                 }
             }
+
 
         } else if (status === 'EXPIRED' || status === 'FAILED') {
             await supabaseAdmin

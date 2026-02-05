@@ -169,6 +169,52 @@ export async function POST(req: Request) {
                         console.log(`Booking ${item.reference_id} status updated to LUNAS`);
                     }
                 }
+            } else {
+                // FALLBACK: For PWA bookings that don't use transaction_items
+                // Try to find booking directly from external_id
+                // Common patterns: "booking-{booking_id}" or "BOOKING-{booking_id}" or just the booking_id
+                console.log('[Xendit Webhook] No transaction_items found, trying direct booking update...');
+
+                let bookingId: string | null = null;
+
+                // Try to extract booking ID from external_id
+                if (externalId.startsWith('booking-') || externalId.startsWith('BOOKING-')) {
+                    bookingId = externalId.replace(/^(booking-|BOOKING-)/i, '');
+                } else if (externalId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+                    // external_id is a UUID, might be the booking_id itself
+                    bookingId = externalId;
+                }
+
+                if (bookingId) {
+                    const { data: booking, error: bookingError } = await supabaseAdmin
+                        .from('bookings')
+                        .select('id, status, paid_amount')
+                        .eq('id', bookingId)
+                        .single();
+
+                    if (booking && !bookingError) {
+                        const paidAmount = body.amount || body.paid_amount || payment.amount;
+
+                        const { error: updateBookingError } = await supabaseAdmin
+                            .from('bookings')
+                            .update({
+                                status: 'LUNAS',
+                                paid_amount: paidAmount,
+                                in_cart_since: null
+                            })
+                            .eq('id', bookingId);
+
+                        if (!updateBookingError) {
+                            console.log(`[Xendit Webhook] PWA Booking ${bookingId} updated to LUNAS with paid_amount: ${paidAmount}`);
+                        } else {
+                            console.error(`[Xendit Webhook] Failed to update PWA booking ${bookingId}:`, updateBookingError);
+                        }
+                    } else {
+                        console.warn(`[Xendit Webhook] Booking not found for ID: ${bookingId}`);
+                    }
+                } else {
+                    console.warn(`[Xendit Webhook] Could not extract booking ID from external_id: ${externalId}`);
+                }
             }
 
         } else if (status === 'EXPIRED' || status === 'FAILED') {

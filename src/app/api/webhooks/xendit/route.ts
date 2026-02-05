@@ -196,7 +196,7 @@ export async function POST(req: Request) {
             if (bookingId) {
                 const { data: booking, error: bookingError } = await supabaseAdmin
                     .from('bookings')
-                    .select('id, status, paid_amount, price')
+                    .select('id, status, paid_amount, price, venue_id')
                     .eq('id', bookingId)
                     .single();
 
@@ -214,6 +214,52 @@ export async function POST(req: Request) {
 
                     if (!updateBookingError) {
                         console.log(`[Xendit Webhook] PWA Booking ${bookingId} updated to LUNAS with paid_amount: ${paidAmount}`);
+
+                        // CREATE TRANSACTION FOR REVENUE TRACKING
+                        try {
+                            // 1. Create Transaction
+                            const { data: newTxn, error: newTxnError } = await supabaseAdmin
+                                .from('transactions')
+                                .insert({
+                                    venue_id: booking.venue_id, // We need venue_id from booking
+                                    total_amount: paidAmount,
+                                    paid_amount: paidAmount,
+                                    change_amount: 0,
+                                    payment_method: 'TRANSFER', // Assume Transfer/Xendit for PWA
+                                    status: 'PAID',
+                                    cashier_name: 'System (PWA)',
+                                    updated_at: new Date().toISOString()
+                                    // metadata column is now available via migration
+                                })
+                                .select()
+                                .single();
+
+                            if (newTxnError) {
+                                console.error('[Xendit Webhook] Failed to create transaction:', newTxnError);
+                            } else if (newTxn) {
+                                // 2. Create Transaction Item
+                                const { error: newItemError } = await supabaseAdmin
+                                    .from('transaction_items')
+                                    .insert({
+                                        transaction_id: newTxn.id,
+                                        type: 'BOOKING',
+                                        name: `Booking PWA ${bookingId?.substring(0, 8)}`, // Short ID
+                                        price: paidAmount,
+                                        quantity: 1,
+                                        subtotal: paidAmount,
+                                        reference_id: bookingId
+                                    });
+
+                                if (newItemError) {
+                                    console.error('[Xendit Webhook] Failed to create transaction item:', newItemError);
+                                } else {
+                                    console.log(`[Xendit Webhook] Transaction ${newTxn.id} created for Booking ${bookingId}`);
+                                }
+                            }
+                        } catch (txnCatchedError) {
+                            console.error('[Xendit Webhook] Error creating transaction:', txnCatchedError);
+                        }
+
                         return NextResponse.json({ success: true, message: "Booking updated directly" });
                     } else {
                         console.error(`[Xendit Webhook] Failed to update PWA booking ${bookingId}:`, updateBookingError);

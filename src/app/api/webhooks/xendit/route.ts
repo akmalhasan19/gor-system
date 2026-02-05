@@ -196,7 +196,7 @@ export async function POST(req: Request) {
             if (bookingId) {
                 const { data: booking, error: bookingError } = await supabaseAdmin
                     .from('bookings')
-                    .select('id, status, paid_amount')
+                    .select('id, status, paid_amount, price')
                     .eq('id', bookingId)
                     .single();
 

@@ -24,11 +24,9 @@ export const DashboardView = () => {
         return tDate === activeDate;
     });
 
-    // Calculate revenue from LUNAS/DP bookings (works for both POS and PWA flows)
-    // This is more reliable than transactions because PWA bookings don't create transactions
-    const totalRevenue = bookings
-        .filter(b => b.status === 'LUNAS' || b.status === 'DP')
-        .reduce((sum, b) => sum + (b.paidAmount || 0), 0);
+    // Calculate revenue from Transactions (Cash Basis - Money Received Today)
+    // This correctly includes PWA payments and future bookings paid today
+    const totalRevenue = todayTransactions.reduce((sum, t) => sum + (t.paidAmount || 0), 0);
 
     return (
         <div className="flex flex-col gap-6">

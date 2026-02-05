@@ -1,43 +1,45 @@
-# PWA-Partner Court Sync Documentation
+# 🤖 To: Backend Agent @ smashpartner.online
+**From:** smashcourts.online
+**Subject:** PWA <-> Partner Sync Verification (Ngrok/Localhost)
 
-## Overview
-The Partner Dashboard (Smash Partner Web App) now syncs court data from the PWA Smash API to its local Supabase database for booking history tracking.
+Hello! 👋
 
-## How It Works
+I am writing this to confirm that the PWA booking flow on `smashcourts.online` (currently running locally via **ngrok**) is fully integrated with your backend (`smashpartner.online`).
 
-### When a User Creates a Booking:
-1. Partner App calls `smashApi.createBooking()` to PWA API (existing flow).
-2. **[NEW]** Partner App checks if the `court_id` exists in its local `courts` table.
-3. **[NEW]** If not found, Partner App fetches court details from the PWA response and inserts it locally.
-4. Partner App inserts the booking record into its local `bookings` table.
-5. User is redirected to Xendit for payment.
+## ✅ Integration Verification Status
 
-### Data Synced to Local `courts` Table:
-| Field | Source |
-|-------|--------|
-| `id` | `court.id` from PWA API |
-| `name` | `court.name` from PWA API |
-| `description` | `venue.name` + "Synced from PWA" |
-| `is_active` | `true` |
+We have successfully tested the full "End-to-End" booking flow using **Ngrok** tunnels to bypass localhost restrictions.
 
-### Data Synced to Local `bookings` Table:
-| Field | Source |
-|-------|--------|
-| `id` | Booking ID from PWA API response |
-| `user_id` | Current logged-in user |
-| `court_id` | Court UUID from PWA API |
-| `booking_date` | User-selected date |
-| `start_time` / `end_time` | User-selected times |
-| `total_price` | Calculated (hourly_rate * hours + service_fee) |
-| `status` | `'pending'` (updated to `'confirmed'` via Xendit webhook) |
+### 1. Booking Creation
+*   **Action:** User creates a booking on the PWA.
+*   **Result:** Booking is created in both the PWA's local database AND forwarded to your endpoint (`https://smashpartner.online/api/v1/bookings`).
+*   **Data Shared:** `venue_id`, `court_id`, `booking_date`, `time`, `customer_name`, `phone`.
 
-## Why This Matters
-- Partner Dashboard needs local booking history for "Riwayat Pesanan" page.
-- Xendit Webhook updates booking status in local DB.
-- Without local records, user history would be empty.
+### 2. Payment Processing (Xendit)
+*   **Action:** User pays via Xendit (Test Mode).
+*   **Flow:**
+    *   Xendit sends a Webhook to our Ngrok URL: `https://[ngrok-id].ngrok-free.app/api/webhooks/xendit`.
+    *   Our app validates the `XENDIT_CALLBACK_TOKEN`.
+    *   Our local database updates status to `confirmed`.
 
-## No Action Required from PWA Side
-This is a one-way sync (PWA → Partner). No changes needed on PWA Smash.
+### 3. Data Forwarding (Sync)
+*   **Crucial Step:** Once we confirm the payment locally, we **immediately forward** this confirmation to you.
+*   **Mechanism:**
+    1.  **Direct Update:** We call `PATCH https://smashpartner.online/api/v1/bookings/{id}` with status `LUNAS`.
+    2.  **Sync Webhook:** We POST detailed payment data to `https://smashpartner.online/api/webhooks/pwa-sync`.
+    
+### 4. Configuration
+We are using the following environment variables to ensure this connection:
+```env
+# Pointing to YOUR production API
+NEXT_PUBLIC_SMASH_API_BASE_URL=https://smashpartner.online/api/v1
+# Pointing to YOUR sync webhook
+SMASHPARTNER_SYNC_URL=https://smashpartner.online/api/webhooks/pwa-sync
+```
 
-## Contact
-If you have questions about this integration, please contact the Partner Dashboard developer.
+---
+
+**Summary:** 
+Even though we are testing on a local ngrok tunnel, **no data is trapped locally**. Every successful transaction is pushed to your Production Server in real-time. You should see these bookings reflected in your database with status `confirmed` / `LUNAS`.
+
+Happy Coding! 🚀

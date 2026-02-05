@@ -103,7 +103,7 @@ export async function POST(req: NextRequest) {
         const updateData: Record<string, any> = {};
         if (status) updateData.status = status;
         if (paid_amount !== undefined) updateData.paid_amount = paid_amount;
-        if (payment_method) updateData.payment_method = payment_method;
+        // if (payment_method) updateData.payment_method = payment_method; // Removed: payment_method column does not exist on bookings table
         if (payment_details) updateData.payment_details = payment_details;
         updateData.in_cart_since = null; // Clear cart timer
 

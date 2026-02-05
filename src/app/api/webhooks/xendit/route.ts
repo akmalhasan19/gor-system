@@ -202,18 +202,21 @@ export async function POST(req: Request) {
 
                 if (booking && !bookingError) {
                     const paidAmount = body.amount || body.paid_amount || (payment ? payment.amount : 0);
+                    // Use booking.price as the recorded revenue amount as per user request to exclude admin fees
+                    // If booking.price is 0 (shouldn't happen for paid bookings), fallback to actual paid amount
+                    const revenueAmount = booking.price > 0 ? booking.price : paidAmount;
 
                     const { error: updateBookingError } = await supabaseAdmin
                         .from('bookings')
                         .update({
                             status: 'LUNAS',
-                            paid_amount: paidAmount > 0 ? paidAmount : booking.price, // Fallback if amount 0
+                            paid_amount: revenueAmount, // Use revenue amount for consistency
                             in_cart_since: null
                         })
                         .eq('id', bookingId);
 
                     if (!updateBookingError) {
-                        console.log(`[Xendit Webhook] PWA Booking ${bookingId} updated to LUNAS with paid_amount: ${paidAmount}`);
+                        console.log(`[Xendit Webhook] PWA Booking ${bookingId} updated to LUNAS with revenue_amount: ${revenueAmount} (Paid: ${paidAmount})`);
 
                         // CREATE TRANSACTION FOR REVENUE TRACKING
                         try {
@@ -222,8 +225,8 @@ export async function POST(req: Request) {
                                 .from('transactions')
                                 .insert({
                                     venue_id: booking.venue_id, // We need venue_id from booking
-                                    total_amount: paidAmount,
-                                    paid_amount: paidAmount,
+                                    total_amount: revenueAmount,
+                                    paid_amount: revenueAmount,
                                     change_amount: 0,
                                     payment_method: 'TRANSFER', // Assume Transfer/Xendit for PWA
                                     status: 'PAID',
@@ -244,9 +247,9 @@ export async function POST(req: Request) {
                                         transaction_id: newTxn.id,
                                         type: 'BOOKING',
                                         name: `Booking PWA ${bookingId?.substring(0, 8)}`, // Short ID
-                                        price: paidAmount,
+                                        price: revenueAmount,
                                         quantity: 1,
-                                        subtotal: paidAmount,
+                                        subtotal: revenueAmount,
                                         reference_id: bookingId
                                     });
 

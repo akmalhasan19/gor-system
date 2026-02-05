@@ -26,7 +26,7 @@ export interface Booking {
     startTime: string; // "HH:MM:SS"
     duration: number;
     courtId: string;
-    status: 'LUNAS' | 'DP' | 'BELUM_BAYAR' | 'BELUM' | 'pending' | 'cancelled';
+    status: 'LUNAS' | 'DP' | 'BELUM_BAYAR' | 'BELUM' | 'pending' | 'cancelled' | 'completed' | 'confirmed' | 'paid';
     price: number;
     paidAmount: number;
     bookingDate: string; // "YYYY-MM-DD"

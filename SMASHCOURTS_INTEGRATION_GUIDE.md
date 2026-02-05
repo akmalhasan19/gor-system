@@ -1,264 +1,71 @@
-# Panduan Integrasi smashcourts.online → smashpartner.online
+# Panduan Implementasi: PWA Agent (smashcourts.online)
 
-## Tujuan
+**TUJUAN:**  
+Memperbaiki kalkulasi revenue di Dashboard Partner (`smashpartner.online`). Saat ini, webhbook mengirimkan **Full Amount** (termasuk fee Xendit) sehingga laporan keuangan tidak akurat.
 
-Setelah menerima webhook "Invoices paid" dari Xendit, smashcourts.online harus **forward** data pembayaran ke smashpartner.online agar booking di admin panel juga terupdate.
-
----
-
-## Endpoint
-
-```
-POST https://smashpartner.online/api/webhooks/pwa-sync
-```
+**TUGAS ANDA:**  
+Ubah logic pengiriman webhook ke `smashpartner.online` agar hanya mengirimkan **Nominal Bersih (Net Revenue)**.
 
 ---
 
-## Autentikasi
+## 1. Masalah Saat Ini
 
-Menggunakan **HMAC-SHA256 signature** (bukan JWT).
+*   **Logic Lama:** Mengirim `amount` dari callback Xendit (misal: 32,000).
+*   **Efek:** Dashboard "Pendapatan Hari Ini" mencatat 32,000.
+*   **Target:** Dashboard harus mencatat 30,000 (Harga asli lapangan).
 
-### Header yang Diperlukan
+## 2. Instruksi Perubahan Code
 
-| Header | Deskripsi |
-|--------|-----------|
-| `Content-Type` | `application/json` |
-| `x-pwa-signature` | HMAC-SHA256 signature dari request body |
+Di file handler webhook Anda (kemungkinan di `src/app/api/webhooks/xendit/route.ts` atau `lib/partner-sync.ts`), **jangan** kirim raw amount dari Xendit.
 
-### Cara Generate Signature
+### Logic Baru (Required)
+Saat memanggil endpoint sync partner (`/api/webhooks/pwa-sync`), pastikan field `paid_amount` diisi dengan **Harga Booking** (`booking.price`), BUKAN total yang dibayar user.
 
-```typescript
-import crypto from 'crypto';
-
-function generateSignature(payload: string, secret: string): string {
-    return crypto
-        .createHmac('sha256', secret)
-        .update(payload)
-        .digest('hex');
-}
-
-// Contoh penggunaan
-const payload = JSON.stringify(data);
-const secret = process.env.PWA_WEBHOOK_SECRET; // Shared secret
-const signature = generateSignature(payload, secret);
-```
-
----
-
-## Payload Format
+### Contoh Code (TypeScript)
 
 ```typescript
-interface PwaSyncPayload {
-    event: 'booking.paid' | 'booking.updated';
-    booking_id: string;      // UUID booking
-    status: string;          // 'LUNAS', 'DP', dll
-    paid_amount: number;     // Jumlah yang dibayar
-    payment_method?: string; // 'QRIS', 'VA', dll (opsional)
-    payment_details?: {      // Detail tambahan (opsional)
-        invoice_id?: string;
-        payment_id?: string;
-        [key: string]: any;
-    };
-    timestamp: string;       // ISO 8601 format
-}
-```
+// Dapatkan data booking dari database lokal Anda
+const booking = await prisma.booking.findUnique({ ... });
 
-### Contoh Payload
+// Tentukan Net Revenue (Harga Asli Lapangan)
+// HINDARI: const revenue = xenditCallback.amount; (INI SALAH karena ada admin fee)
+const revenue = booking.price; 
 
-```json
-{
-    "event": "booking.paid",
-    "booking_id": "b24a8a76-edb7-4b0c-950b-3144cc4d7ec6",
-    "status": "LUNAS",
-    "paid_amount": 32000,
-    "payment_method": "QRIS",
-    "payment_details": {
-        "invoice_id": "INV-123456"
-    },
-    "timestamp": "2026-02-04T23:00:00.000Z"
-}
-```
-
----
-
-## Implementasi di smashcourts.online
-
-### 1. Tambahkan Environment Variable
-
-```env
-PWA_WEBHOOK_SECRET=your-shared-secret-here
-SMASHPARTNER_SYNC_URL=https://smashpartner.online/api/webhooks/pwa-sync
-```
-
-> **PENTING:** Nilai `PWA_WEBHOOK_SECRET` harus **SAMA PERSIS** dengan yang ada di smashpartner.online.
-
-### 2. Buat Utility Function
-
-```typescript
-// lib/partner-sync.ts
-import crypto from 'crypto';
-
-const SYNC_URL = process.env.SMASHPARTNER_SYNC_URL || 'https://smashpartner.online/api/webhooks/pwa-sync';
-const SECRET = process.env.PWA_WEBHOOK_SECRET || '';
-
-interface SyncPayload {
-    event: 'booking.paid' | 'booking.updated';
-    booking_id: string;
-    status: string;
-    paid_amount: number;
-    payment_method?: string;
-    payment_details?: Record<string, any>;
-    timestamp: string;
-}
-
-function generateSignature(payload: string): string {
-    return crypto
-        .createHmac('sha256', SECRET)
-        .update(payload)
-        .digest('hex');
-}
-
-export async function syncBookingToPartner(data: Omit<SyncPayload, 'timestamp'>): Promise<boolean> {
-    try {
-        const payload: SyncPayload = {
-            ...data,
-            timestamp: new Date().toISOString()
-        };
-
-        const payloadString = JSON.stringify(payload);
-        const signature = generateSignature(payloadString);
-
-        const response = await fetch(SYNC_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-pwa-signature': signature
-            },
-            body: payloadString
-        });
-
-        if (!response.ok) {
-            const error = await response.json();
-            console.error('[Partner Sync] Failed:', error);
-            return false;
-        }
-
-        console.log('[Partner Sync] Success for booking:', data.booking_id);
-        return true;
-
-    } catch (error) {
-        console.error('[Partner Sync] Error:', error);
-        return false;
-    }
-}
-```
-
-### 3. Panggil di Xendit Webhook Handler
-
-Di handler webhook Xendit (setelah "Invoices paid" diterima):
-
-```typescript
-// Contoh di route handler webhooks/xendit
-import { syncBookingToPartner } from '@/lib/partner-sync';
-
-// ... setelah update local database ...
-
-// Sync ke smashpartner.online
-await syncBookingToPartner({
+// Kirim ke Partner URL
+await fetch(process.env.SMASHPARTNER_SYNC_URL + '/api/webhooks/pwa-sync', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'x-pwa-signature': generateSignature(...) 
+  },
+  body: JSON.stringify({
     event: 'booking.paid',
-    booking_id: bookingId,          // UUID booking
-    status: 'LUNAS',                // atau 'DP' jika bayar sebagian
-    paid_amount: paidAmount,        // Jumlah yang dibayar
-    payment_method: paymentMethod,  // 'QRIS', 'VA', dll
-    payment_details: {
-        invoice_id: xenditInvoiceId
-    }
+    booking_id: booking.id,
+    
+    // [CRITICAL CHANGE]
+    // Kirim harga asli lapangan, bukan total bayar Xendit
+    paid_amount: revenue, 
+    
+    status: 'LUNAS',
+    timestamp: new Date().toISOString()
+  })
 });
 ```
 
----
-
-## Response
-
-### Sukses (200)
+## 3. Verifikasi
+Pastikan payload yang terkirim ke `smashpartner.online` terlihat seperti ini untuk booking seharga 30,000 dengan admin fee 2,000:
 
 ```json
 {
-    "success": true,
-    "message": "Booking synced successfully",
-    "booking_id": "b24a8a76-edb7-4b0c-950b-3144cc4d7ec6"
+  "event": "booking.paid",
+  "booking_id": "...",
+  "paid_amount": 30000, 
+  "status": "LUNAS",
+  ...
 }
 ```
-
-### Error Responses
-
-| Status | Error | Penyebab |
-|--------|-------|----------|
-| 401 | Missing x-pwa-signature header | Header signature tidak ada |
-| 401 | Invalid webhook signature | Signature tidak cocok (secret berbeda) |
-| 400 | Missing booking_id | Payload tidak lengkap |
-| 404 | Booking not found | Booking tidak ada di database smashpartner |
-| 500 | Internal server error | Error di server |
+*(Perhatikan `paid_amount` adalah 30000, bukan 32000)*
 
 ---
-
-## Testing
-
-### 1. Health Check
-
-```bash
-curl https://smashpartner.online/api/webhooks/pwa-sync
-```
-
-Response:
-```json
-{
-    "endpoint": "/api/webhooks/pwa-sync",
-    "description": "PWA Booking Sync Webhook",
-    "methods": ["POST"],
-    "headers": {
-        "required": ["x-pwa-signature"],
-        "description": "HMAC-SHA256 signature of the request body"
-    }
-}
-```
-
-### 2. Test dengan Payload
-
-```bash
-# Generate signature (contoh dengan Node.js)
-SECRET="your-shared-secret"
-PAYLOAD='{"event":"booking.paid","booking_id":"test-id","status":"LUNAS","paid_amount":50000,"timestamp":"2026-02-04T23:00:00Z"}'
-SIGNATURE=$(echo -n $PAYLOAD | openssl dgst -sha256 -hmac $SECRET | cut -d' ' -f2)
-
-# Send request
-curl -X POST https://smashpartner.online/api/webhooks/pwa-sync \
-  -H "Content-Type: application/json" \
-  -H "x-pwa-signature: $SIGNATURE" \
-  -d "$PAYLOAD"
-```
-
----
-
-## Checklist Implementasi
-
-- [ ] Tambahkan `PWA_WEBHOOK_SECRET` ke environment variables
-- [ ] Nilai secret **SAMA** dengan yang di smashpartner.online
-- [ ] Buat utility function `syncBookingToPartner`
-- [ ] Panggil sync setelah menerima webhook "Invoices paid" dari Xendit
-- [ ] Test dengan booking baru
-
----
-
-## Catatan Penting
-
-1. **Secret harus sama** - `PWA_WEBHOOK_SECRET` di smashcourts.online harus identik dengan di smashpartner.online
-2. **Gunakan booking_id yang benar** - Pastikan booking_id adalah UUID yang sama di kedua database
-3. **Retry logic** - Pertimbangkan untuk menambahkan retry jika sync gagal
-4. **Logging** - Tambahkan logging untuk debugging
-
----
-
-## Kontak
-
-Jika ada masalah dengan endpoint ini, hubungi tim smashpartner.online.
+**Catatan:**  
+Perubahan ini hanya perlu dilakukan di sisi pengirim (`smashcourts.online`). Sisi penerima (`smashpartner.online`) akan mencatat apa saja yang Anda kirimkan di field `paid_amount`.

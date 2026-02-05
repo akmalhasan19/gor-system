@@ -106,6 +106,10 @@ export const OnboardingSubmitSchema = z.object({
     subscriptionPlan: SubscriptionPlanSchema
         .optional()
         .default('STARTER'),
+    xendit_account_id: z.string()
+        .max(100)
+        .optional()
+        .nullable(),
 }).refine(
     (data) => data.operatingHoursStart < data.operatingHoursEnd,
     { message: 'Operating end time must be after start time', path: ['operatingHoursEnd'] }

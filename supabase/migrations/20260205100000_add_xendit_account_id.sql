@@ -1,0 +1,1 @@
+alter table "public"."venues" add column "xendit_account_id" text;

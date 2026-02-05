@@ -47,6 +47,7 @@ export interface Venue {
     // Deposit Policy
     depositPolicy?: DepositPolicy;
     photo_url?: string;
+    xendit_account_id?: string;
 }
 
 
@@ -82,6 +83,7 @@ export async function getVenues(): Promise<Venue[]> {
         winbackConfiguration: row.winback_configuration,
         depositPolicy: row.deposit_policy,
         photo_url: row.photo_url,
+        xendit_account_id: row.xendit_account_id,
     }));
 }
 
@@ -117,6 +119,7 @@ export async function getVenueById(id: string): Promise<Venue | null> {
         winbackConfiguration: data.winback_configuration,
         depositPolicy: data.deposit_policy,
         photo_url: data.photo_url,
+        xendit_account_id: data.xendit_account_id,
     };
 }
 
@@ -185,6 +188,7 @@ export async function updateVenue(id: string, updates: Partial<Venue>): Promise<
     if (updates.winbackConfiguration !== undefined) dbUpdates.winback_configuration = updates.winbackConfiguration;
     if (updates.depositPolicy !== undefined) dbUpdates.deposit_policy = updates.depositPolicy;
     if (updates.photo_url !== undefined) dbUpdates.photo_url = updates.photo_url;
+    if (updates.xendit_account_id !== undefined) dbUpdates.xendit_account_id = updates.xendit_account_id;
 
     const { error } = await supabase
         .from('venues')
@@ -309,5 +313,6 @@ export async function getUserVenue(userId: string): Promise<Venue | null> {
         winbackConfiguration: venue.winback_configuration,
         depositPolicy: venue.deposit_policy,
         photo_url: venue.photo_url,
+        xendit_account_id: venue.xendit_account_id,
     };
 }

@@ -72,6 +72,7 @@ export async function POST(request: NextRequest) {
             operatingHoursEnd,
             hourlyRatePerCourt,
             subscriptionPlan,
+            xendit_account_id,
         } = validation.data;
 
 
@@ -87,6 +88,7 @@ export async function POST(request: NextRequest) {
                 is_active: true,
                 subscription_plan: subscriptionPlan || 'STARTER',
                 subscription_status: 'TRIAL',
+                xendit_account_id: xendit_account_id || null,
             })
             .select()
             .single();

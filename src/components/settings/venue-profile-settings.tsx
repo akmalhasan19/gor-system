@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Camera, Image as ImageIcon, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { fetchWithCsrf } from "@/lib/hooks/use-csrf";
+import { CreditCard, ExternalLink, HelpCircle, Save } from "lucide-react";
 
 export const VenueProfileSettings = () => {
     const { currentVenue, refreshVenue } = useVenue();
@@ -117,7 +118,90 @@ export const VenueProfileSettings = () => {
                 </div>
 
                 {/* Additional Profile Fields could go here (Description, Facilities, etc.) if expanded */}
-            </div>
+
+                {/* XenPlatform Integration Section */}
+                <div className="flex flex-col gap-4 pt-6 border-t-2 border-gray-100">
+                    <div className="flex items-center gap-3 border-b-2 border-gray-100 pb-2">
+                        <div className="bg-blue-100 p-2 rounded-full border-2 border-black">
+                            <CreditCard size={20} className="text-blue-600" />
+                        </div>
+                        <h3 className="text-lg font-black uppercase">Xendit Integration</h3>
+                    </div>
+
+                    <div className="grid gap-6">
+                        {/* Create Account Container */}
+                        <div className="bg-blue-50 border-2 border-blue-200 p-4 rounded-lg flex flex-col gap-3">
+                            <div className="flex gap-2 items-start">
+                                <div className="bg-white p-1 rounded-full border border-blue-200 mt-1">
+                                    <ExternalLink size={16} className="text-blue-600" />
+                                </div>
+                                <div>
+                                    <h4 className="font-bold text-blue-900">Belum punya akun Xendit?</h4>
+                                    <p className="text-xs text-blue-700 mt-1">
+                                        Buat akun Xendit Anda melalui link khusus dibawah ini untuk terhubung dengan platform kami.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="flex gap-2 mt-2">
+                                <div className="flex-1 bg-white border border-blue-200 rounded px-3 py-2 text-xs text-gray-500 font-mono truncate select-all">
+                                    https://dashboard.xendit.co/xenPlatform/sma614925?op_env=test
+                                </div>
+                                <Button
+                                    className="h-auto py-2 text-xs bg-blue-600 hover:bg-blue-700 text-white border-2 border-transparent"
+                                    onClick={() => window.open('https://dashboard.xendit.co/xenPlatform/sma614925?op_env=test', '_blank')}
+                                >
+                                    Buka Link
+                                </Button>
+                            </div>
+                        </div>
+
+                        {/* Account ID Input */}
+                        <div className="flex flex-col gap-2">
+                            <label className="text-sm font-bold uppercase flex items-center gap-2">
+                                Xendit Account ID
+                                <div title="ID Akun Xendit anda (dimulai dengan 'acct_'). Ditemukan di Dashboard Xendit > Settings > Your Business Information.">
+                                    <HelpCircle size={14} className="text-gray-400 cursor-help" />
+                                </div>
+                            </label>
+                            <div className="flex gap-2">
+                                <input
+                                    placeholder="acct_xxx..."
+                                    value={currentVenue.xendit_account_id || ''}
+                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                                        // Local state handling if needed, currently rely on manual save
+                                    }}
+                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 font-mono border-2 border-black"
+                                    disabled={uploading}
+                                />
+                                <Button
+                                    onClick={async () => {
+                                        const inputEl = document.querySelector('input[placeholder="acct_xxx..."]') as HTMLInputElement;
+                                        if (!inputEl) return;
+                                        const newValue = inputEl.value;
+
+                                        setUploading(true);
+                                        try {
+                                            await updateVenue(currentVenue.id, { xendit_account_id: newValue });
+                                            await refreshVenue();
+                                            toast.success("Xendit ID saved!");
+                                        } catch (e: any) {
+                                            toast.error(e.message);
+                                        } finally {
+                                            setUploading(false);
+                                        }
+                                    }}
+                                    disabled={uploading}
+                                >
+                                    {uploading ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
+                                </Button>
+                            </div>
+                            <p className="text-xs text-gray-500">
+                                Pastikan ID akun sesuai agar dana settlement dapat diteruskan dengan benar.
+                            </p>
+                        </div>
+                    </div>
+                </div>            </div>
         </div>
     );
 };

@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { NeoButton } from '@/components/ui/neo-button';
 import { NeoInput } from '@/components/ui/neo-input';
-import { Building2, MapPin, Phone, Grid3x3, Clock, Check, ArrowRight, ArrowLeft, Sparkles, LogOut, Crown, Zap, AlertTriangle, Rocket, Trophy, Gem, Image as ImageIcon } from 'lucide-react';
+import { NeoInput } from '@/components/ui/neo-input';
+import { Building2, MapPin, Phone, Grid3x3, Clock, Check, ArrowRight, ArrowLeft, Sparkles, LogOut, Crown, Zap, AlertTriangle, Rocket, Trophy, Gem, Image as ImageIcon, CreditCard, ExternalLink, HelpCircle } from 'lucide-react';
 import { useVenue } from '@/lib/venue-context';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
@@ -22,9 +23,10 @@ interface OnboardingData {
 
     subscriptionPlan: SubscriptionPlan;
     photoFile: File | null;
+    xendit_account_id: string;
 }
 
-type OnboardingStep = 1 | 2 | 3 | 4 | 5;
+type OnboardingStep = 1 | 2 | 3 | 4 | 5 | 6;
 
 export function VenueOnboarding() {
     const router = useRouter();
@@ -44,6 +46,7 @@ export function VenueOnboarding() {
         hourlyRatePerCourt: 50000,
         subscriptionPlan: 'STARTER',
         photoFile: null,
+        xendit_account_id: '',
     });
 
     const maxCourts = PLAN_FEATURES[data.subscriptionPlan].maxCourts;
@@ -76,7 +79,7 @@ export function VenueOnboarding() {
             return;
         }
 
-        if (currentStep < 5) {
+        if (currentStep < 6) {
             setCurrentStep((currentStep + 1) as OnboardingStep);
         }
     };
@@ -207,7 +210,7 @@ export function VenueOnboarding() {
                 {/* Progress Bar */}
                 <div className="bg-gray-100 p-4 border-b-4 border-black">
                     <div className="flex items-center justify-center max-w-md mx-auto">
-                        {[1, 2, 3, 4, 5].map((step, idx) => (
+                        {[1, 2, 3, 4, 5, 6].map((step, idx) => (
                             <div key={step} className="flex items-center">
                                 <div
                                     className={`w-10 h-10 rounded-full border-2 flex items-center justify-center font-black ${currentStep >= step
@@ -217,7 +220,7 @@ export function VenueOnboarding() {
                                 >
                                     {currentStep > step ? <Check className="w-5 h-5" /> : step}
                                 </div>
-                                {idx < 4 && (
+                                {idx < 5 && (
                                     <div
                                         className={`w-4 h-1 mx-0.5 sm:w-8 sm:mx-1 ${currentStep > step ? 'bg-brand-orange' : 'bg-gray-300'
                                             }`}
@@ -606,8 +609,69 @@ export function VenueOnboarding() {
                         </div>
                     )}
 
-                    {/* Step 5: Review */}
+                    {/* Step 5: Xendit Integration */}
                     {currentStep === 5 && (
+                        <div className="space-y-6">
+                            <div>
+                                <h2 className="text-xl font-black uppercase mb-1">Integrasi Pembayaran</h2>
+                                <p className="text-sm text-gray-600">Hubungkan akun Xendit Anda untuk menerima pembayaran online.</p>
+                            </div>
+
+                            <div className="space-y-6">
+                                {/* Create Account Container */}
+                                <div className="bg-blue-50 border-2 border-blue-200 p-4 rounded-lg flex flex-col gap-3">
+                                    <div className="flex gap-2 items-start">
+                                        <div className="bg-white p-1 rounded-full border border-blue-200 mt-1">
+                                            <ExternalLink size={16} className="text-blue-600" />
+                                        </div>
+                                        <div>
+                                            <h4 className="font-bold text-blue-900">Belum punya akun Xendit?</h4>
+                                            <p className="text-xs text-blue-700 mt-1">
+                                                Buat akun Xendit Anda melalui link khusus dibawah ini untuk terhubung dengan platform kami.
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex gap-2 mt-2">
+                                        <div className="flex-1 bg-white border border-blue-200 rounded px-3 py-2 text-xs text-gray-500 font-mono truncate select-all">
+                                            https://dashboard.xendit.co/xenPlatform/sma614925?op_env=test
+                                        </div>
+                                        <button
+                                            type="button"
+                                            className="h-auto px-4 py-2 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white rounded shadow-sm"
+                                            onClick={() => window.open('https://dashboard.xendit.co/xenPlatform/sma614925?op_env=test', '_blank')}
+                                        >
+                                            Buka Link
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Account ID Input */}
+                                <div className="flex flex-col gap-2">
+                                    <label className="text-sm font-bold uppercase flex items-center gap-2">
+                                        Xendit Account ID
+                                        <div title="ID Akun Xendit anda (dimulai dengan 'acct_'). Ditemukan di Dashboard Xendit > Settings > Your Business Information.">
+                                            <HelpCircle size={14} className="text-gray-400 cursor-help" />
+                                        </div>
+                                    </label>
+                                    <div className="flex gap-2">
+                                        <input
+                                            placeholder="acct_xxx..."
+                                            value={data.xendit_account_id}
+                                            onChange={(e) => updateData({ xendit_account_id: e.target.value })}
+                                            className="w-full border-2 border-black p-3 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-brand-orange bg-white"
+                                        />
+                                    </div>
+                                    <p className="text-xs text-gray-500">
+                                        Opsional. Anda dapat mengisi ini nanti di pengaturan.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Step 6: Review */}
+                    {currentStep === 6 && (
                         <div className="space-y-6">
                             <div>
                                 <h2 className="text-xl font-black uppercase mb-1">Konfirmasi Data</h2>
@@ -660,6 +724,13 @@ export function VenueOnboarding() {
                                         Rp {data.hourlyRatePerCourt.toLocaleString('id-ID')}
                                     </p>
                                 </div>
+
+                                {data.xendit_account_id && (
+                                    <div className="border-t-2 border-dashed border-gray-300 pt-3 mt-3">
+                                        <p className="text-xs font-black uppercase text-gray-500 mb-1">Xendit Account ID</p>
+                                        <p className="font-mono text-sm">{data.xendit_account_id}</p>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}
@@ -678,7 +749,7 @@ export function VenueOnboarding() {
                         </NeoButton>
                     )}
 
-                    {currentStep < 5 ? (
+                    {currentStep < 6 ? (
                         currentStep === 2 ? (
                             <NeoButton
                                 onClick={handleNext}

@@ -3,6 +3,9 @@ import { NextResponse } from 'next/server';
 import { runAutoCancelCheck } from '@/lib/utils/auto-cancel';
 import { getVenueById } from '@/lib/api/venues';
 
+// Force this route to be a dynamic serverless function
+export const dynamic = 'force-dynamic';
+
 // Secure this route to only allow internal calls or authenticated admin triggers
 export async function POST(req: Request) {
     try {

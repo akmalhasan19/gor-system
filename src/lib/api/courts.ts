@@ -8,6 +8,7 @@ export interface Court {
     isActive: boolean;
     hourlyRate: number;
     memberHourlyRate?: number;
+    photoUrl?: string; // URL to the court image
     notes?: string;
 }
 
@@ -46,6 +47,7 @@ export async function createCourt(
             is_active: court.isActive,
             hourly_rate: court.hourlyRate,
             member_hourly_rate: court.memberHourlyRate,
+            photo_url: court.photoUrl,
             notes: court.notes,
         })
         .select()
@@ -61,6 +63,7 @@ export async function createCourt(
         isActive: data.is_active,
         hourlyRate: Number(data.hourly_rate) || 0,  // Supabase DECIMAL returns string
         memberHourlyRate: Number(data.member_hourly_rate) || undefined,
+        photoUrl: data.photo_url,
         notes: data.notes,
     };
 }
@@ -113,6 +116,7 @@ export async function updateCourt(id: string, updates: Partial<Court>): Promise<
     if (updates.isActive !== undefined) dbUpdates.is_active = updates.isActive;
     if (updates.hourlyRate !== undefined) dbUpdates.hourly_rate = updates.hourlyRate;
     if (updates.memberHourlyRate !== undefined) dbUpdates.member_hourly_rate = updates.memberHourlyRate;
+    if (updates.photoUrl !== undefined) dbUpdates.photo_url = updates.photoUrl;
     if (updates.notes !== undefined) dbUpdates.notes = updates.notes;
 
     const { error } = await supabase

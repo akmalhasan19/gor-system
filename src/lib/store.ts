@@ -347,6 +347,7 @@ export const useAppStore = create<AppState>((set, get) => ({
                 isActive: newRecord.is_active,
                 hourlyRate: Number(newRecord.hourly_rate),
                 memberHourlyRate: Number(newRecord.member_hourly_rate),
+                photoUrl: newRecord.photo_url,
                 notes: newRecord.notes
             };
 

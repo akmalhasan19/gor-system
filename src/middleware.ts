@@ -95,6 +95,7 @@ export async function middleware(request: NextRequest) {
         request.nextUrl.pathname.startsWith('/api/onboarding') ||
         request.nextUrl.pathname.startsWith('/api/partner-invites') ||
         request.nextUrl.pathname.startsWith('/api/webhooks') ||
+        request.nextUrl.pathname.startsWith('/api/cron') ||  // Allow cron jobs
         request.nextUrl.pathname.startsWith('/api/auth');
 
     const isSystemRoute =

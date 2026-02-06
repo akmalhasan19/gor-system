@@ -36,6 +36,18 @@ export const CourtSettings = () => {
             // Convert to WebP
             const webpFile = await convertToWebp(file);
 
+            // Get CSRF Token from cookie
+            const csrfToken = document.cookie
+                .split('; ')
+                .find(row => row.startsWith('csrf-token='))
+                ?.split('=')[1];
+
+            if (!csrfToken) {
+                console.warn('CSRF Token not found in cookies');
+                // We proceed anyway, but middleware might block it. 
+                // Alternatively we could error here, but let's let the server decide.
+            }
+
             // Create Form Data
             const formData = new FormData();
             formData.append('file', webpFile);
@@ -45,6 +57,9 @@ export const CourtSettings = () => {
             // Upload
             const response = await fetch('/api/courts/photo', {
                 method: 'POST',
+                headers: {
+                    'x-csrf-token': csrfToken || '',
+                },
                 body: formData
             });
 

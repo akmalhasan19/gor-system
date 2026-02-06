@@ -25,6 +25,7 @@ export async function GET() {
                 hourly_rate,
                 is_active,
                 notes,
+                photo_url,
                 venues (
                     id,
                     name,

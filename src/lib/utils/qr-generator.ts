@@ -7,14 +7,23 @@ import QRCode from 'qrcode';
 
 // Secret salt for signature generation (should be in env vars for production)
 const IS_DEV = process.env.NODE_ENV === 'development';
-const QR_SECRET_SALT = process.env.QR_SECRET || process.env.NEXT_PUBLIC_QR_SECRET
-    || (IS_DEV ? 'smashpartner-qr-secret-2026' : undefined);
 
-if (!QR_SECRET_SALT) {
-    throw new Error(
-        'QR_SECRET must be set in production environment. ' +
-        'Generate with: openssl rand -base64 32'
-    );
+/**
+ * Get QR secret with lazy initialization
+ * This prevents build-time errors when env vars aren't loaded yet
+ */
+function getQRSecret(): string {
+    const secret = process.env.QR_SECRET || process.env.NEXT_PUBLIC_QR_SECRET
+        || (IS_DEV ? 'smashpartner-qr-secret-2026' : undefined);
+
+    if (!secret) {
+        throw new Error(
+            'QR_SECRET must be set in production environment. ' +
+            'Generate with: openssl rand -base64 32'
+        );
+    }
+
+    return secret;
 }
 
 interface QRPayload {
@@ -39,7 +48,7 @@ async function sha256(message: string): Promise<string> {
  * Generate signature for QR data
  */
 async function generateSignature(memberId: string, date: string): Promise<string> {
-    const payload = `${memberId}:${date}:${QR_SECRET_SALT}`;
+    const payload = `${memberId}:${date}:${getQRSecret()}`;
     const fullHash = await sha256(payload);
     // Return first 16 characters for shorter QR code
     return fullHash.substring(0, 16);

@@ -19,7 +19,8 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
     return (
         <AuthGuard>
             <DataSyncProvider>
-                <AutoCancelTrigger />
+                {/* TODO: Re-enable after fixing 404 issue */}
+                {/* <AutoCancelTrigger /> */}
                 <div className="min-h-screen bg-white flex flex-col lg:flex-row">
                     {/* Sidebar for Desktop */}
                     <Sidebar />

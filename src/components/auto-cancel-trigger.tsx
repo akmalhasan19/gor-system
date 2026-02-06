@@ -16,7 +16,7 @@ export function AutoCancelTrigger() {
         const triggerCheck = async () => {
             // logger.debug("⏰ Triggering Auto-Cancel Check...");
             try {
-                await fetch('/api/cron/auto-cancel', {
+                await fetch('/api/public/auto-cancel', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ venueId: currentVenueId }),

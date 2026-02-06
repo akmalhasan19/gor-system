@@ -4,6 +4,7 @@ import React from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { Settings } from 'lucide-react';
+import { usePageRefresh } from '@/hooks/use-page-refresh';
 
 // Lazy load DashboardView dengan loading indicator
 const DashboardView = dynamic(
@@ -22,6 +23,8 @@ const DashboardView = dynamic(
 );
 
 export default function DashboardPage() {
+    // Auto-refresh data when navigating to this page
+    usePageRefresh('dashboard');
     return (
         <div className="flex-1 p-4 overflow-y-auto bg-grid-brown">
             <div className="flex justify-between items-center mb-4">

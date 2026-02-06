@@ -7,6 +7,7 @@ import { PendingTransactionsBadge } from "@/components/pos/pending-transactions-
 import { PendingTransactionsModal } from "@/components/pos/pending-transactions-modal";
 import { PackagePlus, ShoppingCart } from "lucide-react";
 import { useAppStore } from "@/lib/store";
+import { usePageRefresh } from '@/hooks/use-page-refresh';
 
 // Lazy load heavy POS components
 const ProductList = dynamic(
@@ -37,6 +38,8 @@ const CartSidebar = dynamic(
 );
 
 export default function POSPage() {
+    // Auto-refresh products and transactions when navigating to this page
+    usePageRefresh('pos');
     const [isCartOpen, setIsCartOpen] = useState(true);
     const [isStockModalOpen, setIsStockModalOpen] = useState(false);
     const [stockModalMode, setStockModalMode] = useState<'EXISTING' | 'NEW'>('EXISTING');

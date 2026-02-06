@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { getMaintenanceTasks, MaintenanceTask } from "@/lib/api/maintenance";
 import { NeoButton } from "@/components/ui/neo-button";
 import { Share2, Plus, ChevronLeft, ChevronRight } from "lucide-react";
+import { usePageRefresh } from '@/hooks/use-page-refresh';
 
 // Lazy load Scheduler component
 const Scheduler = dynamic(
@@ -28,6 +29,8 @@ const Scheduler = dynamic(
 );
 
 export default function SchedulerPage() {
+    // Auto-refresh bookings when navigating to this page
+    usePageRefresh('scheduler');
     const {
         bookings, addBooking, updateBooking, courts, customers, updateCustomer,
         selectedDate, setSelectedDate

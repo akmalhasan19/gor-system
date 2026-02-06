@@ -2,6 +2,7 @@
 
 import React from 'react';
 import dynamic from 'next/dynamic';
+import { usePageRefresh } from '@/hooks/use-page-refresh';
 
 // Lazy load ReportsView (likely contains heavy charting library)
 const ReportsView = dynamic(
@@ -20,6 +21,8 @@ const ReportsView = dynamic(
 );
 
 export default function ReportsPage() {
+    // Auto-refresh transactions when navigating to this page
+    usePageRefresh('reports');
     return (
         <div className="flex-1 overflow-y-auto h-full bg-grid-brown">
             <ReportsView />

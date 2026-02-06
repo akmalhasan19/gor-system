@@ -289,7 +289,8 @@ export async function getUserVenue(userId: string): Promise<Venue | null> {
                 wa_device_id,
                 wa_device_id,
                 wa_status,
-                photo_url
+                photo_url,
+                facilities
             )
         `)
         .eq('user_id', userId)

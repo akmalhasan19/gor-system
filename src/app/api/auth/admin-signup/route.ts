@@ -6,38 +6,20 @@ import { validateRequest, AdminSignupSchema } from '@/lib/validation';
 // Only for admin registration during development
 export async function POST(request: NextRequest) {
     // ----------------------------------------------------------------------
-    // 🚨 SECURITY LOCKDOWN
-    // This route is a potential backdoor. We strictly limit its availability.
-    // 1. CRITICAL: Strictly disable in Production unless a specific override secret is present.
-    // 2. AUTH: Require a specific header key even in Development/Override mode.
+    // 🚨 SECURITY: Admin Signup via Invite Token
+    // This route uses invite token validation instead of exposed headers
+    // Disabled by default in production unless explicitly enabled
     // ----------------------------------------------------------------------
 
     const IS_DEV = process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test';
-    const MASTER_SECRET = process.env.ADMIN_SIGNUP_SECRET; // Must be set in .env to use in Prod
 
-    // Check Header
-    const requestSecret = request.headers.get('x-admin-secret-key');
-
-    // Rule 1: If in Production AND no Master Secret is set in Env, completely disable (404).
-    if (!IS_DEV && !MASTER_SECRET) {
+    // Rule 1: Check if admin signup is enabled in production
+    if (!IS_DEV && process.env.ADMIN_SIGNUP_ENABLED !== 'true') {
         return NextResponse.json({ error: 'Not Found' }, { status: 404 });
     }
 
-    // Rule 2: If we are here, we are either in Dev or have a Master Secret configured.
-    // Now verify the request provided the correct secret.
-    // In Dev, we can fallback to a default if no env is set, for developer convenience (BUT verify header exists).
-
-    const requiredKey = MASTER_SECRET || 'smash-dev-admin-2026';
-
-    if (requestSecret !== requiredKey) {
-        return NextResponse.json(
-            { success: false, error: 'Unauthorized: Invalid Admin Secret Key' },
-            { status: 401 }
-        );
-    }
-
     try {
-        // Parse and validate request body with Zod
+        // Parse and validate request body
         let body;
         try {
             body = await request.json();
@@ -51,16 +33,18 @@ export async function POST(request: NextRequest) {
         const validation = validateRequest(AdminSignupSchema, body);
         if (!validation.success) return validation.error;
 
-        const { email, password } = validation.data;
+        const { email, password, inviteToken } = validation.data;
 
-        // Create Supabase Admin client with service role
+        // Rule 2: Validate invite token (replaces header secret check)
+        if (!inviteToken) {
+            return NextResponse.json(
+                { success: false, error: 'Invite token is required' },
+                { status: 400 }
+            );
+        }
+
+        // Create Supabase Admin client for invite validation
         const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-        console.log('Admin Signup Debug:', {
-            hasServiceRoleKey: !!serviceRoleKey,
-            serviceRoleKeyLength: serviceRoleKey?.length,
-            supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL
-        });
-
         if (!serviceRoleKey) {
             return NextResponse.json(
                 { success: false, error: 'Server configuration error: Missing service role key' },
@@ -78,6 +62,47 @@ export async function POST(request: NextRequest) {
                 }
             }
         );
+
+        // Validate invite token and check it matches the email
+        const { data: invite, error: inviteError } = await supabaseAdmin
+            .from('partner_invites')
+            .select('*')
+            .eq('token', inviteToken)
+            .eq('email', email)
+            .single();
+
+        if (inviteError || !invite) {
+            console.error('Invalid invite token:', inviteError);
+            return NextResponse.json(
+                { success: false, error: 'Invalid or expired invite token' },
+                { status: 401 }
+            );
+        }
+
+        // Check if invite has already been used
+        if (invite.used_at) {
+            return NextResponse.json(
+                { success: false, error: 'Invite token has already been used' },
+                { status: 401 }
+            );
+        }
+
+        // Check if invite has expired
+        const expiresAt = new Date(invite.expires_at);
+        if (expiresAt < new Date()) {
+            return NextResponse.json(
+                { success: false, error: 'Invite token has expired' },
+                { status: 401 }
+            );
+        }
+
+        // Rule 3: Production requires stronger passwords
+        if (!IS_DEV && password.length < 12) {
+            return NextResponse.json(
+                { success: false, error: 'Password must be at least 12 characters in production' },
+                { status: 400 }
+            );
+        }
 
         // Create user with admin privileges (bypasses email confirmation)
         const { data: createData, error: createError } = await supabaseAdmin.auth.admin.createUser({

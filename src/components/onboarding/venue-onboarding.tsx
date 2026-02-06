@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { NeoButton } from '@/components/ui/neo-button';
 import { NeoInput } from '@/components/ui/neo-input';
-import { NeoInput } from '@/components/ui/neo-input';
 import { Building2, MapPin, Phone, Grid3x3, Clock, Check, ArrowRight, ArrowLeft, Sparkles, LogOut, Crown, Zap, AlertTriangle, Rocket, Trophy, Gem, Image as ImageIcon, CreditCard, ExternalLink, HelpCircle } from 'lucide-react';
 import { useVenue } from '@/lib/venue-context';
 import { supabase } from '@/lib/supabase';

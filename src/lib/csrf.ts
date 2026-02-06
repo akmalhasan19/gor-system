@@ -6,7 +6,20 @@
  * Tokens are in format: `{random_value}.{signature}`
  */
 
-const SECRET = process.env.CSRF_SECRET || 'csrf-dev-secret-change-in-production-min-32-chars';
+const IS_DEV = process.env.NODE_ENV === 'development';
+const SECRET = process.env.CSRF_SECRET
+    || (IS_DEV ? 'csrf-dev-secret-change-in-production-min-32-chars' : undefined);
+
+if (!SECRET) {
+    throw new Error(
+        'CSRF_SECRET must be set in production environment. ' +
+        'Generate with: openssl rand -base64 32'
+    );
+}
+
+if (!IS_DEV && SECRET.length < 32) {
+    throw new Error('CSRF_SECRET must be at least 32 characters in production');
+}
 
 // Convert Uint8Array to hex string
 function uint8ArrayToHex(arr: Uint8Array): string {

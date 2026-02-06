@@ -151,6 +151,7 @@ export type PhoneVerifyCodeInput = z.infer<typeof PhoneVerifyCodeSchema>;
 export const AdminSignupSchema = z.object({
     email: EmailSchema,
     password: PasswordSchema,
+    inviteToken: z.string().optional(), // Optional for backward compatibility
 });
 
 export type AdminSignupInput = z.infer<typeof AdminSignupSchema>;

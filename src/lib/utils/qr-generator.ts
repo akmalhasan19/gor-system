@@ -6,7 +6,16 @@ import QRCode from 'qrcode';
  */
 
 // Secret salt for signature generation (should be in env vars for production)
-const QR_SECRET_SALT = process.env.NEXT_PUBLIC_QR_SECRET || 'smashpartner-qr-secret-2026';
+const IS_DEV = process.env.NODE_ENV === 'development';
+const QR_SECRET_SALT = process.env.QR_SECRET || process.env.NEXT_PUBLIC_QR_SECRET
+    || (IS_DEV ? 'smashpartner-qr-secret-2026' : undefined);
+
+if (!QR_SECRET_SALT) {
+    throw new Error(
+        'QR_SECRET must be set in production environment. ' +
+        'Generate with: openssl rand -base64 32'
+    );
+}
 
 interface QRPayload {
     memberId: string;

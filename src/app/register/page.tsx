@@ -90,9 +90,12 @@ function RegisterContent() {
                 method: 'POST',
                 headers: getCsrfHeaders({
                     'Content-Type': 'application/json',
-                    'x-admin-secret-key': process.env.NEXT_PUBLIC_ADMIN_SIGNUP_SECRET || 'smash-dev-admin-2026'
                 }),
-                body: JSON.stringify({ email: inviteData.email, password }),
+                body: JSON.stringify({
+                    email: inviteData.email,
+                    password,
+                    inviteToken: token // Use invite token for authentication instead of exposed secret
+                }),
             });
 
             const data = await response.json();

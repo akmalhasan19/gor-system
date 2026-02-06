@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { Camera, Image as ImageIcon, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { fetchWithCsrf } from "@/lib/hooks/use-csrf";
-import { CreditCard, ExternalLink, HelpCircle, Save } from "lucide-react";
+import { CreditCard, ExternalLink, HelpCircle, Save, Plus, X, Check } from "lucide-react";
 
 export const VenueProfileSettings = () => {
     const { currentVenue, refreshVenue } = useVenue();
@@ -118,6 +118,126 @@ export const VenueProfileSettings = () => {
                 </div>
 
                 {/* Additional Profile Fields could go here (Description, Facilities, etc.) if expanded */}
+
+                {/* Facilities Section */}
+                <div className="flex flex-col gap-4 pt-6 border-t-2 border-gray-100">
+                    <div className="flex items-center gap-3 border-b-2 border-gray-100 pb-2">
+                        <div className="bg-orange-100 p-2 rounded-full border-2 border-black">
+                            <Check size={20} className="text-orange-600" />
+                        </div>
+                        <h3 className="text-lg font-black uppercase">Fasilitas Venue</h3>
+                    </div>
+
+                    <div className="flex flex-col gap-4">
+                        <p className="text-xs text-gray-500 font-bold">
+                            Tambahkan fasilitas yang tersedia untuk menarik lebih banyak pelanggan (maksimal 10).
+                        </p>
+
+                        <div className="flex gap-2">
+                            <input
+                                placeholder="Cth: Parkir Luas, Kantin, Locker"
+                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 font-bold border-2 border-black"
+                                onKeyDown={async (e) => {
+                                    if (e.key === 'Enter') {
+                                        const input = e.currentTarget;
+                                        const val = input.value.trim();
+                                        if (!val) return;
+
+                                        const currentFacilities = currentVenue.facilities || [];
+                                        if (currentFacilities.includes(val)) {
+                                            toast.error("Fasilitas sudah ada!");
+                                            return;
+                                        }
+                                        if (currentFacilities.length >= 10) {
+                                            toast.error("Maksimal 10 fasilitas!");
+                                            return;
+                                        }
+
+                                        const newFacilities = [...currentFacilities, val];
+                                        setUploading(true);
+                                        try {
+                                            await updateVenue(currentVenue.id, { facilities: newFacilities });
+                                            await refreshVenue();
+                                            input.value = '';
+                                            toast.success("Fasilitas ditambahkan!");
+                                        } catch (err: any) {
+                                            toast.error(err.message);
+                                        } finally {
+                                            setUploading(false);
+                                        }
+                                    }
+                                }}
+                            />
+                            <Button
+                                className="bg-orange-500 hover:bg-orange-600 text-white font-bold border-2 border-black shadow-neo active:shadow-none active:translate-x-[2px] active:translate-y-[2px] transition-all"
+                                onClick={async () => {
+                                    const input = document.querySelector('input[placeholder="Cth: Parkir Luas, Kantin, Locker"]') as HTMLInputElement;
+                                    if (!input) return;
+                                    const val = input.value.trim();
+                                    if (!val) return;
+
+                                    const currentFacilities = currentVenue.facilities || [];
+                                    if (currentFacilities.includes(val)) {
+                                        toast.error("Fasilitas sudah ada!");
+                                        return;
+                                    }
+                                    if (currentFacilities.length >= 10) {
+                                        toast.error("Maksimal 10 fasilitas!");
+                                        return;
+                                    }
+
+                                    const newFacilities = [...currentFacilities, val];
+                                    setUploading(true);
+                                    try {
+                                        await updateVenue(currentVenue.id, { facilities: newFacilities });
+                                        await refreshVenue();
+                                        input.value = '';
+                                        toast.success("Fasilitas ditambahkan!");
+                                    } catch (err: any) {
+                                        toast.error(err.message);
+                                    } finally {
+                                        setUploading(false);
+                                    }
+                                }}
+                                disabled={uploading}
+                            >
+                                <Plus size={20} />
+                            </Button>
+                        </div>
+
+                        <div className="flex flex-wrap gap-2">
+                            {(currentVenue.facilities || []).map((fac, idx) => (
+                                <div key={idx} className="bg-white border-2 border-black px-3 py-1 rounded-full flex items-center gap-2 shadow-[2px_2px_0px_black]">
+                                    <span className="text-xs font-black uppercase text-orange-600">{fac}</span>
+                                    <button
+                                        onClick={async () => {
+                                            if (confirm(`Hapus fasilitas "${fac}"?`)) {
+                                                const newFacilities = (currentVenue.facilities || []).filter(f => f !== fac);
+                                                setUploading(true);
+                                                try {
+                                                    await updateVenue(currentVenue.id, { facilities: newFacilities });
+                                                    await refreshVenue();
+                                                    toast.success("Fasilitas dihapus!");
+                                                } catch (err: any) {
+                                                    toast.error(err.message);
+                                                } finally {
+                                                    setUploading(false);
+                                                }
+                                            }
+                                        }}
+                                        className="text-gray-400 hover:text-red-500 transition-colors"
+                                        disabled={uploading}
+                                    >
+                                        <X size={14} />
+                                    </button>
+                                </div>
+                            ))}
+                            {(!currentVenue.facilities || currentVenue.facilities.length === 0) && (
+                                <span className="text-xs text-gray-400 italic">Belum ada fasilitas.</span>
+                            )}
+                        </div>
+                    </div>
+                </div>
 
                 {/* XenPlatform Integration Section */}
                 <div className="flex flex-col gap-4 pt-6 border-t-2 border-gray-100">

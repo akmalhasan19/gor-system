@@ -47,6 +47,7 @@ export interface Venue {
     // Deposit Policy
     depositPolicy?: DepositPolicy;
     photo_url?: string;
+    facilities?: string[];
     xendit_account_id?: string;
 }
 
@@ -83,6 +84,7 @@ export async function getVenues(): Promise<Venue[]> {
         winbackConfiguration: row.winback_configuration,
         depositPolicy: row.deposit_policy,
         photo_url: row.photo_url,
+        facilities: row.facilities || [],
         xendit_account_id: row.xendit_account_id,
     }));
 }
@@ -118,7 +120,9 @@ export async function getVenueById(id: string): Promise<Venue | null> {
         waStatus: data.wa_status,
         winbackConfiguration: data.winback_configuration,
         depositPolicy: data.deposit_policy,
+
         photo_url: data.photo_url,
+        facilities: data.facilities || [],
         xendit_account_id: data.xendit_account_id,
     };
 }
@@ -139,6 +143,7 @@ export async function createVenue(venue: Omit<Venue, 'id'>): Promise<Venue> {
             wa_notification_time: venue.waNotificationTime,
             fonnte_token: venue.fonnteToken,
             wa_template_reminder: venue.waTemplateReminder,
+            facilities: venue.facilities,
         })
         .select()
         .single();
@@ -160,6 +165,7 @@ export async function createVenue(venue: Omit<Venue, 'id'>): Promise<Venue> {
         fonnteToken: data.fonnte_token,
         waTemplateReminder: data.wa_template_reminder,
         depositPolicy: data.deposit_policy,
+        facilities: data.facilities || [],
     };
 }
 
@@ -188,6 +194,7 @@ export async function updateVenue(id: string, updates: Partial<Venue>): Promise<
     if (updates.winbackConfiguration !== undefined) dbUpdates.winback_configuration = updates.winbackConfiguration;
     if (updates.depositPolicy !== undefined) dbUpdates.deposit_policy = updates.depositPolicy;
     if (updates.photo_url !== undefined) dbUpdates.photo_url = updates.photo_url;
+    if (updates.facilities !== undefined) dbUpdates.facilities = updates.facilities;
     if (updates.xendit_account_id !== undefined) dbUpdates.xendit_account_id = updates.xendit_account_id;
 
     const { error } = await supabase
@@ -313,6 +320,7 @@ export async function getUserVenue(userId: string): Promise<Venue | null> {
         winbackConfiguration: venue.winback_configuration,
         depositPolicy: venue.deposit_policy,
         photo_url: venue.photo_url,
+        facilities: venue.facilities || [],
         xendit_account_id: venue.xendit_account_id,
     };
 }

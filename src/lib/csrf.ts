@@ -7,18 +7,23 @@
  */
 
 const IS_DEV = process.env.NODE_ENV === 'development';
-const SECRET = process.env.CSRF_SECRET
-    || (IS_DEV ? 'csrf-dev-secret-change-in-production-min-32-chars' : undefined);
+// Getter for lazy initialization
+function getSecret(): string {
+    const SECRET = process.env.CSRF_SECRET
+        || (IS_DEV ? 'csrf-dev-secret-change-in-production-min-32-chars' : undefined);
 
-if (!SECRET) {
-    throw new Error(
-        'CSRF_SECRET must be set in production environment. ' +
-        'Generate with: openssl rand -base64 32'
-    );
-}
+    if (!SECRET) {
+        throw new Error(
+            'CSRF_SECRET must be set in production environment. ' +
+            'Generate with: openssl rand -base64 32'
+        );
+    }
 
-if (!IS_DEV && SECRET.length < 32) {
-    throw new Error('CSRF_SECRET must be at least 32 characters in production');
+    if (!IS_DEV && SECRET.length < 32) {
+        throw new Error('CSRF_SECRET must be at least 32 characters in production');
+    }
+
+    return SECRET;
 }
 
 // Convert Uint8Array to hex string
@@ -39,7 +44,7 @@ function generateRandomHex(length: number): string {
 function createSignature(message: string): string {
     // Simple but effective hash for CSRF token validation
     // Combined with random token value, this provides adequate protection
-    const str = message + SECRET;
+    const str = message + getSecret();
     let hash1 = 0;
     let hash2 = 0;
 

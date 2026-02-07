@@ -16,7 +16,7 @@ export async function GET(
         // Verify venue exists and get courts
         const { data: courts, error } = await supabase
             .from('courts')
-            .select('id, name, court_number, is_active, hourly_rate')
+            .select('id, name, court_number, is_active, hourly_rate, court_type, photo_url')
             .eq('venue_id', id)
             .order('court_number', { ascending: true });
 

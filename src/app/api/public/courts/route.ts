@@ -26,6 +26,7 @@ export async function GET() {
                 is_active,
                 notes,
                 photo_url,
+                court_type,
                 venues (
                     id,
                     name,

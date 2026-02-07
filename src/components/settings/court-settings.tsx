@@ -14,9 +14,12 @@ export const CourtSettings = () => {
         name: '',
         hourlyRate: 0,
         memberHourlyRate: 0,
+        courtType: '',
         photoFile: null as File | null
     });
     const [uploadingCourtId, setUploadingCourtId] = useState<string | null>(null);
+
+    const COURT_TYPES = ['Vinyl', 'Interlock', 'Semen', 'Rumput Sintetis', 'Karpet', 'Kayu'];
 
     const handleUpdate = async (courtId: string, field: string, value: any) => {
         try {
@@ -95,8 +98,9 @@ export const CourtSettings = () => {
             await addCourt(currentVenueId, {
                 name: newCourtData.name,
                 hourlyRate: newCourtData.hourlyRate,
-                memberHourlyRate: newCourtData.memberHourlyRate || undefined, // Send undefined if 0/empty
-                courtNumber: courts.length + 1, // Simple auto-increment suggestion
+                memberHourlyRate: newCourtData.memberHourlyRate || undefined,
+                courtType: newCourtData.courtType || undefined,
+                courtNumber: courts.length + 1,
                 isActive: true
             });
 
@@ -113,7 +117,7 @@ export const CourtSettings = () => {
 
             toast.success("Lapangan berhasil ditambahkan!");
             setIsAdding(false);
-            setNewCourtData({ name: '', hourlyRate: 0, memberHourlyRate: 0, photoFile: null });
+            setNewCourtData({ name: '', hourlyRate: 0, memberHourlyRate: 0, courtType: '', photoFile: null });
         } catch (error: any) {
             console.error(error);
             toast.error("Gagal menambah lapangan: " + (error.message || "Terjadi kesalahan"));
@@ -185,6 +189,19 @@ export const CourtSettings = () => {
                                     className="p-2 w-full font-bold outline-none bg-brand-lilac/10 font-mono placeholder:text-gray-400 placeholder:font-sans"
                                 />
                             </div>
+                        </div>
+                        <div className="flex flex-col gap-1">
+                            <label className="text-xs font-bold uppercase text-gray-500">Tipe Lapangan</label>
+                            <select
+                                value={newCourtData.courtType}
+                                onChange={(e) => setNewCourtData({ ...newCourtData, courtType: e.target.value })}
+                                className="p-2 w-full font-bold outline-none bg-white border-2 border-black focus:shadow-[4px_4px_0px_black] transition-all"
+                            >
+                                <option value="">Pilih Tipe...</option>
+                                {COURT_TYPES.map(type => (
+                                    <option key={type} value={type}>{type}</option>
+                                ))}
+                            </select>
                         </div>
                     </div>
 
@@ -315,6 +332,25 @@ export const CourtSettings = () => {
                                     <p className="text-[10px] text-gray-400 font-bold italic mt-1">
                                         *Harga ini otomatis dipakai saat memilih Member di booking.
                                     </p>
+                                </div>
+
+                                {/* Court Type */}
+                                <div className="flex flex-col gap-1">
+                                    <label htmlFor={`court-${court.id}-type`} className="text-xs font-bold uppercase text-gray-500">Tipe Lapangan</label>
+                                    <select
+                                        id={`court-${court.id}-type`}
+                                        defaultValue={court.courtType || ''}
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            if (val !== court.courtType) handleUpdate(court.id, 'courtType', val || null);
+                                        }}
+                                        className="p-2 w-full font-bold outline-none bg-white border-2 border-black focus:shadow-[4px_4px_0px_black] transition-all"
+                                    >
+                                        <option value="">Belum diatur</option>
+                                        {COURT_TYPES.map(type => (
+                                            <option key={type} value={type}>{type}</option>
+                                        ))}
+                                    </select>
                                 </div>
                             </div>
                         </div>

@@ -9,6 +9,7 @@ export interface Court {
     hourlyRate: number;
     memberHourlyRate?: number;
     photoUrl?: string; // URL to the court image
+    courtType?: string; // Type of court surface
     notes?: string;
 }
 
@@ -31,6 +32,7 @@ export async function getCourts(venueId: string): Promise<Court[]> {
         hourlyRate: Number(row.hourly_rate) || 0,  // Supabase DECIMAL returns string
         memberHourlyRate: Number(row.member_hourly_rate) || undefined,
         photoUrl: row.photo_url,
+        courtType: row.court_type,
         notes: row.notes,
     }));
 }
@@ -49,6 +51,7 @@ export async function createCourt(
             hourly_rate: court.hourlyRate,
             member_hourly_rate: court.memberHourlyRate,
             photo_url: court.photoUrl,
+            court_type: court.courtType,
             notes: court.notes,
         })
         .select()
@@ -65,6 +68,7 @@ export async function createCourt(
         hourlyRate: Number(data.hourly_rate) || 0,  // Supabase DECIMAL returns string
         memberHourlyRate: Number(data.member_hourly_rate) || undefined,
         photoUrl: data.photo_url,
+        courtType: data.court_type,
         notes: data.notes,
     };
 }
@@ -106,6 +110,7 @@ export async function createMultipleCourts(
         hourlyRate: Number(row.hourly_rate) || 0,  // Supabase DECIMAL returns string
         memberHourlyRate: Number(row.member_hourly_rate) || undefined,
         photoUrl: row.photo_url,
+        courtType: row.court_type,
         notes: row.notes,
     }));
 }
@@ -119,6 +124,7 @@ export async function updateCourt(id: string, updates: Partial<Court>): Promise<
     if (updates.hourlyRate !== undefined) dbUpdates.hourly_rate = updates.hourlyRate;
     if (updates.memberHourlyRate !== undefined) dbUpdates.member_hourly_rate = updates.memberHourlyRate;
     if (updates.photoUrl !== undefined) dbUpdates.photo_url = updates.photoUrl;
+    if (updates.courtType !== undefined) dbUpdates.court_type = updates.courtType;
     if (updates.notes !== undefined) dbUpdates.notes = updates.notes;
 
     const { error } = await supabase

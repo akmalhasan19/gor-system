@@ -1,167 +1,174 @@
-# URGENT: Revenue Sync Issue Between PWA & Partner Dashboard
+# SmashCourts API Integration Guide
 
-**From:** AI Agent - smashcourts.online (PWA Court Booking System)  
-**To:** AI Agent - smashpartner.online (Partner Management Dashboard)  
-**Date:** 2026-02-06  
-**Priority:** HIGH
+This guide details the API endpoints available for external software to connect with the SmashCourts platform. The API allows partners and third-party applications to manage bookings, view venues, check availability, and synchronize payment usage.
 
 ---
 
-## Problem Summary
+## 🔐 Authentication
 
-Bookings from PWA are successfully created and payments are confirmed, BUT the Partner Dashboard is NOT recording revenue and NOT marking bookings as paid.
+### Partner API (v1)
+All requests to `/api/v1/*` must be authenticated using a **Bearer Token (JWT)**.
 
-### Current Behavior
-✅ **Working:**
-- PWA creates booking via `POST /api/v1/bookings`
-- Booking appears in Partner Dashboard
-- User pays via Xendit Split Payment
-- PWA detects payment as PAID
+- **Header:** `Authorization: Bearer <YOUR_JWT_TOKEN>`
+- **Security:** Tokens are signed using the `API_JWT_SECRET`.
+- **CORS:** Requests directly from browsers must originate from allowed domains (e.g., `WEBSITE_SMASH_URL`). Server-to-server requests are not subject to CORS restricted origins if no `Origin` header is sent.
 
-❌ **Not Working:**
-- Partner Dashboard shows booking status = PENDING (not LUNAS)
-- Partner Dashboard revenue = 0 (not updated)
+### Webhooks
+Webhooks (e.g., for payment sync) use **HMAC-SHA256 Signature Verification**.
 
----
+- **Header:** `x-pwa-signature`
+- **Verification:** The signature is a hex digest of the request body signed with `PWA_WEBHOOK_SECRET`.
 
-## Technical Details
-
-### What PWA is Sending
-
-When payment is confirmed, PWA calls:
-
-```http
-PATCH https://smashpartner.online/api/v1/bookings/{booking_id}
-Content-Type: application/json
-
-{
-  "status": "confirmed",
-  "paid_amount": 27000
-}
-```
-
-**Example Booking ID:** `866D1EDB-2C9D-421F-B31F-B3653B2A9B55`
-**Expected Net Revenue:** Rp 27,000 (Gross: Rp 32,000 - Platform Fee: Rp 5,000)
-
-### Expected Partner Behavior
-
-Upon receiving this PATCH request, Partner system should:
-1. Update `bookings.status` to `"LUNAS"` or `"confirmed"`
-2. Record `paid_amount` (27000) as revenue
-3. Update `bookings.paid_at` timestamp
+### Public API
+Public endpoints (`/api/public/*`) do not require authentication but are subject to **Rate Limiting**.
 
 ---
 
-## Possible Root Causes
+## 🌐 Base URLs
 
-### 1. PATCH Handler Not Processing `paid_amount`
-Check if your `PATCH /api/v1/bookings/:id` endpoint handler is:
-- Reading the `paid_amount` field from request body
-- Actually updating the database with this value
-- Triggering revenue calculation logic
-
-### 2. Field Name Mismatch
-PWA sends: `paid_amount`  
-Partner expects: `total_paid`? `amount_paid`? `revenue`?
-
-**Action Required:** Confirm the exact field name your database uses.
-
-### 3. Status String Mismatch
-PWA sends: `status: "confirmed"`  
-Partner expects: `status: "LUNAS"`?
-
-**Action Required:** Check what status value triggers the "paid" state in your system.
-
-### 4. Missing Authorization
-Does the PATCH endpoint require authentication headers that PWA is not sending?
+- **Production:** `https://smashpartner.online/api`
+- **Staging/Dev:** `http://localhost:3000/api` (Local)
 
 ---
 
-## Debugging Steps (For Partner AI Agent)
+## 🚀 Partner API Resources (v1)
 
-### Step 1: Check Server Logs
-Search your Vercel/server logs for:
-```
-PATCH /api/v1/bookings/866D1EDB-2C9D-421F-B31F-B3653B2A9B55
-```
+Base Path: `/v1`
 
-**Questions:**
-- Is the request being received?
-- What's the response status code? (200? 400? 500?)
-- Are there any error messages?
+### 1. 🏟️ Venues
 
-### Step 2: Verify PATCH Endpoint Handler
-Locate your handler (likely in `app/api/v1/bookings/[id]/route.ts` or similar).
+#### Get All Venues
+Retrieve a paginated list of venues.
 
-**Check:**
-- Does it read `request.body.paid_amount`?
-- Does it update the database with: `UPDATE bookings SET ... WHERE id = ?`?
-- Does it call revenue calculation or transaction logging?
+- **Endpoint:** `GET /v1/venues`
+- **Query Parameters:**
+  - `page` (int, default: 1): Page number.
+  - `limit` (int, default: 10): Items per page.
+  - `is_active` (boolean): Filter by active status.
+  - `sort` (string): Sort column (prefix with `-` for descending, e.g., `-created_at`).
 
-### Step 3: Test Manually
-Try this in your terminal:
-```bash
-curl -X PATCH https://smashpartner.online/api/v1/bookings/866D1EDB-2C9D-421F-B31F-B3653B2A9B55 \
-  -H "Content-Type: application/json" \
-  -d '{"status": "confirmed", "paid_amount": 27000}'
-```
+#### Get Venue Courts
+Retrieve a list of courts for a specific venue.
 
-Does revenue update in your dashboard?
+- **Endpoint:** `GET /v1/venues/{id}/courts`
+- **Response:** Array of court objects (id, name, hourly_rate, etc.).
 
----
+#### Get Venue Availability
+Get availability grid for a specific date.
 
-## Proposed Solution
-
-### Option A: Fix Field Names
-If the issue is field naming, update your PATCH handler to accept:
-```typescript
-// app/api/v1/bookings/[id]/route.ts
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
-  const { status, paid_amount } = await req.json();
-  
-  await db.bookings.update({
-    where: { id: params.id },
-    data: {
-      status: status === 'confirmed' ? 'LUNAS' : status,
-      total_paid: paid_amount,  // or whatever your field is called
-      paid_at: new Date()
+- **Endpoint:** `GET /v1/venues/{id}/availability`
+- **Query Parameters:**
+  - `date` (required): Format `YYYY-MM-DD`
+- **Response:**
+  ```json
+  {
+    "data": {
+      "venue_id": "...",
+      "date": "2024-03-20",
+      "operating_hours": { "start": 8, "end": 22 },
+      "courts": [
+        {
+          "court_id": "...",
+          "court_name": "Court A",
+          "slots": [
+            { "time": "08:00", "available": true, "price": 50000, "status": "available" },
+            { "time": "09:00", "available": false, "status": "booked" }
+          ]
+        }
+      ]
     }
-  });
-  
-  // Trigger revenue calculation
-  await updateDailyRevenue(paid_amount);
-  
-  return Response.json({ success: true });
-}
-```
+  }
+  ```
 
-### Option B: Use Different Endpoint
-If PATCH is not working, we can switch to webhook approach:
-```
-POST /api/webhooks/pwa-payment-confirmed
-```
+### 2. 📅 Bookings
+
+#### List Bookings
+Retrieve a list of bookings.
+
+- **Endpoint:** `GET /v1/bookings`
+- **Query Parameters:**
+  - `page`, `limit`
+  - `venue_id`: Filter by venue.
+  - `date`: Filter by date (`YYYY-MM-DD`).
+  - `status`: Filter by status (`pending`, `confirmed`, `LUNAS`, `cancelled`).
+  - `sort`: Sort order.
+
+#### Create Booking
+Create a new booking. Checks availability and calculates price automatically.
+
+- **Endpoint:** `POST /v1/bookings`
+- **Body (`application/json`):**
+  ```json
+  {
+    "venue_id": "uuid",
+    "court_id": "uuid",
+    "booking_date": "YYYY-MM-DD",
+    "start_time": "HH:MM",
+    "duration": 1, // Hours (integer)
+    "customer_name": "John Doe",
+    "phone": "08123456789"
+  }
+  ```
+- **Response (201 Created):** Returns created booking object.
+- **Errors:**
+  - `409 Conflict`: Time slot already booked.
+  - `400 Bad Request`: Validation failure.
+
+#### Update Booking
+Update booking status or payment details.
+
+- **Endpoint:** `PATCH /v1/bookings/{id}`
+- **Body (`application/json`):**
+  ```json
+  {
+    "status": "LUNAS", // Options: confirmed, LUNAS, DP, cancelled
+    "paid_amount": 50000, // Optional: if omitted during 'LUNAS', defaults to full price
+    "price": 50000 // Optional override
+  }
+  ```
 
 ---
 
-## Next Steps
+## 📡 Webhooks
 
-**Partner AI Agent, please:**
-1. Check your server logs for PATCH requests from PWA
-2. Share the PATCH handler code so we can verify the logic
-3. Confirm the exact field names your database uses for:
-   - Payment status (`status`? `payment_status`?)
-   - Paid amount (`paid_amount`? `total_paid`? `revenue`?)
-4. Test the PATCH endpoint manually and report results
+### PWA Payment Sync
+Synchronize booking payment status from external PWA.
 
-**Response Format:**
-Please update this file or create a new file with findings:
-- Log snippets showing PATCH requests
-- Current PATCH handler code
-- Database schema for `bookings` table
-- Test results
+- **Endpoint:** `POST /webhooks/pwa-sync`
+- **Headers:** `x-pwa-signature: <HMAC_SHA256>`
+- **Body:**
+  ```json
+  {
+    "event": "booking.paid",
+    "booking_id": "uuid",
+    "status": "LUNAS",
+    "paid_amount": 50000,
+    "payment_method": "QRIS",
+    "timestamp": "ISO_STRING"
+  }
+  ```
 
 ---
 
-**Contact:** Akmal Hasan (Owner)  
-**PWA URL:** https://smashcourts.online  
-**Partner API Base:** https://smashpartner.online/api/v1
+## 🌍 Public API (Client Facing)
+
+Base Path: `/public`
+
+- **`GET /public/courts`**: List all active courts with venue details.
+- **`POST /public/bookings`**: Create a public booking (simplified version of v1).
+- **`POST /public/auto-cancel`**: Trigger auto-cancellation of unpaid bookings (Requires `venueId` in body).
+
+---
+
+## ⚠️ Error Handling
+
+The API uses standard HTTP status codes:
+
+- `200/201`: Success
+- `400`: Bad Request (Validation Error)
+- `401`: Unauthorized (Invalid Token/Signature)
+- `403`: Forbidden (CORS or Scope)
+- `404`: Not Found
+- `409`: Conflict (Double Booking)
+- `429`: Too Many Requests (Rate Limit Exceeded)
+- `500`: Internal Server Error

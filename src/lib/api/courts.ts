@@ -30,6 +30,7 @@ export async function getCourts(venueId: string): Promise<Court[]> {
         isActive: row.is_active,
         hourlyRate: Number(row.hourly_rate) || 0,  // Supabase DECIMAL returns string
         memberHourlyRate: Number(row.member_hourly_rate) || undefined,
+        photoUrl: row.photo_url,
         notes: row.notes,
     }));
 }
@@ -104,6 +105,7 @@ export async function createMultipleCourts(
         isActive: row.is_active,
         hourlyRate: Number(row.hourly_rate) || 0,  // Supabase DECIMAL returns string
         memberHourlyRate: Number(row.member_hourly_rate) || undefined,
+        photoUrl: row.photo_url,
         notes: row.notes,
     }));
 }

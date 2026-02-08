@@ -2,9 +2,8 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
-import { StockModal } from "@/components/pos/stock-modal";
+// Conditionally load modals only when opened (bundle-conditional pattern)
 import { PendingTransactionsBadge } from "@/components/pos/pending-transactions-badge";
-import { PendingTransactionsModal } from "@/components/pos/pending-transactions-modal";
 import { PackagePlus, ShoppingCart } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { usePageRefresh } from '@/hooks/use-page-refresh';
@@ -35,6 +34,17 @@ const CartSidebar = dynamic(
         ),
         ssr: false
     }
+);
+
+// Dynamically import modals
+const StockModal = dynamic(
+    () => import('@/components/pos/stock-modal').then(mod => ({ default: mod.StockModal })),
+    { ssr: false }
+);
+
+const PendingTransactionsModal = dynamic(
+    () => import('@/components/pos/pending-transactions-modal').then(mod => ({ default: mod.PendingTransactionsModal })),
+    { ssr: false }
 );
 
 export default function POSPage() {

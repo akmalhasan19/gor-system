@@ -562,8 +562,11 @@ export const useAppStore = create<AppState>((set, get) => ({
             }));
 
             // Refresh bookings and products to reflect updated status/stock
-            get().syncBookings(venueId);
-            get().syncProducts(venueId);
+            // Run in parallel (no await needed - fire and forget for background sync)
+            Promise.all([
+                get().syncBookings(venueId),
+                get().syncProducts(venueId)
+            ]).catch(console.error);
 
             // Return the transaction
             return newTransaction;

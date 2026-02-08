@@ -22,8 +22,10 @@ export const DashboardView = () => {
 
     // Fetch Daily Expenses
     useEffect(() => {
+        // Early return check before async context (async-defer-await pattern)
+        if (!currentVenueId) return;
+
         const fetchExpenses = async () => {
-            if (!currentVenueId) return;
             try {
                 const expenses = await getDailyExpenses(currentVenueId, activeDate);
                 const total = expenses.reduce((sum, exp) => sum + Number(exp.amount), 0);

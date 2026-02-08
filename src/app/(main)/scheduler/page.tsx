@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
-import { BookingModal } from "@/components/booking-modal";
+// Dynamic import for BookingModal (bundle-conditional pattern)
 import { Booking } from "@/lib/constants";
 import { useAppStore } from "@/lib/store";
 import { useVenue } from "@/lib/venue-context";
@@ -28,6 +28,12 @@ const Scheduler = dynamic(
     }
 );
 
+// Dynamically load BookingModal only when needed
+const BookingModal = dynamic(
+    () => import('@/components/booking-modal').then(mod => ({ default: mod.BookingModal })),
+    { ssr: false }
+);
+
 export default function SchedulerPage() {
     // Auto-refresh bookings when navigating to this page
     usePageRefresh('scheduler');
@@ -44,8 +50,10 @@ export default function SchedulerPage() {
 
     // Fetch maintenance tasks
     useEffect(() => {
+        // Early return before async context (async-defer-await pattern)
+        if (!currentVenueId) return;
+
         const fetchMaintenance = async () => {
-            if (!currentVenueId) return;
             try {
                 const tasks = await getMaintenanceTasks(currentVenueId, selectedDate);
                 setMaintenanceTasks(tasks);

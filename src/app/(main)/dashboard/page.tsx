@@ -22,6 +22,13 @@ const DashboardView = dynamic(
     }
 );
 
+// Hoist static JSX outside component (rendering-hoist-jsx pattern)
+const SettingsLink = () => (
+    <Link href="/settings" className="p-2 border-2 border-black bg-white rounded-lg shadow-neo-sm hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all">
+        <Settings size={20} />
+    </Link>
+);
+
 export default function DashboardPage() {
     // Auto-refresh data when navigating to this page
     usePageRefresh('dashboard');
@@ -29,9 +36,7 @@ export default function DashboardPage() {
         <div className="flex-1 p-4 overflow-y-auto bg-grid-brown">
             <div className="flex justify-between items-center mb-4">
                 <h1 className="text-2xl font-display font-black uppercase italic">Dashboard</h1>
-                <Link href="/settings" className="p-2 border-2 border-black bg-white rounded-lg shadow-neo-sm hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all">
-                    <Settings size={20} />
-                </Link>
+                <SettingsLink />
             </div>
             <DashboardView />
         </div>

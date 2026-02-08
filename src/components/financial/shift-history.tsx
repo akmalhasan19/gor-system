@@ -7,6 +7,7 @@ import { useVenue } from '@/lib/venue-context';
 import { Loader2, AlertCircle, CheckCircle2, Download } from 'lucide-react';
 import { exportShiftHistoryToCSV } from '@/lib/utils/csv-export';
 import { toast } from 'sonner';
+import { ShiftDetailModal } from './shift-detail-modal';
 
 
 interface ShiftHistoryProps {
@@ -17,6 +18,7 @@ export function ShiftHistory({ selectedDate }: ShiftHistoryProps) {
     const { currentVenueId } = useVenue();
     const [shifts, setShifts] = useState<Shift[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [selectedShift, setSelectedShift] = useState<Shift | null>(null);
 
     // Date range filter state
     const [startDate, setStartDate] = useState<string>('');
@@ -164,7 +166,11 @@ export function ShiftHistory({ selectedDate }: ShiftHistoryProps) {
                         const hasDiscrepancy = !isDiscrepancyZero;
 
                         return (
-                            <div key={shift.id} className="bg-white border-2 border-black p-4 shadow-[2px_2px_0px_rgba(0,0,0,0.1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all">
+                            <div
+                                key={shift.id}
+                                className="bg-white border-2 border-black p-4 shadow-[2px_2px_0px_rgba(0,0,0,0.1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all cursor-pointer"
+                                onClick={() => setSelectedShift(shift)}
+                            >
                                 <div className="flex justify-between items-start mb-2">
                                     <div>
                                         <span className="text-xs font-bold bg-gray-100 px-2 py-0.5 rounded-full border border-gray-300">
@@ -211,6 +217,12 @@ export function ShiftHistory({ selectedDate }: ShiftHistoryProps) {
                     })}
                 </div>
             )}
+
+            <ShiftDetailModal
+                isOpen={!!selectedShift}
+                onClose={() => setSelectedShift(null)}
+                shift={selectedShift}
+            />
         </div>
     );
 }

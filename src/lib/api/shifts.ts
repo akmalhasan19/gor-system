@@ -13,7 +13,7 @@ export async function getOpenShift(venueId: string): Promise<Shift | null> {
     return data && data.length > 0 ? data[0] : null;
 }
 
-export async function startShift(venueId: string, startCash: number): Promise<Shift> {
+export async function startShift(venueId: string, startCash: number, openerName?: string): Promise<Shift> {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
 
@@ -23,6 +23,7 @@ export async function startShift(venueId: string, startCash: number): Promise<Sh
             {
                 venue_id: venueId,
                 opener_id: user.id,
+                opener_name: openerName,
                 start_cash: startCash,
                 status: 'open',
             },

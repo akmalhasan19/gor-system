@@ -5,20 +5,21 @@ import { Loader2 } from 'lucide-react';
 interface OpenShiftModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onOpenShift: (startCash: number) => Promise<void>;
+    onOpenShift: (startCash: number, openerName: string) => Promise<void>;
 }
 
 export function OpenShiftModal({ isOpen, onClose, onOpenShift }: OpenShiftModalProps) {
     const [startCash, setStartCash] = useState('');
+    const [openerName, setOpenerName] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
     if (!isOpen) return null;
 
     const handleSubmit = async () => {
-        if (!startCash) return;
+        if (!startCash || !openerName) return;
         setIsLoading(true);
         try {
-            await onOpenShift(parseFloat(startCash));
+            await onOpenShift(parseFloat(startCash), openerName);
             onClose();
         } catch (error) {
             console.error(error);
@@ -37,6 +38,18 @@ export function OpenShiftModal({ isOpen, onClose, onOpenShift }: OpenShiftModalP
 
                 <div className="p-6 flex flex-col gap-4">
                     <div className="flex flex-col gap-1">
+                        <label className="text-xs font-bold uppercase">Nama Kasir (Opener)</label>
+                        <NeoInput
+                            type="text"
+                            value={openerName}
+                            onChange={(e) => setOpenerName(e.target.value)}
+                            placeholder="Masukkan nama anda"
+                            className="p-2 text-sm"
+                            autoFocus
+                        />
+                    </div>
+
+                    <div className="flex flex-col gap-1">
                         <label className="text-xs font-bold uppercase">Starting Cash (Float)</label>
                         <NeoInput
                             type="number"
@@ -46,7 +59,6 @@ export function OpenShiftModal({ isOpen, onClose, onOpenShift }: OpenShiftModalP
                             onChange={(e) => setStartCash(e.target.value)}
                             placeholder="0"
                             className="p-2 text-sm"
-                            autoFocus
                         />
                         <p className="text-[10px] text-gray-500 font-medium">
                             Enter the amount of cash currently in the drawer to start the shift.
@@ -64,7 +76,7 @@ export function OpenShiftModal({ isOpen, onClose, onOpenShift }: OpenShiftModalP
                     </button>
                     <button
                         onClick={handleSubmit}
-                        disabled={isLoading || !startCash}
+                        disabled={isLoading || !startCash || !openerName}
                         className="flex-1 bg-black text-white font-bold py-3 text-sm uppercase hover:bg-brand-orange hover:text-black border-2 border-transparent hover:border-black transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                     >
                         {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}

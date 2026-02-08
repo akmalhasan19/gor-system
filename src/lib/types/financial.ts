@@ -4,6 +4,7 @@ export interface Shift {
     id: string;
     venue_id: string;
     opener_id: string | null;
+    opener_name: string | null;
     closer_id: string | null;
     start_time: string;
     end_time: string | null;

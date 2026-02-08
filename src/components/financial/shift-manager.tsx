@@ -70,10 +70,10 @@ export function ShiftManager({ selectedDate }: ShiftManagerProps) {
         loadShift();
     }, [loadShift]);
 
-    const handleStartShift = async (startCash: number) => {
+    const handleStartShift = async (startCash: number, openerName: string) => {
         if (!currentVenueId) return;
         try {
-            const newShift = await startShift(currentVenueId, startCash);
+            const newShift = await startShift(currentVenueId, startCash, openerName);
             setShift(newShift);
             toast.success('Shift opened successfully');
             loadShift(); // Reload to get everything fresh

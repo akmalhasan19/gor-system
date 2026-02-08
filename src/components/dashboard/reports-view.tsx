@@ -140,8 +140,23 @@ export function ReportsView() {
     }, [bookings, currentVenue]);
 
     // KPIs
-    // Total Revenue from Transactions (Sales Value)
-    const totalRevenue = transactions.filter(t => t.status === 'PAID').reduce((acc, curr) => acc + (curr.totalAmount || 0), 0);
+    // KPIs
+    // Total Revenue from Transactions (Sales Value) - THIS MONTH (MTD)
+    const currentMonthRevenue = useMemo(() => {
+        const today = new Date();
+        const currentMonthStr = format(today, 'yyyy-MM');
+
+        return transactions
+            .filter(t => {
+                const tDate = new Date(t.date);
+                return t.status === 'PAID' && format(tDate, 'yyyy-MM') === currentMonthStr;
+            })
+            .reduce((acc, curr) => acc + (curr.totalAmount || 0), 0);
+    }, [transactions]);
+
+    // Day of the month
+    const currentDayOfMonth = new Date().getDate();
+
     const totalBookingsCount = bookings.filter(b => b.status !== 'cancelled').length;
 
     if (loading) return <div className="p-8">Loading reports...</div>;
@@ -185,9 +200,12 @@ export function ReportsView() {
                     {/* KPI Cards */}
                     <div className="grid grid-cols-2 gap-4">
                         <div className="bg-white p-4 border-2 border-black shadow-neo">
-                            <p className="text-xs uppercase font-bold text-gray-500">Total Pendapatan</p>
+                            <p className="text-xs uppercase font-bold text-gray-500">Total Pendapatan (Bulan Ini)</p>
                             <p className="text-xl font-black text-brand-lime-dark">
-                                Rp {totalRevenue.toLocaleString('id-ID')}
+                                Rp {currentMonthRevenue.toLocaleString('id-ID')}
+                            </p>
+                            <p className="text-xs font-bold text-gray-400 mt-1">
+                                (akumulasi {currentDayOfMonth} hari)
                             </p>
                         </div>
                         <div className="bg-white p-4 border-2 border-black shadow-neo">

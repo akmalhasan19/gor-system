@@ -141,7 +141,7 @@ export function ReportsView() {
 
     // KPIs
     // KPIs
-    // Total Revenue from Transactions (Sales Value) - THIS MONTH (MTD)
+    // Total Revenue from Transactions (Cash Flow Basis - Money Received) - THIS MONTH (MTD)
     const currentMonthRevenue = useMemo(() => {
         const today = new Date();
         const currentMonthStr = format(today, 'yyyy-MM');
@@ -149,9 +149,10 @@ export function ReportsView() {
         return transactions
             .filter(t => {
                 const tDate = new Date(t.date);
-                return t.status === 'PAID' && format(tDate, 'yyyy-MM') === currentMonthStr;
+                // Include ALL transactions (even PENDING/DP) that have paidAmount > 0 in this month
+                return format(tDate, 'yyyy-MM') === currentMonthStr;
             })
-            .reduce((acc, curr) => acc + (curr.totalAmount || 0), 0);
+            .reduce((acc, curr) => acc + (curr.paidAmount || 0), 0);
     }, [transactions]);
 
     // Day of the month

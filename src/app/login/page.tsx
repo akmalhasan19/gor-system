@@ -1,6 +1,9 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { loginSchema, type LoginFormData } from '@/lib/validation/auth-schema';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { signIn } from '@/lib/auth';
 import { NeoButton } from '@/components/ui/neo-button';
@@ -10,14 +13,25 @@ import Image from 'next/image';
 import { User, Lock, ArrowRight, Loader2 } from 'lucide-react';
 
 function LoginContent() {
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     // Phone verification state for users who logged in but haven't verified
     const [needsPhoneVerification, setNeedsPhoneVerification] = useState(false);
+    const [verifiedEmail, setVerifiedEmail] = useState('');
     const router = useRouter();
     const searchParams = useSearchParams();
+
+    const {
+        register,
+        handleSubmit,
+        formState: { errors },
+    } = useForm<LoginFormData>({
+        resolver: zodResolver(loginSchema),
+        defaultValues: {
+            email: '',
+            password: '',
+        },
+    });
 
     // Check if redirected for phone verification
     useEffect(() => {
@@ -26,13 +40,12 @@ function LoginContent() {
         }
     }, [searchParams]);
 
-    const handleLogin = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const onSubmit = async (data: LoginFormData) => {
         setError('');
         setIsLoading(true);
 
         try {
-            await signIn(email, password);
+            await signIn(data.email, data.password);
 
             // Check if phone is verified
             const statusResponse = await fetch('/api/phone-verification/status');
@@ -40,6 +53,7 @@ function LoginContent() {
 
             if (statusData.success && !statusData.isVerified) {
                 // Phone not verified, show verification step
+                setVerifiedEmail(data.email);
                 setNeedsPhoneVerification(true);
                 setIsLoading(false);
                 return;
@@ -48,7 +62,9 @@ function LoginContent() {
             router.push('/');
             router.refresh();
         } catch (err: any) {
-            setError(err.message || 'Gagal login.');
+            // Use generic error message for security
+            console.error('Login error:', err);
+            setError('Email atau password tidak valid.');
         } finally {
             setIsLoading(false);
         }
@@ -113,19 +129,20 @@ function LoginContent() {
 
                 {/* Login Form */}
                 {!needsPhoneVerification && (
-                    <form onSubmit={handleLogin} className="flex flex-col gap-4">
+                    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
                         <div className="flex flex-col gap-1">
                             <label className="font-black uppercase text-sm flex items-center gap-2">
                                 <User className="w-4 h-4" /> Email
                             </label>
                             <NeoInput
                                 type="email"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
+                                {...register('email')}
                                 placeholder="admin@example.com"
-                                className="w-full bg-gray-50"
-                                required
+                                className={`w-full bg-gray-50 ${errors.email ? 'border-red-500' : ''}`}
                             />
+                            {errors.email && (
+                                <span className="text-xs text-red-500 font-bold">{errors.email.message}</span>
+                            )}
                         </div>
 
                         <div className="flex flex-col gap-1">
@@ -134,12 +151,13 @@ function LoginContent() {
                             </label>
                             <NeoInput
                                 type="password"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
+                                {...register('password')}
                                 placeholder="••••••••"
-                                className="w-full bg-gray-50"
-                                required
+                                className={`w-full bg-gray-50 ${errors.password ? 'border-red-500' : ''}`}
                             />
+                            {errors.password && (
+                                <span className="text-xs text-red-500 font-bold">{errors.password.message}</span>
+                            )}
                         </div>
 
                         <div className="mt-4 flex flex-col gap-4">
@@ -166,7 +184,7 @@ function LoginContent() {
                 {/* Phone Verification Step (for users who logged in but need verification) */}
                 {needsPhoneVerification && (
                     <PhoneVerificationStep
-                        email={email}
+                        email={verifiedEmail}
                         onVerificationComplete={handlePhoneVerificationComplete}
                         onBack={handleBackFromVerification}
                     />

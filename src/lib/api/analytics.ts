@@ -81,7 +81,7 @@ export async function getRevenueData(
     (data || []).forEach((t) => {
         const date = t.created_at.split('T')[0];
         if (grouped[date]) {
-            grouped[date].revenue += Number(t.total_amount) || 0;
+            grouped[date].revenue += Number(t.paid_amount) || 0;
             grouped[date].transactionCount += 1;
             if (t.payment_method === 'cash' || t.payment_method === 'CASH') {
                 grouped[date].cash += Number(t.paid_amount) || 0;
@@ -201,15 +201,31 @@ export async function getRevenueByCourtData(
 
     if (courtsError) throw courtsError;
 
-    // Get bookings with price
+    // Get bookings to map court_id
     const { data: bookings, error: bookingsError } = await supabase
         .from('bookings')
-        .select('court_id, price')
+        .select('id, court_id, booking_date')
         .eq('venue_id', venueId)
         .gte('booking_date', format(startDate, 'yyyy-MM-dd'))
         .lte('booking_date', format(endDate, 'yyyy-MM-dd'));
 
     if (bookingsError) throw bookingsError;
+
+    // Get transactions to get actual revenue (paid_amount)
+    const { data: transactions, error: txError } = await supabase
+        .from('transactions')
+        .select('items, paid_amount')
+        .eq('venue_id', venueId)
+        .gte('created_at', format(startDate, 'yyyy-MM-dd') + 'T00:00:00')
+        .lte('created_at', format(endDate, 'yyyy-MM-dd') + 'T23:59:59');
+
+    if (txError) throw txError;
+
+    // Create booking ID to court ID map
+    const bookingToCourtMap: Record<string, string> = {};
+    (bookings || []).forEach((b) => {
+        bookingToCourtMap[b.id] = b.court_id;
+    });
 
     // Aggregate by court
     const courtRevenue: Record<string, { revenue: number; count: number }> = {};
@@ -217,11 +233,34 @@ export async function getRevenueByCourtData(
         courtRevenue[c.id] = { revenue: 0, count: 0 };
     });
 
-    (bookings || []).forEach((b) => {
-        if (courtRevenue[b.court_id]) {
-            courtRevenue[b.court_id].revenue += Number(b.price) || 0;
-            courtRevenue[b.court_id].count += 1;
-        }
+    // Process transactions with proportional allocation
+    (transactions || []).forEach((tx) => {
+        const items = tx.items || [];
+        const paidAmount = Number(tx.paid_amount) || 0;
+
+        // Calculate total price of all items in transaction
+        const txTotalPrice = items.reduce((sum: number, item: any) => {
+            return sum + ((item.price || 0) * (item.quantity || 1));
+        }, 0);
+
+        // Allocate revenue proportionally to each court
+        items.forEach((item: any) => {
+            if (item.type === 'BOOKING' && item.referenceId) {
+                const courtId = bookingToCourtMap[item.referenceId];
+                if (courtId && courtRevenue[courtId]) {
+                    // Calculate item's total price
+                    const itemPrice = (item.price || 0) * (item.quantity || 1);
+
+                    // Allocate proportionally based on item price
+                    const allocatedRevenue = txTotalPrice > 0
+                        ? (itemPrice / txTotalPrice) * paidAmount
+                        : 0;
+
+                    courtRevenue[courtId].revenue += allocatedRevenue;
+                    courtRevenue[courtId].count += 1;
+                }
+            }
+        });
     });
 
     return (courts || []).map((c) => ({
@@ -333,7 +372,7 @@ export async function getTopCustomers(
             };
         }
 
-        spendingMap[key].spending += Number(t.total_amount) || 0;
+        spendingMap[key].spending += Number(t.paid_amount) || 0;
         spendingMap[key].count += 1;
 
         // Update member status if found in any transaction

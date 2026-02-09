@@ -1,28 +1,79 @@
-# PWA Integration Issue Report: 401 Unauthorized
+# Debugging Note: Mismatch Jam Operasional (SmashCourts vs SmashPartner)
 
-**To:** AI Agent @ smashpartner.online
-**From:** PWA Booking System Team
+## Ringkas
+Di PWA `https://smashcourts.online` jam operasional yang ditampilkan (atau jumlah slot per hari) berbeda dengan jam operasional di dashboard venue `https://smashpartner.online`. Dari sisi PWA, **jam operasional tidak dihitung lokal**; PWA hanya menampilkan data dari **Smash Partner API**. Jadi mismatch hampir pasti berasal dari **data di Partner API** atau **mapping antara data dashboard vs response API**.
 
-## Issue Description
-We are encountering a persistent **401 Unauthorized** error when attempting to fetch data from the Smash Partner API.
+## Fakta dari kode PWA (SmashCourts)
+Sumber data jam/slot berasal dari API Partner:
 
-## Error Details
-- **Endpoint:** `GET /venues?is_active=true&limit=10`
-- **Status:** `401 Unauthorized`
-- **Response Body:** `{"error":"Invalid or expired token"}`
-- **Timestamp:** 2026-02-06 12:46:52 (UTC+7)
-- **Current Token being used:**
-  `eyJhbGciOiJIUzI1NiJ9.eyJ1cm46c21hc2g6cGFydG5lciI6dHJ1ZSwicm9sZSI6InNlcnZpY2VfYWNjb3VudCIsImlhdCI6MTc3MDA0NjQxOCwiaXNzIjoicHdhLXNtYXNoLXN5c3RlbSIsImF1ZCI6InBhcnRuZXItd2Vic2l0ZSIsImV4cCI6MjA4NTYyMjQxOH0.4GposcY3PG4wb6fSEutOBa0dvqXlD_nvth6BZij4WqA`
+1) **Daftar venue**  
+   - Endpoint: `GET /v1/venues`  
+   - Field yang dipakai: `operating_hours_start`, `operating_hours_end`  
+   - Kode: `src/lib/smash-api.ts` (interface `SmashVenue`)  
+   - Fetch: `src/lib/api/actions.ts` -> `fetchVenues()` -> `smashApi.getVenues()`
 
-## Troubleshooting Steps Taken
-1.  We have verified our code to ensure no whitespace is contaminating the token header (added `.trim()` logic).
-2.  We have verified the request headers format: `Authorization: Bearer <TOKEN>`.
-3.  We confirmed the error persists immediately after code deployment.
+2) **Availability harian**  
+   - Endpoint: `GET /v1/venues/:id/availability?date=YYYY-MM-DD`  
+   - Field response: `operating_hours { start, end }` + `slots[]`  
+   - Kode: `src/lib/smash-api.ts` (interface `SmashAvailabilityResponse`)  
+   - Fetch: `src/lib/api/actions.ts` -> `fetchAvailableSlots()` -> `smashApi.checkAvailability()`  
+   - UI: `src/components/BookingSection.tsx` menampilkan `slots` langsung (tanpa perhitungan jam operasional lokal).
 
-## Action Required
-Please check the validity of the Service Account Token you provided.
-1.  **Is it expired?**
-2.  **Is it restricted to a specific environment** (e.g. dev vs prod)?
-3.  **Request:** Please generate a **NEW Service Account Token** that allows us to access the `GET /venues` and `POST /bookings` endpoints.
+Implikasi:  
+Jika jam operasional yang ditampilkan PWA berbeda, maka **data yang dikirim Partner API sudah berbeda** (atau dihitung dengan logika berbeda dari dashboard).
 
-Once generated, please provide the new token so we can update our environment variables.
+## Dugaan Root Cause di Partner
+Mohon dicek di backend/DB SmashPartner:
+
+1) **Sumber jam operasional berbeda**
+   - Dashboard mungkin memakai tabel `operational_hours` (per-day).
+   - API `GET /venues` mungkin memakai kolom `venues.operating_hours_start/end` (global).
+   - Jika dashboard update `operational_hours` tapi **tidak mengupdate** `operating_hours_start/end`, maka PWA akan tampil beda.
+
+2) **Jam operasional per-day vs global**
+   - Dashboard bisa set jam berbeda per hari.
+   - API `availability` bisa memakai jam global (start/end) sehingga tidak match untuk hari tertentu.
+
+3) **Timezone / konversi TIME**
+   - Jam di DB (TIME) mungkin dibaca/di-serialize sebagai UTC atau ada offset.
+   - Hasilnya start/end bisa bergeser 1-2 jam di response API.
+
+4) **Off-by-one slot generation**
+   - Jika close_time = 22:00, slot seharusnya berakhir di 21:00 (total = end-start).
+   - Jika API memasukkan slot 22:00, maka jumlah jam tampil **+1**.
+
+5) **Close time lewat tengah malam**
+   - Jika venue tutup lewat tengah malam (misal 01:00), perhitungan berbasis jam sederhana bisa memotong jam operasional jadi kecil (misalnya 22 -> 1).
+
+## Checklist untuk AI Agent SmashPartner
+Mohon jalankan cek berikut di Partner:
+
+1) **Ambil data dashboard**
+   - Lihat jam operasional venue X di dashboard (per-day).
+
+2) **Bandingkan dengan API**
+   - `GET /v1/venues/:id` -> lihat `operating_hours_start/end`
+   - `GET /v1/venues/:id/availability?date=YYYY-MM-DD` -> lihat `operating_hours` dan jumlah `slots`
+
+3) **Bandingkan dengan DB**
+   - Pastikan `operational_hours` (per-day) sama dengan `operating_hours_start/end` (global) jika memang keduanya digunakan.
+   - Jika dashboard hanya mengubah `operational_hours`, pastikan API memakai tabel ini (bukan kolom global).
+
+## Saran Fix (di Partner)
+Pilih salah satu dan konsisten:
+
+1) **Satu sumber kebenaran**  
+   - Gunakan `operational_hours` (per-day) untuk:
+     - `GET /venues/:id/availability`
+     - `GET /venues` (set `operating_hours_*` sesuai hari yang diminta atau hilangkan field global).
+
+2) **Sync otomatis**
+   - Jika tetap ada `operating_hours_start/end` di tabel `venues`, update otomatis saat `operational_hours` diubah.
+
+3) **Uji regresi**
+   - Test: jika open=08:00 close=22:00, maka `slots.length` harus 14, slot terakhir 21:00.
+   - Test: jam berbeda per hari.
+   - Test: close_time setelah tengah malam (opsional).
+
+## Catatan
+PWA **tidak** melakukan normalisasi jam operasional lokal. Semua mismatch harus diselesaikan di Partner API atau data source-nya.

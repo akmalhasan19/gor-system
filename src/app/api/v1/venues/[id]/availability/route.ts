@@ -69,8 +69,8 @@ export async function GET(
         const availabilityData = courts.map(court => {
             const slots = [];
 
-            // Loop through operating hours
-            for (let hour = venue.operating_hours_start; hour < venue.operating_hours_end; hour++) {
+            // Loop through operating hours (inclusive of end hour)
+            for (let hour = venue.operating_hours_start; hour <= venue.operating_hours_end; hour++) {
                 const timeString = decimalToTime(hour);
                 const timeValue = hour;
 

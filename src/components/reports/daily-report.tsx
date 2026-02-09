@@ -90,7 +90,7 @@ export const DailyReport = () => {
 
     // Calculate Summary
     const totalTransactions = filteredTransactions.length;
-    const totalRevenue = filteredTransactions.reduce((sum, t) => sum + t.totalAmount, 0);
+    const totalRevenue = filteredTransactions.reduce((sum, t) => sum + (t.paidAmount || 0), 0);
     const cashTotal = filteredTransactions.filter(t => t.paymentMethod === 'CASH').reduce((sum, t) => sum + Math.min(t.paidAmount, t.totalAmount), 0);
     const qrisTotal = filteredTransactions.filter(t => t.paymentMethod === 'QRIS').reduce((sum, t) => sum + t.paidAmount, 0);
     const transferTotal = filteredTransactions.filter(t => t.paymentMethod === 'TRANSFER').reduce((sum, t) => sum + t.paidAmount, 0);

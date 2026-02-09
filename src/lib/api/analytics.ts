@@ -211,10 +211,13 @@ export async function getRevenueByCourtData(
 
     if (bookingsError) throw bookingsError;
 
-    // Get transactions to get actual revenue (paid_amount)
+    // Get transactions with transaction items
     const { data: transactions, error: txError } = await supabase
         .from('transactions')
-        .select('items, paid_amount')
+        .select(`
+            *,
+            transaction_items (*)
+        `)
         .eq('venue_id', venueId)
         .gte('created_at', format(startDate, 'yyyy-MM-dd') + 'T00:00:00')
         .lte('created_at', format(endDate, 'yyyy-MM-dd') + 'T23:59:59');
@@ -234,8 +237,15 @@ export async function getRevenueByCourtData(
     });
 
     // Process transactions with proportional allocation
-    (transactions || []).forEach((tx) => {
-        const items = tx.items || [];
+    (transactions || []).forEach((tx: any) => {
+        // Map transaction_items to items array
+        const items = (tx.transaction_items || []).map((item: any) => ({
+            type: item.type,
+            price: Number(item.price) || 0,
+            quantity: Number(item.quantity) || 0,
+            referenceId: item.reference_id,
+        }));
+
         const paidAmount = Number(tx.paid_amount) || 0;
 
         // Calculate total price of all items in transaction

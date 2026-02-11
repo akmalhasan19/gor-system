@@ -29,6 +29,7 @@ export const metadata: Metadata = {
     statusBarStyle: "black-translucent",
     title: "Smash Partner",
   },
+  manifest: '/manifest.json',
 };
 
 export default function RootLayout({

@@ -40,9 +40,12 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
                         {/* Global Floating Cart (Visible on non-POS pages) */}
                         <FloatingCart />
 
+
                         {/* Mobile Bottom Navigation */}
                         <MobileBottomNav />
                     </div>
+
+                    {/* AI Assistant temporarily disabled until API quota is available */}
                 </div>
             </DataSyncProvider>
         </AuthGuard>

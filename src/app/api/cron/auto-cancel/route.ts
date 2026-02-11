@@ -20,14 +20,20 @@ export async function POST(req: Request) {
         const venue = await getVenueById(venueId);
 
         if (!venue) {
-            return NextResponse.json({ error: 'Venue not found' }, { status: 404 });
+            return NextResponse.json({
+                success: true,
+                cancelledCount: 0,
+                skipped: true,
+                reason: 'Venue not found',
+            });
         }
 
         const count = await runAutoCancelCheck(venueId, venue);
 
         return NextResponse.json({ success: true, cancelledCount: count });
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Auto-Cancel Trigger Error:", error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        const message = error instanceof Error ? error.message : 'Internal Server Error';
+        return NextResponse.json({ error: message }, { status: 500 });
     }
 }

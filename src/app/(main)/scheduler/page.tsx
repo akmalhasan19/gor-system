@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 // Dynamic import for BookingModal (bundle-conditional pattern)
 import { Booking } from "@/lib/constants";
@@ -8,6 +8,7 @@ import { useAppStore } from "@/lib/store";
 import { useVenue } from "@/lib/venue-context";
 import { toast } from "sonner";
 import { getMaintenanceTasks, MaintenanceTask } from "@/lib/api/maintenance";
+import { getBookings } from "@/lib/api/bookings";
 import { NeoButton } from "@/components/ui/neo-button";
 import { Share2, Plus, ChevronLeft, ChevronRight } from "lucide-react";
 import { usePageRefresh } from '@/hooks/use-page-refresh';
@@ -34,11 +35,19 @@ const BookingModal = dynamic(
     { ssr: false }
 );
 
+interface BookingMonitorState {
+    lastCheckedAt: Date | null;
+    bookingCount: number;
+    hasBookings: boolean;
+    isChecking: boolean;
+    error: string | null;
+}
+
 export default function SchedulerPage() {
     // Auto-refresh bookings when navigating to this page
     usePageRefresh('scheduler');
     const {
-        bookings, addBooking, updateBooking, courts, customers, updateCustomer,
+        bookings, addBooking, updateBooking, courts, customers, updateCustomer, setBookings,
         selectedDate, setSelectedDate
     } = useAppStore();
     const { currentVenueId, currentVenue } = useVenue();
@@ -47,6 +56,15 @@ export default function SchedulerPage() {
     const [maintenanceTasks, setMaintenanceTasks] = useState<MaintenanceTask[]>([]);
     const [bookingInitialData, setBookingInitialData] = useState<{ courtId: string; time: number } | null>(null);
     const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+    const [bookingMonitor, setBookingMonitor] = useState<BookingMonitorState>({
+        lastCheckedAt: null,
+        bookingCount: 0,
+        hasBookings: false,
+        isChecking: false,
+        error: null,
+    });
+    const pollingInFlightRef = useRef(false);
+    const lastHasBookingsRef = useRef<boolean | null>(null);
 
     // Fetch maintenance tasks
     useEffect(() => {
@@ -63,6 +81,93 @@ export default function SchedulerPage() {
         };
         fetchMaintenance();
     }, [currentVenueId, selectedDate]);
+
+    // Booking monitor: poll every 30s to check if bookings are recorded for selected date
+    useEffect(() => {
+        if (!currentVenueId) return;
+
+        let isActive = true;
+
+        const hasBookingChanges = (latestBookings: Booking[], previousBookings: Booking[]) => {
+            if (latestBookings.length !== previousBookings.length) return true;
+
+            return latestBookings.some((booking, index) => {
+                const previous = previousBookings[index];
+                if (!previous) return true;
+
+                return (
+                    previous.id !== booking.id ||
+                    previous.status !== booking.status ||
+                    previous.paidAmount !== booking.paidAmount ||
+                    previous.checkInTime !== booking.checkInTime ||
+                    previous.isNoShow !== booking.isNoShow ||
+                    previous.inCartSince !== booking.inCartSince
+                );
+            });
+        };
+
+        const checkBookingMonitor = async () => {
+            if (pollingInFlightRef.current) return;
+            pollingInFlightRef.current = true;
+
+            if (isActive) {
+                setBookingMonitor(prev => ({ ...prev, isChecking: true }));
+            }
+
+            try {
+                const latestBookings = await getBookings(currentVenueId, selectedDate);
+                if (!isActive) return;
+
+                const previousBookings = useAppStore.getState().bookings;
+                if (hasBookingChanges(latestBookings, previousBookings)) {
+                    setBookings(latestBookings);
+                }
+
+                const hasBookings = latestBookings.length > 0;
+                const previousHasBookings = lastHasBookingsRef.current;
+
+                if (previousHasBookings !== null && previousHasBookings !== hasBookings) {
+                    if (hasBookings) {
+                        toast.success(`Terdeteksi ${latestBookings.length} booking tercatat.`);
+                    } else {
+                        toast.info('Saat ini tidak ada booking tercatat.');
+                    }
+                }
+
+                lastHasBookingsRef.current = hasBookings;
+
+                setBookingMonitor({
+                    lastCheckedAt: new Date(),
+                    bookingCount: latestBookings.length,
+                    hasBookings,
+                    isChecking: false,
+                    error: null,
+                });
+            } catch (error) {
+                console.error('Failed to monitor bookings:', error);
+                if (!isActive) return;
+
+                setBookingMonitor(prev => ({
+                    ...prev,
+                    lastCheckedAt: new Date(),
+                    isChecking: false,
+                    error: 'Gagal cek booking',
+                }));
+            } finally {
+                pollingInFlightRef.current = false;
+            }
+        };
+
+        checkBookingMonitor();
+        const interval = setInterval(checkBookingMonitor, 30000);
+
+        return () => {
+            isActive = false;
+            clearInterval(interval);
+            pollingInFlightRef.current = false;
+            lastHasBookingsRef.current = null;
+        };
+    }, [currentVenueId, selectedDate, setBookings]);
 
     const handleDateChange = (days: number) => {
         const currentDate = new Date(selectedDate);
@@ -124,7 +229,7 @@ export default function SchedulerPage() {
             }
 
             // Handle Quota Usage
-            let finalBooking = { ...newBooking };
+            const finalBooking = { ...newBooking };
             if (useQuota && customerId) {
                 const customer = customers.find(c => c.id === customerId);
 
@@ -251,6 +356,30 @@ export default function SchedulerPage() {
                 >
                     <ChevronRight size={20} className="md:w-6 md:h-6" strokeWidth={3} />
                 </button>
+            </div>
+
+            <div className="mb-4 bg-white border-2 border-black p-3 shadow-neo-sm rounded-xl flex items-center justify-between gap-3">
+                <div className="text-[10px] md:text-xs font-black uppercase tracking-wide">
+                    Monitor Booking (30 Detik)
+                </div>
+                <div className={`text-[10px] md:text-xs font-black uppercase px-2 py-1 border-2 border-black ${bookingMonitor.hasBookings ? 'bg-brand-lime' : 'bg-gray-100'}`}>
+                    {bookingMonitor.isChecking
+                        ? 'Mengecek...'
+                        : bookingMonitor.hasBookings
+                            ? `${bookingMonitor.bookingCount} Booking Tercatat`
+                            : 'Belum Ada Booking'}
+                </div>
+                <div className="text-[10px] md:text-xs font-bold text-gray-600">
+                    {bookingMonitor.error
+                        ? bookingMonitor.error
+                        : bookingMonitor.lastCheckedAt
+                            ? `Cek Terakhir ${bookingMonitor.lastCheckedAt.toLocaleTimeString('id-ID', {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                second: '2-digit'
+                            })}`
+                            : 'Belum Dicek'}
+                </div>
             </div>
 
             <Scheduler

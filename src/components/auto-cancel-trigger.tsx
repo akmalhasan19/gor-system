@@ -8,32 +8,33 @@ const CHECK_INTERVAL_MS = 5 * 60 * 1000; // Check every 5 minutes
 
 export function AutoCancelTrigger() {
     const { currentVenueId } = useVenue();
+    const isProduction = process.env.NODE_ENV === 'production';
 
     useEffect(() => {
-        if (!currentVenueId) return;
+        if (!isProduction || !currentVenueId) return;
 
-        // Function to trigger the check
         const triggerCheck = async () => {
-            // logger.debug("⏰ Triggering Auto-Cancel Check...");
             try {
-                await fetch('/api/public/auto-cancel', {
+                const response = await fetch('/api/public/auto-cancel', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ venueId: currentVenueId }),
                 });
+
+                if (response.ok) return;
+
+                const body = await response.text();
+                logger.warn('Auto-cancel request skipped/failed:', response.status, response.statusText, body);
             } catch (error) {
                 logger.error("Failed to run auto-cancel check:", error);
             }
         };
 
-        // Run immediately on mount
         triggerCheck();
-
-        // Set interval
         const interval = setInterval(triggerCheck, CHECK_INTERVAL_MS);
 
         return () => clearInterval(interval);
-    }, [currentVenueId]);
+    }, [currentVenueId, isProduction]);
 
-    return null; // Invisible component
+    return null;
 }

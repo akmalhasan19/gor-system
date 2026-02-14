@@ -12,6 +12,121 @@ const supabaseAdmin = createClient(
     }
 );
 
+const SUBSCRIPTION_SUCCESS_STATUSES = new Set(['COMPLETED', 'PAID', 'SETTLED', 'ACTIVE']);
+const SUBSCRIPTION_FAILED_STATUSES = new Set(['FAILED', 'EXPIRED']);
+const SUBSCRIPTION_DURATION_DAYS = 30;
+
+interface XenditWebhookBody {
+    external_id?: string;
+    status?: string;
+    amount?: number;
+    paid_amount?: number;
+    id?: string;
+    created?: string;
+    updated?: string;
+    [key: string]: unknown;
+}
+
+async function handleSubscriptionPaymentWebhook(body: XenditWebhookBody, externalId: string, status: string) {
+    const { data: subscriptionPayment, error: subscriptionPaymentError } = await supabaseAdmin
+        .from('subscription_payments')
+        .select('*')
+        .eq('external_id', externalId)
+        .maybeSingle();
+
+    if (subscriptionPaymentError || !subscriptionPayment) {
+        console.warn('[Xendit Webhook] Subscription payment not found for external_id:', externalId);
+        return NextResponse.json({ success: true, message: 'Subscription payment not found' });
+    }
+
+    const normalizedStatus = (status || '').toUpperCase();
+    const isSuccess =
+        SUBSCRIPTION_SUCCESS_STATUSES.has(normalizedStatus) ||
+        (body.amount && subscriptionPayment.payment_method === 'VA');
+    const isFailed = SUBSCRIPTION_FAILED_STATUSES.has(normalizedStatus);
+
+    if (isSuccess) {
+        const nowIso = new Date().toISOString();
+
+        // Idempotency guard: only the first callback that flips status to PAID can continue.
+        const { data: paidPayment, error: paidUpdateError } = await supabaseAdmin
+            .from('subscription_payments')
+            .update({
+                status: 'PAID',
+                paid_at: nowIso,
+                updated_at: nowIso,
+                xendit_id: body.id || subscriptionPayment.xendit_id,
+                metadata: body,
+            })
+            .eq('id', subscriptionPayment.id)
+            .neq('status', 'PAID')
+            .select('*')
+            .maybeSingle();
+
+        if (paidUpdateError) throw paidUpdateError;
+
+        if (!paidPayment) {
+            console.log('[Xendit Webhook] Duplicate subscription success callback ignored:', externalId);
+            return NextResponse.json({ success: true, idempotent: true });
+        }
+
+        const { data: venue, error: venueFetchError } = await supabaseAdmin
+            .from('venues')
+            .select('id, subscription_valid_until')
+            .eq('id', paidPayment.venue_id)
+            .single();
+
+        if (venueFetchError || !venue) {
+            throw new Error(`Venue not found for subscription payment ${paidPayment.id}`);
+        }
+
+        const now = new Date();
+        const currentValidUntil = venue.subscription_valid_until ? new Date(venue.subscription_valid_until) : null;
+        const baseDate = currentValidUntil && currentValidUntil > now ? currentValidUntil : now;
+        const nextValidUntil = new Date(baseDate.getTime() + SUBSCRIPTION_DURATION_DAYS * 24 * 60 * 60 * 1000);
+
+        const { error: venueUpdateError } = await supabaseAdmin
+            .from('venues')
+            .update({
+                subscription_plan: paidPayment.target_plan,
+                subscription_status: 'ACTIVE',
+                subscription_valid_until: nextValidUntil.toISOString(),
+                pending_subscription_plan: null,
+                pending_subscription_effective_date: null,
+                updated_at: nowIso,
+            })
+            .eq('id', paidPayment.venue_id);
+
+        if (venueUpdateError) throw venueUpdateError;
+
+        console.log(
+            `[Xendit Webhook] Subscription activated. venue=${paidPayment.venue_id}, plan=${paidPayment.target_plan}, validUntil=${nextValidUntil.toISOString()}`
+        );
+
+        return NextResponse.json({ success: true, mode: 'SUBSCRIPTION_PAID' });
+    }
+
+    if (isFailed) {
+        const failedStatus = normalizedStatus === 'EXPIRED' ? 'EXPIRED' : 'FAILED';
+
+        const { error: failedUpdateError } = await supabaseAdmin
+            .from('subscription_payments')
+            .update({
+                status: failedStatus,
+                updated_at: new Date().toISOString(),
+                metadata: body,
+            })
+            .eq('id', subscriptionPayment.id)
+            .neq('status', 'PAID');
+
+        if (failedUpdateError) throw failedUpdateError;
+
+        return NextResponse.json({ success: true, mode: `SUBSCRIPTION_${failedStatus}` });
+    }
+
+    return NextResponse.json({ success: true, message: 'Subscription webhook ignored (non-terminal status)' });
+}
+
 export async function POST(req: Request) {
     try {
         // Get raw body for signature verification (must be done before JSON parsing)
@@ -38,9 +153,9 @@ export async function POST(req: Request) {
         if (webhookSecret) {
             console.log('[Xendit Webhook] Verifying via Signature...');
             // Parse body to get timestamp for replay attack prevention
-            let body: any;
+            let body: XenditWebhookBody;
             try {
-                body = JSON.parse(rawBody);
+                body = JSON.parse(rawBody) as XenditWebhookBody;
             } catch {
                 console.error('[Xendit Webhook] Invalid JSON body');
                 return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
@@ -76,9 +191,9 @@ export async function POST(req: Request) {
         }
 
         // Parse the body (already parsed above if signature verification was used)
-        let body: any;
+        let body: XenditWebhookBody;
         try {
-            body = JSON.parse(rawBody);
+            body = JSON.parse(rawBody) as XenditWebhookBody;
         } catch {
             return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
         }
@@ -90,6 +205,10 @@ export async function POST(req: Request) {
 
         if (!externalId) {
             return NextResponse.json({ message: 'No external_id provided' }, { status: 200 });
+        }
+
+        if (externalId.startsWith('sub-')) {
+            return handleSubscriptionPaymentWebhook(body, externalId, status || '');
         }
 
         // Find the payment
@@ -283,7 +402,7 @@ export async function POST(req: Request) {
             }
 
 
-        } else if (status === 'EXPIRED' || status === 'FAILED') {
+        } else if ((status === 'EXPIRED' || status === 'FAILED') && payment) {
             await supabaseAdmin
                 .from('payments')
                 .update({
@@ -297,8 +416,11 @@ export async function POST(req: Request) {
         }
 
         return NextResponse.json({ success: true });
-    } catch (e: any) {
-        console.error('Webhook Error:', e);
-        return NextResponse.json({ error: e.message }, { status: 500 });
+    } catch (error: unknown) {
+        console.error('Webhook Error:', error);
+        return NextResponse.json(
+            { error: error instanceof Error ? error.message : 'Webhook processing failed' },
+            { status: 500 }
+        );
     }
 }

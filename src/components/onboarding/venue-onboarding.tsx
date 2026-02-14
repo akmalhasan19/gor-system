@@ -4,12 +4,19 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { NeoButton } from '@/components/ui/neo-button';
 import { NeoInput } from '@/components/ui/neo-input';
-import { Building2, MapPin, Phone, Grid3x3, Clock, Check, ArrowRight, ArrowLeft, Sparkles, LogOut, Crown, Zap, AlertTriangle, Rocket, Trophy, Gem, Image as ImageIcon, CreditCard, ExternalLink, HelpCircle } from 'lucide-react';
+import { Building2, MapPin, Phone, Grid3x3, Clock, Check, ArrowRight, ArrowLeft, Sparkles, LogOut, AlertTriangle, Rocket, Trophy, Gem, Image as ImageIcon, ExternalLink, HelpCircle } from 'lucide-react';
 import { useVenue } from '@/lib/venue-context';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { getCsrfHeaders, fetchWithCsrf } from '@/lib/hooks/use-csrf';
-import { PLAN_FEATURES, SubscriptionPlan } from '@/lib/constants/plans';
+import {
+    PLAN_FEATURES,
+    SubscriptionCheckoutAction,
+    SubscriptionPaymentChannel,
+    SubscriptionPaymentMethod,
+    SubscriptionPlan,
+} from '@/lib/constants/plans';
+import { SubscriptionPaymentData, SubscriptionPaymentPanel } from '@/components/subscription/subscription-payment-panel';
 
 interface OnboardingData {
     venueName: string;
@@ -32,8 +39,12 @@ export function VenueOnboarding() {
     const { refreshVenue } = useVenue();
     const [currentStep, setCurrentStep] = useState<OnboardingStep>(1);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isCreatingPayment, setIsCreatingPayment] = useState(false);
     const [error, setError] = useState('');
     const [skipSubscription, setSkipSubscription] = useState(true);
+    const [paymentData, setPaymentData] = useState<SubscriptionPaymentData | null>(null);
+    const [showPaymentPanel, setShowPaymentPanel] = useState(false);
+    const [photoUploadedVenueId, setPhotoUploadedVenueId] = useState<string | null>(null);
 
     const [data, setData] = useState<OnboardingData>({
         venueName: '',
@@ -59,7 +70,7 @@ export function VenueOnboarding() {
             await supabase.auth.signOut();
             router.push('/login');
             router.refresh();
-        } catch (error) {
+        } catch {
             toast.error('Gagal logout');
         }
     };
@@ -111,47 +122,98 @@ export function VenueOnboarding() {
         }
     };
 
-    const handleSubmit = async () => {
+    const uploadVenuePhotoIfNeeded = async (venueId: string) => {
+        if (!data.photoFile || !venueId || photoUploadedVenueId === venueId) return;
+
+        try {
+            const formData = new FormData();
+            formData.append('file', data.photoFile);
+            formData.append('venueId', venueId);
+
+            await fetchWithCsrf('/api/venues/photo', {
+                method: 'POST',
+                body: formData,
+            });
+            setPhotoUploadedVenueId(venueId);
+        } catch (uploadError) {
+            console.error('Photo upload failed but venue exists', uploadError);
+            toast.error('Venue dibuat tapi foto gagal diupload');
+        }
+    };
+
+    const postOnboarding = async (
+        checkoutAction: SubscriptionCheckoutAction,
+        paymentMethod?: SubscriptionPaymentMethod,
+        paymentChannel?: SubscriptionPaymentChannel
+    ) => {
+        const payload = {
+            venueName: data.venueName,
+            address: data.address,
+            phone: data.phone,
+            courtsCount: data.courtsCount,
+            operatingHoursStart: data.operatingHoursStart,
+            operatingHoursEnd: data.operatingHoursEnd,
+            hourlyRatePerCourt: data.hourlyRatePerCourt,
+            subscriptionPlan: data.subscriptionPlan,
+            selectedPlan: data.subscriptionPlan,
+            checkoutAction,
+            paymentMethod,
+            paymentChannel,
+            xendit_account_id: data.xendit_account_id,
+        };
+
+        const response = await fetch('/api/onboarding/submit', {
+            method: 'POST',
+            headers: getCsrfHeaders({ 'Content-Type': 'application/json' }),
+            body: JSON.stringify(payload),
+        });
+
+        const result = await response.json();
+        if (!response.ok || !result.success) {
+            throw new Error(result.error || 'Gagal memproses onboarding');
+        }
+
+        return result;
+    };
+
+    const handleContinueLater = async () => {
         setIsSubmitting(true);
         setError('');
 
         try {
-            const response = await fetch('/api/onboarding/submit', {
-                method: 'POST',
-                headers: getCsrfHeaders({ 'Content-Type': 'application/json' }),
-                body: JSON.stringify(data),
-            });
-
-            const result = await response.json();
-
-            if (!response.ok || !result.success) {
-                throw new Error(result.error || 'Gagal menyimpan data');
-            }
-
-            // Upload photo if exists
-            if (data.photoFile && result.venueId) {
-                try {
-                    const formData = new FormData();
-                    formData.append('file', data.photoFile);
-                    formData.append('venueId', result.venueId);
-
-                    await fetchWithCsrf('/api/venues/photo', {
-                        method: 'POST',
-                        body: formData
-                    });
-                } catch (uploadError) {
-                    console.error("Photo upload failed but venue created", uploadError);
-                    toast.error("Venue dibuat tapi foto gagal diupload");
-                }
-            }
-
+            const result = await postOnboarding('CONTINUE_LATER');
+            await uploadVenuePhotoIfNeeded(result.venueId);
             await refreshVenue();
-            router.push('/');
-        } catch (err: any) {
-            setError(err.message || 'Terjadi kesalahan');
+            router.push('/dashboard');
+        } catch (error: unknown) {
+            setError(error instanceof Error ? error.message : 'Terjadi kesalahan');
         } finally {
             setIsSubmitting(false);
         }
+    };
+
+    const handleCreatePayment = async (
+        method: SubscriptionPaymentMethod,
+        paymentChannel?: SubscriptionPaymentChannel
+    ) => {
+        setIsCreatingPayment(true);
+        setError('');
+
+        try {
+            const result = await postOnboarding('PAY_NOW', method, paymentChannel);
+            await uploadVenuePhotoIfNeeded(result.venueId);
+            setPaymentData(result.payment || null);
+            setShowPaymentPanel(true);
+        } catch (error: unknown) {
+            setError(error instanceof Error ? error.message : 'Gagal membuat pembayaran langganan');
+        } finally {
+            setIsCreatingPayment(false);
+        }
+    };
+
+    const handlePayNow = async () => {
+        setShowPaymentPanel(true);
+        await handleCreatePayment('QRIS');
     };
 
     const planIcons: Record<SubscriptionPlan, React.ReactNode> = {
@@ -731,6 +793,21 @@ export function VenueOnboarding() {
                                     </div>
                                 )}
                             </div>
+
+                            {showPaymentPanel && (
+                                <SubscriptionPaymentPanel
+                                    key={paymentData?.subscriptionPaymentId || 'onboarding-subscription-payment'}
+                                    paymentData={paymentData}
+                                    isCreating={isCreatingPayment}
+                                    onCreatePayment={handleCreatePayment}
+                                    onPaid={async () => {
+                                        await refreshVenue();
+                                        router.push('/dashboard');
+                                    }}
+                                    title="Bayar Sekarang"
+                                    subtitle="Pembayaran berhasil akan mengaktifkan paket berbayar selama 30 hari."
+                                />
+                            )}
                         </div>
                     )}
                 </div>
@@ -768,14 +845,23 @@ export function VenueOnboarding() {
                             </NeoButton>
                         )
                     ) : (
-                        <NeoButton
-                            onClick={handleSubmit}
-                            className="bg-brand-orange text-black hover:bg-black hover:text-white"
-                            disabled={isSubmitting}
-                        >
-                            {isSubmitting ? 'Menyimpan...' : 'Selesai & Mulai'}
-                            <Check className="w-5 h-5 ml-2" />
-                        </NeoButton>
+                        <div className="flex flex-wrap items-center justify-center gap-3">
+                            <NeoButton
+                                onClick={handleContinueLater}
+                                className="bg-white hover:bg-gray-200"
+                                disabled={isSubmitting || isCreatingPayment}
+                            >
+                                {isSubmitting ? 'Memproses...' : 'Lanjut Nanti'}
+                            </NeoButton>
+                            <NeoButton
+                                onClick={handlePayNow}
+                                className="bg-brand-orange text-black hover:bg-black hover:text-white"
+                                disabled={isSubmitting || isCreatingPayment}
+                            >
+                                {isCreatingPayment ? 'Membuat Tagihan...' : 'Bayar Sekarang'}
+                                <Check className="w-5 h-5 ml-2" />
+                            </NeoButton>
+                        </div>
                     )}
                 </div>
             </div>

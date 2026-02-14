@@ -66,6 +66,7 @@ export type CreatePaymentInput = z.infer<typeof CreatePaymentSchema>;
 // ============================================
 
 export const SubscriptionPlanSchema = z.enum(['STARTER', 'PRO', 'BUSINESS']);
+export const SubscriptionCheckoutActionSchema = z.enum(['PAY_NOW', 'CONTINUE_LATER']);
 
 export const OnboardingSubmitSchema = z.object({
     venueName: z.string()
@@ -105,7 +106,15 @@ export const OnboardingSubmitSchema = z.object({
         .default(50000),
     subscriptionPlan: SubscriptionPlanSchema
         .optional()
+        .default('STARTER'), // Backward compatibility
+    selectedPlan: SubscriptionPlanSchema
+        .optional()
         .default('STARTER'),
+    checkoutAction: SubscriptionCheckoutActionSchema
+        .optional()
+        .default('CONTINUE_LATER'),
+    paymentMethod: PaymentMethodSchema.optional(),
+    paymentChannel: PaymentChannelSchema.optional(),
     xendit_account_id: z.string()
         .max(100)
         .optional()
@@ -113,9 +122,27 @@ export const OnboardingSubmitSchema = z.object({
 }).refine(
     (data) => data.operatingHoursStart < data.operatingHoursEnd,
     { message: 'Operating end time must be after start time', path: ['operatingHoursEnd'] }
+).refine(
+    (data) => data.checkoutAction !== 'PAY_NOW' || !!data.paymentMethod,
+    { message: 'paymentMethod is required when checkoutAction is PAY_NOW', path: ['paymentMethod'] }
+).refine(
+    (data) => data.checkoutAction !== 'PAY_NOW' || data.paymentMethod !== 'VA' || !!data.paymentChannel,
+    { message: 'paymentChannel is required for VA payments', path: ['paymentChannel'] }
 );
 
 export type OnboardingSubmitInput = z.infer<typeof OnboardingSubmitSchema>;
+
+export const CreateSubscriptionPaymentSchema = z.object({
+    venueId: UUIDSchema,
+    targetPlan: SubscriptionPlanSchema,
+    paymentMethod: PaymentMethodSchema,
+    paymentChannel: PaymentChannelSchema.optional(),
+}).refine(
+    (data) => data.paymentMethod !== 'VA' || !!data.paymentChannel,
+    { message: 'paymentChannel is required for VA payments', path: ['paymentChannel'] }
+);
+
+export type CreateSubscriptionPaymentInput = z.infer<typeof CreateSubscriptionPaymentSchema>;
 
 // ============================================
 // Phone Verification Schemas

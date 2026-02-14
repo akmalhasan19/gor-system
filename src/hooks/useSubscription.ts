@@ -47,11 +47,12 @@ export function useSubscription(venueId: string | null): UseSubscriptionReturn {
             if (error) throw error;
 
             let currentPlan = (data?.subscription_plan as SubscriptionPlan) || 'STARTER';
-            const pendingPlan = data?.pending_subscription_plan as SubscriptionPlan | null;
-            const pendingDate = data?.pending_subscription_effective_date ? new Date(data.pending_subscription_effective_date) : null;
+            let pendingPlan = data?.pending_subscription_plan as SubscriptionPlan | null;
+            let pendingDate = data?.pending_subscription_effective_date ? new Date(data.pending_subscription_effective_date) : null;
 
-            // LAZY CHECK: If pending downgrade is effective
-            if (pendingPlan && pendingDate && new Date() >= pendingDate) {
+            // LAZY CHECK: Apply only scheduled downgrade for ACTIVE subscriptions.
+            // Pending plans created by unpaid checkout must not auto-activate on client.
+            if (data?.subscription_status === 'ACTIVE' && pendingPlan && pendingDate && new Date() >= pendingDate) {
                 console.log("Applying pending subscription downgrade...", pendingPlan);
 
                 // Update DB immediately
@@ -66,6 +67,8 @@ export function useSubscription(venueId: string | null): UseSubscriptionReturn {
 
                 if (!updateError) {
                     currentPlan = pendingPlan; // Use new plan for state
+                    pendingPlan = null;
+                    pendingDate = null;
                     // Refresh not strictly needed if we update status locally efficiently, but good to be consistent
                 } else {
                     console.error("Failed to apply lazy subscription update", updateError);

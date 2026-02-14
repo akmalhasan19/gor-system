@@ -1,21 +1,68 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { useAppStore } from '@/lib/store';
 import { useSubscription } from '@/hooks/useSubscription';
-import { PLAN_FEATURES, SubscriptionPlan } from '@/lib/constants/plans';
+import {
+    PLAN_FEATURES,
+    SubscriptionPaymentChannel,
+    SubscriptionPaymentMethod,
+    SubscriptionPlan,
+} from '@/lib/constants/plans';
 import { supabase } from '@/lib/supabase';
-import { CheckCircle, Crown, Sparkles, Zap, Rocket, Trophy, Gem, Check, AlertTriangle, Calendar } from 'lucide-react';
+import { Rocket, Trophy, Gem, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
-import { AlertDialog } from "@/components/ui/alert-dialog";
+import { AlertDialog } from '@/components/ui/alert-dialog';
+import { getCsrfHeaders } from '@/lib/hooks/use-csrf';
+import { SubscriptionPaymentData, SubscriptionPaymentPanel } from '@/components/subscription/subscription-payment-panel';
 
 export function BillingSettings() {
     const venueId = useAppStore((s) => s.currentVenueId);
     const { plan, status, validUntil, pendingPlan, pendingEffectiveDate, isLoading, refresh } = useSubscription(venueId);
-    const [isUpdating, setIsUpdating] = useState(false);
 
-    // Dialog State
+    const [isUpdating, setIsUpdating] = useState(false);
+    const [isCreatingPayment, setIsCreatingPayment] = useState(false);
+
     const [targetPlan, setTargetPlan] = useState<SubscriptionPlan | null>(null);
     const [changeType, setChangeType] = useState<'UPGRADE' | 'DOWNGRADE' | null>(null);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+    const [activeUpgradePlan, setActiveUpgradePlan] = useState<SubscriptionPlan | null>(null);
+    const [paymentData, setPaymentData] = useState<SubscriptionPaymentData | null>(null);
+
+    const createUpgradePaymentForPlan = async (
+        selectedPlan: SubscriptionPlan,
+        paymentMethod: SubscriptionPaymentMethod,
+        paymentChannel?: SubscriptionPaymentChannel
+    ) => {
+        if (!venueId) return;
+
+        setIsCreatingPayment(true);
+        try {
+            const response = await fetch('/api/subscriptions/create-payment', {
+                method: 'POST',
+                headers: getCsrfHeaders({ 'Content-Type': 'application/json' }),
+                body: JSON.stringify({
+                    venueId,
+                    targetPlan: selectedPlan,
+                    paymentMethod,
+                    paymentChannel: paymentMethod === 'VA' ? paymentChannel : undefined,
+                }),
+            });
+
+            const result = await response.json();
+            if (!response.ok || !result.success) {
+                throw new Error(result.error || 'Gagal membuat pembayaran subscription');
+            }
+
+            setActiveUpgradePlan(selectedPlan);
+            setPaymentData(result.payment);
+            await refresh();
+        } catch (error: unknown) {
+            console.error(error);
+            toast.error(error instanceof Error ? error.message : 'Gagal membuat pembayaran subscription');
+        } finally {
+            setIsCreatingPayment(false);
+        }
+    };
 
     const handleSelectPlan = (selectedPlan: SubscriptionPlan) => {
         if (!venueId || selectedPlan === plan) return;
@@ -23,11 +70,7 @@ export function BillingSettings() {
         const currentPrice = PLAN_FEATURES[plan].priceMonthly;
         const newPrice = PLAN_FEATURES[selectedPlan].priceMonthly;
 
-        if (newPrice > currentPrice) {
-            setChangeType('UPGRADE');
-        } else {
-            setChangeType('DOWNGRADE');
-        }
+        setChangeType(newPrice > currentPrice ? 'UPGRADE' : 'DOWNGRADE');
         setTargetPlan(selectedPlan);
         setIsDialogOpen(true);
     };
@@ -38,45 +81,28 @@ export function BillingSettings() {
         setIsUpdating(true);
         try {
             if (changeType === 'UPGRADE') {
-                // Upgrade: Immediate Effect
-                const validUntilDate = new Date();
-                validUntilDate.setMonth(validUntilDate.getMonth() + 1);
-
-                const { error } = await supabase
-                    .from('venues')
-                    .update({
-                        subscription_plan: targetPlan,
-                        subscription_status: 'ACTIVE',
-                        subscription_valid_until: validUntilDate.toISOString(),
-                        // Clear any pending downgrades if upgrading
-                        pending_subscription_plan: null,
-                        pending_subscription_effective_date: null
-                    })
-                    .eq('id', venueId);
-
-                if (error) throw error;
-                toast.success(`Berhasil upgrade ke paket ${PLAN_FEATURES[targetPlan].displayName}!`);
+                await createUpgradePaymentForPlan(targetPlan, 'QRIS');
+                toast.info('Tagihan QRIS dibuat. Anda bisa ganti metode ke VA bila perlu.');
             } else {
-                // Downgrade: Scheduled for 1st of next month
+                // Downgrade tetap dijadwalkan (1 bulan berikutnya)
                 const now = new Date();
-                const effectiveDate = new Date(now.getFullYear(), now.getMonth() + 1, 1); // 1st of next month
+                const effectiveDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
 
                 const { error } = await supabase
                     .from('venues')
                     .update({
                         pending_subscription_plan: targetPlan,
-                        pending_subscription_effective_date: effectiveDate.toISOString()
+                        pending_subscription_effective_date: effectiveDate.toISOString(),
                     })
                     .eq('id', venueId);
 
                 if (error) throw error;
-                toast.success(`Perubahan paket dijadwalkan mulai tangal ${effectiveDate.toLocaleDateString('id-ID')}`);
+                toast.success(`Perubahan paket dijadwalkan mulai tanggal ${effectiveDate.toLocaleDateString('id-ID')}`);
+                await refresh();
             }
-
-            await refresh();
         } catch (err) {
             console.error(err);
-            toast.error('Gagal mengubah paket. Silakan coba lagi.');
+            toast.error('Gagal memproses perubahan paket. Silakan coba lagi.');
         } finally {
             setIsUpdating(false);
             setIsDialogOpen(false);
@@ -101,26 +127,23 @@ export function BillingSettings() {
 
     return (
         <div className="max-w-4xl space-y-8">
-            {/* Header */}
             <div>
                 <h2 className="text-2xl font-black italic uppercase tracking-tighter mb-2">Langganan & Billing</h2>
-                <p className="text-gray-500 font-bold">Kelola paket langganan dan fitur akses akun Anda.</p>
+                <p className="text-gray-500 font-bold">Upgrade plan aktif menggunakan QRIS/VA Xendit.</p>
             </div>
 
-            {/* Pending Change Banner */}
             {pendingPlan && pendingEffectiveDate && (
                 <div className="bg-yellow-50 border-2 border-yellow-400 p-4 rounded-xl flex items-start gap-3 shadow-neo">
                     <Calendar className="text-yellow-600 flex-shrink-0" />
                     <div>
-                        <h4 className="font-black uppercase text-yellow-800">Perubahan Paket Terjadwal</h4>
+                        <h4 className="font-black uppercase text-yellow-800">Perubahan Paket Tertunda</h4>
                         <p className="text-sm font-bold text-yellow-700 mt-1">
-                            Paket Anda akan berubah menjadi <span className="underline">{PLAN_FEATURES[pendingPlan].displayName}</span> pada tanggal {pendingEffectiveDate.toLocaleDateString('id-ID')}.
+                            Menunggu aktivasi ke <span className="underline">{PLAN_FEATURES[pendingPlan].displayName}</span> (dibuat pada {pendingEffectiveDate.toLocaleDateString('id-ID')}).
                         </p>
                     </div>
                 </div>
             )}
 
-            {/* Current Plan Card */}
             <div className="bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20 rounded-xl p-5">
                 <div className="flex items-center gap-3 mb-2">
                     {planIcons[plan]}
@@ -137,7 +160,23 @@ export function BillingSettings() {
                 </p>
             </div>
 
-            {/* Plan Selection */}
+            {activeUpgradePlan && (
+                <SubscriptionPaymentPanel
+                    key={paymentData?.subscriptionPaymentId || `billing-${activeUpgradePlan}`}
+                    paymentData={paymentData}
+                    isCreating={isCreatingPayment}
+                    onCreatePayment={(method, channel) => createUpgradePaymentForPlan(activeUpgradePlan, method, channel)}
+                    onPaid={async () => {
+                        await refresh();
+                        toast.success(`Paket ${PLAN_FEATURES[activeUpgradePlan].displayName} aktif.`);
+                        setPaymentData(null);
+                        setActiveUpgradePlan(null);
+                    }}
+                    title={`Upgrade ke ${PLAN_FEATURES[activeUpgradePlan].displayName}`}
+                    subtitle="Paket akan aktif otomatis setelah webhook pembayaran sukses."
+                />
+            )}
+
             <div>
                 <h3 className="text-xl font-black uppercase mb-4">Pilih Paket</h3>
                 <div className="flex flex-col gap-6">
@@ -156,7 +195,7 @@ export function BillingSettings() {
                             <button
                                 key={planKey}
                                 onClick={() => handleSelectPlan(planKey)}
-                                disabled={isCurrentPlan || isPending || isUpdating}
+                                disabled={isCurrentPlan || isPending || isUpdating || isCreatingPayment}
                                 className={`relative border-[3px] border-black rounded-xl p-6 text-left transition-all group w-full
                                     ${isCurrentPlan
                                         ? 'shadow-none bg-gray-100 border-gray-400 opacity-80 cursor-default'
@@ -167,12 +206,10 @@ export function BillingSettings() {
                                 `}
                             >
                                 <div className="flex flex-col sm:flex-row items-start gap-4">
-                                    {/* Icon */}
                                     <div className="bg-white border-2 border-black p-3 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex-shrink-0">
                                         {planIcons[planKey]}
                                     </div>
 
-                                    {/* Content */}
                                     <div className="flex-1 w-full">
                                         <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-2">
                                             <h4 className="font-black text-2xl uppercase italic tracking-tight">{planConfig.displayName}</h4>
@@ -185,7 +222,6 @@ export function BillingSettings() {
                                             {planConfig.description}
                                         </p>
 
-                                        {/* Capabilities */}
                                         <div className="space-y-1">
                                             <div className="flex items-center gap-2 text-xs font-bold uppercase">
                                                 <div className="w-1.5 h-1.5 bg-black rounded-full" />
@@ -204,25 +240,6 @@ export function BillingSettings() {
                                             )}
                                         </div>
                                     </div>
-
-                                    {/* Status Badge */}
-                                    <div className="hidden sm:flex flex-col items-end gap-2">
-                                        {isCurrentPlan && (
-                                            <div className="bg-black text-white px-3 py-1 rounded font-bold text-xs uppercase shadow-sm">
-                                                Paket Aktif
-                                            </div>
-                                        )}
-                                        {isPending && (
-                                            <div className="bg-yellow-400 text-yellow-900 border-2 border-yellow-600 px-3 py-1 rounded font-bold text-xs uppercase shadow-sm">
-                                                Akan Datang
-                                            </div>
-                                        )}
-                                        {!isCurrentPlan && !isPending && (
-                                            <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-white border-2 border-black px-3 py-1 rounded font-bold text-xs uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                                                Pilih
-                                            </div>
-                                        )}
-                                    </div>
                                 </div>
                             </button>
                         );
@@ -230,11 +247,6 @@ export function BillingSettings() {
                 </div>
             </div>
 
-            <p className="text-xs text-gray-400 mt-6 text-center">
-                * Pembayaran saat ini dilakukan secara manual. Hubungi admin untuk konfirmasi pembayaran.
-            </p>
-
-            {/* Confirmation Dialog */}
             <AlertDialog
                 isOpen={isDialogOpen}
                 onClose={() => setIsDialogOpen(false)}
@@ -243,20 +255,21 @@ export function BillingSettings() {
                 description={
                     changeType === 'UPGRADE' ? (
                         <>
-                            Anda akan melakukan upgrade ke paket <span className="text-black font-black">{targetPlan && PLAN_FEATURES[targetPlan].displayName}</span>. Tagihan baru akan segera berlaku. Lanjutkan ke pembayaran?
+                            Anda akan upgrade ke paket <span className="text-black font-black">{targetPlan && PLAN_FEATURES[targetPlan].displayName}</span>.
+                            <br />
+                            Sistem akan membuat tagihan subscription, dan paket aktif setelah pembayaran sukses.
                         </>
                     ) : (
                         <>
-                            Downgrade ke paket <span className="text-black font-black">{targetPlan && PLAN_FEATURES[targetPlan].displayName}</span> akan berlaku efektif mulai tanggal <b>1 bulan depan</b>.
-                            <br /><br />
-                            Anda masih bisa menikmati fitur paket saat ini sampai periode berakhir.
+                            Downgrade ke paket <span className="text-black font-black">{targetPlan && PLAN_FEATURES[targetPlan].displayName}</span> berlaku mulai awal bulan berikutnya.
                         </>
                     )
                 }
-                confirmLabel={isUpdating ? 'Memproses...' : (changeType === 'UPGRADE' ? 'Ya, Upgrade Sekarang' : 'Ya, Jadwalkan')}
+                confirmLabel={isUpdating ? 'Memproses...' : (changeType === 'UPGRADE' ? 'Lanjut Buat Tagihan' : 'Ya, Jadwalkan')}
                 cancelLabel="Batal"
                 variant={changeType === 'UPGRADE' ? 'default' : 'danger'}
             />
         </div>
     );
 }
+

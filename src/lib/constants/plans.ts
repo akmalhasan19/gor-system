@@ -3,6 +3,10 @@
 
 export type SubscriptionPlan = 'STARTER' | 'PRO' | 'BUSINESS';
 export type SubscriptionStatus = 'ACTIVE' | 'PAST_DUE' | 'CANCELED' | 'TRIAL';
+export type SubscriptionCheckoutAction = 'PAY_NOW' | 'CONTINUE_LATER';
+export type SubscriptionPaymentStatus = 'PENDING' | 'PAID' | 'FAILED' | 'EXPIRED';
+export type SubscriptionPaymentMethod = 'QRIS' | 'VA';
+export type SubscriptionPaymentChannel = 'BCA' | 'BRI' | 'MANDIRI' | 'BNI' | 'PERMATA' | 'BSI';
 
 export type FeatureName =
     | 'POS'

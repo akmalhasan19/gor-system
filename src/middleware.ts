@@ -14,6 +14,47 @@ const CSRF_EXEMPT_ROUTES = [
     '/api/v1/',       // External API (JWT authenticated)
 ];
 
+const SUBSCRIPTION_GUARD_EXEMPT_PREFIXES = [
+    '/subscription-lock',
+    '/onboarding',
+    '/api/auth',
+    '/api/onboarding',
+    '/api/phone-verification',
+    '/api/partner-invites',
+    '/api/public',
+    '/api/webhooks',
+    '/api/cron',
+    '/api/subscriptions/create-payment',
+    '/api/health',
+];
+
+function isSubscriptionGuardExempt(pathname: string) {
+    return SUBSCRIPTION_GUARD_EXEMPT_PREFIXES.some(prefix => pathname.startsWith(prefix));
+}
+
+function isSubscriptionLocked(status?: string | null, validUntil?: string | null) {
+    if (status === 'PAST_DUE' || status === 'CANCELED') {
+        return true;
+    }
+
+    if (status === 'TRIAL') {
+        if (!validUntil) {
+            return true;
+        }
+
+        const expiryDate = new Date(validUntil);
+        if (Number.isNaN(expiryDate.getTime())) {
+            return true;
+        }
+
+        if (new Date() > expiryDate) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 export async function middleware(request: NextRequest) {
     let response = NextResponse.next({
         request: {
@@ -55,7 +96,7 @@ export async function middleware(request: NextRequest) {
         const ip = request.headers.get('x-forwarded-for') ?? '127.0.0.1';
         try {
             if (isUpstashConfigured()) {
-                const { success, limit, remaining, reset } = await externalApiRateLimiter.limit(ip);
+                const { success } = await externalApiRateLimiter.limit(ip);
                 if (!success) {
                     return new NextResponse(JSON.stringify({ error: 'Too Many Requests' }), { status: 429 });
                 }
@@ -188,6 +229,78 @@ export async function middleware(request: NextRequest) {
         const venueId = user.user_metadata?.venue_id;
         if (venueId) {
             return NextResponse.redirect(new URL('/', request.url));
+        }
+    }
+
+    if (user && !isSystemRoute && !isSubscriptionGuardExempt(request.nextUrl.pathname)) {
+        let venueId = user.user_metadata?.venue_id as string | undefined;
+
+        if (!venueId) {
+            const { data: userVenue } = await supabase
+                .from('user_venues')
+                .select('venue_id')
+                .eq('user_id', user.id)
+                .limit(1)
+                .maybeSingle();
+
+            venueId = userVenue?.venue_id;
+        }
+
+        if (venueId) {
+            const { data: venue } = await supabase
+                .from('venues')
+                .select('subscription_status, subscription_valid_until')
+                .eq('id', venueId)
+                .maybeSingle();
+
+            const isLocked = isSubscriptionLocked(venue?.subscription_status, venue?.subscription_valid_until);
+
+            if (isLocked) {
+                if (request.nextUrl.pathname.startsWith('/api')) {
+                    return new NextResponse(
+                        JSON.stringify({
+                            error: 'Subscription required',
+                            code: 'SUBSCRIPTION_REQUIRED',
+                            subscriptionStatus: venue?.subscription_status || null,
+                        }),
+                        {
+                            status: 402,
+                            headers: { 'Content-Type': 'application/json' },
+                        }
+                    );
+                }
+
+                const lockUrl = new URL('/subscription-lock', request.url);
+                return NextResponse.redirect(lockUrl);
+            }
+        }
+    }
+
+    if (user && request.nextUrl.pathname.startsWith('/subscription-lock')) {
+        let venueId = user.user_metadata?.venue_id as string | undefined;
+
+        if (!venueId) {
+            const { data: userVenue } = await supabase
+                .from('user_venues')
+                .select('venue_id')
+                .eq('user_id', user.id)
+                .limit(1)
+                .maybeSingle();
+
+            venueId = userVenue?.venue_id;
+        }
+
+        if (venueId) {
+            const { data: venue } = await supabase
+                .from('venues')
+                .select('subscription_status, subscription_valid_until')
+                .eq('id', venueId)
+                .maybeSingle();
+
+            const isLocked = isSubscriptionLocked(venue?.subscription_status, venue?.subscription_valid_until);
+            if (!isLocked) {
+                return NextResponse.redirect(new URL('/dashboard', request.url));
+            }
         }
     }
 

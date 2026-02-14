@@ -23,6 +23,7 @@ const sw = self as any;
  */
 const SENSITIVE_ROUTES = [
     '/api/payments',
+    '/api/subscriptions',
     '/api/auth',
     '/api/onboarding',
     '/api/webhooks',

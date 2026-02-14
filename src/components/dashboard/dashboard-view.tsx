@@ -6,10 +6,10 @@ import { useVenue } from "@/lib/venue-context";
 import { getDailyExpenses } from "@/lib/api/expenses";
 import {
     TrendingUp,
-    Users,
     CalendarCheck,
     AlertCircle
 } from "lucide-react";
+import { TrialNoticeBanner } from "@/components/subscription/trial-notice-banner";
 
 
 export const DashboardView = () => {
@@ -57,6 +57,8 @@ export const DashboardView = () => {
 
     return (
         <div className="flex flex-col gap-6">
+            <TrialNoticeBanner venueId={currentVenueId} />
+
             {/* KPI Cards */}
             <div className="grid grid-cols-1 gap-4">
                 <div className="bg-white border-2 border-black p-4 shadow-neo flex items-center justify-between">

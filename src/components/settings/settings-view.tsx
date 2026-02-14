@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { CourtSettings } from "./court-settings";
 import { OperationalSettings } from "./operational-settings";
 import { MaintenanceSettings } from "./maintenance-settings";
@@ -14,9 +15,24 @@ import { useUserRole } from "@/hooks/use-role";
 import { Users, Image as ImageIcon } from "lucide-react"; // Import Image Icon
 import { VenueProfileSettings } from "./venue-profile-settings";
 
+type SettingsTab = 'profile' | 'courts' | 'operational' | 'reminders' | 'maintenance' | 'finance' | 'team' | 'billing';
+
+function isSettingsTab(value: string | null): value is SettingsTab {
+    return value === 'profile' ||
+        value === 'courts' ||
+        value === 'operational' ||
+        value === 'reminders' ||
+        value === 'maintenance' ||
+        value === 'finance' ||
+        value === 'team' ||
+        value === 'billing';
+}
+
 export const SettingsView = () => {
-    const [tab, setTab] = useState<'profile' | 'courts' | 'operational' | 'reminders' | 'maintenance' | 'finance' | 'team' | 'billing'>('operational');
-    const { role, hasPermission } = useUserRole();
+    const searchParams = useSearchParams();
+    const initialTabParam = searchParams.get('tab');
+    const [tab, setTab] = useState<SettingsTab>(() => isSettingsTab(initialTabParam) ? initialTabParam : 'operational');
+    const { hasPermission } = useUserRole();
 
     const canViewFinance = hasPermission('VIEW_FINANCE');
 

@@ -24,14 +24,32 @@ const supabase = createClient(
 async function run() {
     const normalizedEmail = email.toLowerCase().trim();
 
-    const usersResponse = await supabase.auth.admin.listUsers({ page: 1, perPage: 1000 });
-    if (usersResponse.error) {
-        throw usersResponse.error;
+    let user = null;
+    const perPage = 1000;
+
+    for (let page = 1; page <= 20; page += 1) {
+        const usersResponse = await supabase.auth.admin.listUsers({ page, perPage });
+        if (usersResponse.error) {
+            throw usersResponse.error;
+        }
+
+        const users = usersResponse.data.users || [];
+        const found = users.find((item) => item.email?.toLowerCase() === normalizedEmail);
+        if (found) {
+            user = found;
+            break;
+        }
+
+        if (users.length < perPage) {
+            break;
+        }
     }
 
-    const user = usersResponse.data.users.find((item) => item.email?.toLowerCase() === normalizedEmail);
     if (!user) {
-        throw new Error(`User not found: ${normalizedEmail}`);
+        throw new Error(
+            `User not found in auth.users: ${normalizedEmail}. ` +
+            `Pastikan email ini sudah terdaftar di project Supabase yang sama dengan NEXT_PUBLIC_SUPABASE_URL.`
+        );
     }
 
     const { error } = await supabase
@@ -54,5 +72,5 @@ async function run() {
 
 run().catch((error) => {
     console.error(error);
-    process.exit(1);
+    process.exitCode = 1;
 });

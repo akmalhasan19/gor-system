@@ -1,5 +1,5 @@
 ﻿import { createClient } from '@supabase/supabase-js';
-import { XenditService } from '@/lib/xendit';
+import { ensureRealQrisOrThrow, XenditService } from '@/lib/xendit';
 import {
     PLAN_FEATURES,
     SubscriptionPaymentChannel,
@@ -113,6 +113,7 @@ export async function createSubscriptionPayment(params: CreateSubscriptionPaymen
             callback_url: callbackUrl || `${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/xendit`,
             amount,
         });
+        ensureRealQrisOrThrow(qrResponse);
 
         xenditResponse = qrResponse as XenditQRResponse;
         xenditId = (qrResponse as XenditQRResponse).id || null;

@@ -1,3 +1,6 @@
+# PT SmashSync Teknologi Indonesia (Perorangan)
+
+
 # Business Model Plan: Smash Partner (The Hybrid Strategy)
 
 **Dokumen Strategi Final**

@@ -18,6 +18,35 @@ const xenditClient = axios.create({
     },
 });
 
+export interface XenditQRCodeResponse {
+    id?: string;
+    qr_string?: string;
+    expires_at?: string;
+    status?: string;
+    [key: string]: unknown;
+}
+
+function isDevelopmentSecretKey() {
+    return (SECRET_KEY || '').startsWith('xnd_development_');
+}
+
+export function ensureRealQrisOrThrow(response: XenditQRCodeResponse) {
+    const qrString = response?.qr_string;
+    if (!qrString) {
+        throw new Error('Xendit did not return qr_string for QRIS payment');
+    }
+
+    if (qrString === 'some-random-qr-string' || qrString.includes('some-random-qr-string')) {
+        if (isDevelopmentSecretKey()) {
+            throw new Error(
+                'Xendit test mode returns placeholder QR string. Use a LIVE Xendit secret key (xnd_production_...) with QRIS channel activated to get a real scannable QRIS.'
+            );
+        }
+
+        throw new Error('Invalid placeholder QR string returned by Xendit');
+    }
+}
+
 export const XenditService = {
     createVA: async (data: {
         external_id: string;
@@ -56,10 +85,10 @@ export const XenditService = {
             callback_url: data.callback_url,
             amount: data.amount,
         });
-        return response.data;
+        return response.data as XenditQRCodeResponse;
     },
 
-    createEWalletCharge: async (data: any) => {
+    createEWalletCharge: async (data: Record<string, unknown>) => {
         const response = await xenditClient.post('/ewallets/charges', data);
         return response.data;
     },

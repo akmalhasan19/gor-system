@@ -8,7 +8,7 @@ import { NeoInput } from '@/components/ui/neo-input';
 import { PhoneVerificationStep } from '@/components/auth/phone-verification-step';
 import Image from 'next/image';
 import { User, Lock, ArrowRight, Shield, CheckCircle, AlertTriangle, Loader2 } from 'lucide-react';
-import { getCsrfHeaders } from '@/lib/hooks/use-csrf';
+import { ensureCsrfToken, getCsrfHeaders } from '@/lib/hooks/use-csrf';
 
 type RegistrationStep = 'credentials' | 'phone-verification' | 'complete';
 
@@ -57,7 +57,7 @@ function RegisterContent() {
                     expires_at: data.expires_at
                 });
             }
-        } catch (err) {
+        } catch {
             setInviteError('Terjadi kesalahan saat validasi link undangan');
         } finally {
             setIsValidating(false);
@@ -110,24 +110,26 @@ function RegisterContent() {
             // Sign them in
             try {
                 await signIn(inviteData.email, password);
-            } catch (loginError: any) {
+            } catch (loginError: unknown) {
                 console.error('Login error after signup:', loginError);
                 throw new Error('Akun berhasil dibuat, tapi gagal login otomatis. Silakan coba login manual.');
             }
 
             // Mark the invite as used
             if (token) {
+                await ensureCsrfToken();
                 await fetch('/api/partner-invites/mark-used', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: getCsrfHeaders({ 'Content-Type': 'application/json' }),
                     body: JSON.stringify({ token }),
                 });
             }
 
             // Proceed to phone verification step
             setRegistrationStep('phone-verification');
-        } catch (err: any) {
-            setError(err.message || 'Gagal registrasi.');
+        } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : 'Gagal registrasi.';
+            setError(message);
         } finally {
             setIsLoading(false);
         }

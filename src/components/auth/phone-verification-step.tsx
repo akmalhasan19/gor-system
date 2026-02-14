@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { NeoButton } from '@/components/ui/neo-button';
 import { NeoInput } from '@/components/ui/neo-input';
 import { Smartphone, Shield, Copy, Check, RefreshCw, AlertCircle } from 'lucide-react';
-import { getCsrfHeaders } from '@/lib/hooks/use-csrf';
+import { ensureCsrfToken, getCsrfHeaders } from '@/lib/hooks/use-csrf';
 
 interface PhoneVerificationStepProps {
     email: string;
@@ -49,6 +49,7 @@ export function PhoneVerificationStep({
         setState(prev => ({ ...prev, isLoading: true, error: null }));
 
         try {
+            await ensureCsrfToken();
             const response = await fetch('/api/phone-verification/initiate', {
                 method: 'POST',
                 headers: getCsrfHeaders({ 'Content-Type': 'application/json' }),
@@ -73,11 +74,11 @@ export function PhoneVerificationStep({
                 verificationId: data.verificationId,
                 isLoading: false,
             }));
-        } catch (error: any) {
+        } catch (error: unknown) {
             setState(prev => ({
                 ...prev,
                 isLoading: false,
-                error: error.message || 'Failed to initiate verification',
+                error: error instanceof Error ? error.message : 'Failed to initiate verification',
             }));
         }
     };
@@ -125,6 +126,7 @@ export function PhoneVerificationStep({
         setState(prev => ({ ...prev, isLoading: true, error: null }));
 
         try {
+            await ensureCsrfToken();
             const response = await fetch('/api/phone-verification/verify', {
                 method: 'POST',
                 headers: getCsrfHeaders({ 'Content-Type': 'application/json' }),
@@ -141,11 +143,11 @@ export function PhoneVerificationStep({
             }
 
             onVerificationComplete();
-        } catch (error: any) {
+        } catch (error: unknown) {
             setState(prev => ({
                 ...prev,
                 isLoading: false,
-                error: error.message || 'Verification failed',
+                error: error instanceof Error ? error.message : 'Verification failed',
             }));
             setOtpCode(['', '', '', '', '', '']);
             otpInputRefs.current[0]?.focus();

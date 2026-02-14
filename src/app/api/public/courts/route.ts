@@ -34,6 +34,7 @@ export async function GET() {
                 )
             `)
             .eq('is_active', true)
+            .eq('venues.is_active', true)
             .order('court_number', { ascending: true });
 
         if (error) {
@@ -42,7 +43,7 @@ export async function GET() {
         }
 
         return NextResponse.json(data);
-    } catch (err: any) {
+    } catch {
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
 }

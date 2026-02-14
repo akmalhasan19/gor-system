@@ -32,12 +32,19 @@ export default function SubscriptionLockPage() {
     const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan>('PRO');
     const [paymentData, setPaymentData] = useState<SubscriptionPaymentData | null>(null);
     const [isCreatingPayment, setIsCreatingPayment] = useState(false);
+    const [lockReason, setLockReason] = useState<string | null>(null);
 
     const locked = useMemo(() => isLockedSubscription(status, validUntil), [status, validUntil]);
 
     useEffect(() => {
         setSelectedPlan(plan === 'STARTER' ? 'PRO' : plan);
     }, [plan]);
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        const params = new URLSearchParams(window.location.search);
+        setLockReason(params.get('reason'));
+    }, []);
 
     const planIcons: Record<SubscriptionPlan, React.ReactNode> = {
         STARTER: <Rocket className="w-6 h-6" />,
@@ -119,6 +126,11 @@ export default function SubscriptionLockPage() {
                             <p className="text-sm text-gray-700 mt-1">
                                 Masa trial Anda sudah selesai atau status langganan tidak aktif. Silakan aktivasi paket untuk membuka semua fitur.
                             </p>
+                            {lockReason === 'venue_deactivated' && (
+                                <p className="text-sm text-red-700 mt-2 font-bold">
+                                    Venue ini sedang dinonaktifkan oleh tim internal. Hubungi support untuk reaktivasi.
+                                </p>
+                            )}
                         </div>
                     </div>
 

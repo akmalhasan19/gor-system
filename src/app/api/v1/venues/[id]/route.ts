@@ -17,6 +17,7 @@ export async function GET(
             .from('venues')
             .select('*, courts(*)')
             .eq('id', id)
+            .eq('is_active', true)
             .single();
 
         if (error) {
@@ -28,7 +29,7 @@ export async function GET(
         }
 
         return NextResponse.json({ data });
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Internal Server Error:', error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }

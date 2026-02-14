@@ -10,13 +10,15 @@ const CSRF_EXEMPT_ROUTES = [
     '/api/public/',   // Public endpoints (read-only)
     '/api/cron/',     // Cron jobs (often internal or simple key auth)
     '/api/chat',      // AI chat endpoint does not mutate server state
-    '/api/auth/admin-signup', // Header-based authentication
+    '/api/auth/admin-signup', // Invite-token based signup flow
     '/api/v1/',       // External API (JWT authenticated)
 ];
 
 const SUBSCRIPTION_GUARD_EXEMPT_PREFIXES = [
     '/subscription-lock',
     '/onboarding',
+    '/internal/admin',
+    '/api/internal/admin',
     '/api/auth',
     '/api/onboarding',
     '/api/phone-verification',
@@ -30,6 +32,10 @@ const SUBSCRIPTION_GUARD_EXEMPT_PREFIXES = [
 
 function isSubscriptionGuardExempt(pathname: string) {
     return SUBSCRIPTION_GUARD_EXEMPT_PREFIXES.some(prefix => pathname.startsWith(prefix));
+}
+
+function isAdminProtectedPath(pathname: string) {
+    return pathname.startsWith('/internal/admin') || pathname.startsWith('/api/internal/admin');
 }
 
 function isSubscriptionLocked(status?: string | null, validUntil?: string | null) {
@@ -193,6 +199,36 @@ export async function middleware(request: NextRequest) {
 
     const { data: { user } } = await supabase.auth.getUser()
 
+    if (isAdminProtectedPath(request.nextUrl.pathname)) {
+        if (!user) {
+            if (request.nextUrl.pathname.startsWith('/api/')) {
+                return new NextResponse(
+                    JSON.stringify({ error: 'Unauthorized' }),
+                    { status: 401, headers: { 'Content-Type': 'application/json' } }
+                );
+            }
+
+            return NextResponse.redirect(new URL('/login', request.url));
+        }
+
+        const { data: platformAdmin } = await supabase
+            .from('platform_admins')
+            .select('role, is_active')
+            .eq('user_id', user.id)
+            .maybeSingle();
+
+        if (!platformAdmin || !platformAdmin.is_active) {
+            if (request.nextUrl.pathname.startsWith('/api/')) {
+                return new NextResponse(
+                    JSON.stringify({ error: 'Forbidden - admin access required' }),
+                    { status: 403, headers: { 'Content-Type': 'application/json' } }
+                );
+            }
+
+            return NextResponse.redirect(new URL('/dashboard', request.url));
+        }
+    }
+
     // Redirect unauthenticated users to login (except for public/system routes)
     if (!isPublicRoute && !isSystemRoute) {
         if (!user) {
@@ -249,9 +285,28 @@ export async function middleware(request: NextRequest) {
         if (venueId) {
             const { data: venue } = await supabase
                 .from('venues')
-                .select('subscription_status, subscription_valid_until')
+                .select('is_active, subscription_status, subscription_valid_until')
                 .eq('id', venueId)
                 .maybeSingle();
+
+            if (venue?.is_active === false) {
+                if (request.nextUrl.pathname.startsWith('/api')) {
+                    return new NextResponse(
+                        JSON.stringify({
+                            error: 'Venue deactivated',
+                            code: 'VENUE_DEACTIVATED',
+                        }),
+                        {
+                            status: 403,
+                            headers: { 'Content-Type': 'application/json' },
+                        }
+                    );
+                }
+
+                const lockUrl = new URL('/subscription-lock', request.url);
+                lockUrl.searchParams.set('reason', 'venue_deactivated');
+                return NextResponse.redirect(lockUrl);
+            }
 
             const isLocked = isSubscriptionLocked(venue?.subscription_status, venue?.subscription_valid_until);
 
@@ -293,12 +348,13 @@ export async function middleware(request: NextRequest) {
         if (venueId) {
             const { data: venue } = await supabase
                 .from('venues')
-                .select('subscription_status, subscription_valid_until')
+                .select('is_active, subscription_status, subscription_valid_until')
                 .eq('id', venueId)
                 .maybeSingle();
 
             const isLocked = isSubscriptionLocked(venue?.subscription_status, venue?.subscription_valid_until);
-            if (!isLocked) {
+            const isDeactivated = venue?.is_active === false;
+            if (!isLocked && !isDeactivated) {
                 return NextResponse.redirect(new URL('/dashboard', request.url));
             }
         }

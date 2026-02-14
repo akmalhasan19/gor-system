@@ -67,6 +67,10 @@ export type CreatePaymentInput = z.infer<typeof CreatePaymentSchema>;
 
 export const SubscriptionPlanSchema = z.enum(['STARTER', 'PRO', 'BUSINESS']);
 export const SubscriptionCheckoutActionSchema = z.enum(['PAY_NOW', 'CONTINUE_LATER']);
+export const PlatformAdminRoleSchema = z.enum(['super_admin', 'ops_admin']);
+export const LeadSourceSchema = z.enum(['smashcourts', 'manual']);
+export const LeadStatusSchema = z.enum(['NEW', 'CONTACTED', 'TRIAL', 'ACTIVE', 'CHURN_RISK', 'REJECTED']);
+export const ProvisionModeSchema = z.enum(['DIRECT', 'INVITE']);
 
 export const OnboardingSubmitSchema = z.object({
     venueName: z.string()
@@ -143,6 +147,73 @@ export const CreateSubscriptionPaymentSchema = z.object({
 );
 
 export type CreateSubscriptionPaymentInput = z.infer<typeof CreateSubscriptionPaymentSchema>;
+
+// ============================================
+// Internal Admin Panel Schemas
+// ============================================
+
+export const PartnerLeadIngestionSchema = z.object({
+    partner_name: z.string().min(1).max(120).trim(),
+    venue_name: z.string().max(120).trim().optional().nullable(),
+    email: EmailSchema,
+    phone: z.string().max(30).optional().nullable(),
+    city: z.string().max(120).trim().optional().nullable(),
+    requested_plan: SubscriptionPlanSchema.optional().default('STARTER'),
+    notes: z.string().max(1000).optional().nullable(),
+});
+
+export type PartnerLeadIngestionInput = z.infer<typeof PartnerLeadIngestionSchema>;
+
+export const AdminLeadCreateSchema = z.object({
+    source: LeadSourceSchema.optional().default('manual'),
+    partner_name: z.string().min(1).max(120).trim(),
+    venue_name: z.string().max(120).trim().optional().nullable(),
+    email: EmailSchema,
+    phone: z.string().max(30).optional().nullable(),
+    city: z.string().max(120).trim().optional().nullable(),
+    requested_plan: SubscriptionPlanSchema.optional().default('STARTER'),
+    notes: z.string().max(1000).optional().nullable(),
+});
+
+export type AdminLeadCreateInput = z.infer<typeof AdminLeadCreateSchema>;
+
+export const AdminLeadStatusUpdateSchema = z.object({
+    status: LeadStatusSchema,
+    notes: z.string().max(1000).optional().nullable(),
+});
+
+export type AdminLeadStatusUpdateInput = z.infer<typeof AdminLeadStatusUpdateSchema>;
+
+export const AdminProvisionSchema = z.object({
+    mode: ProvisionModeSchema,
+    leadId: UUIDSchema.optional(),
+    partnerName: z.string().max(120).trim().optional().nullable(),
+    venueName: z.string().max(120).trim().optional().nullable(),
+    email: EmailSchema.optional(),
+    phone: z.string().max(30).optional().nullable(),
+    city: z.string().max(120).trim().optional().nullable(),
+    address: z.string().max(500).optional().nullable(),
+    requestedPlan: SubscriptionPlanSchema.optional().default('STARTER'),
+    courtsCount: z.number().int().min(1).max(20).optional(),
+    hourlyRatePerCourt: z.number().int().min(0).max(10_000_000).optional(),
+    notes: z.string().max(1000).optional().nullable(),
+}).superRefine((data, ctx) => {
+    if (data.mode === 'DIRECT' && !data.courtsCount) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['courtsCount'],
+            message: 'courtsCount is required for DIRECT provisioning',
+        });
+    }
+});
+
+export type AdminProvisionInput = z.infer<typeof AdminProvisionSchema>;
+
+export const AdminVenueDeactivateSchema = z.object({
+    reason: z.string().min(1).max(500),
+});
+
+export type AdminVenueDeactivateInput = z.infer<typeof AdminVenueDeactivateSchema>;
 
 // ============================================
 // Phone Verification Schemas

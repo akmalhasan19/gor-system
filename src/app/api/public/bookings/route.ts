@@ -35,6 +35,21 @@ export async function POST(req: Request) {
 
         const bookingDate = start_time.split('T')[0];
 
+        const { data: courtData, error: courtError } = await supabase
+            .from('courts')
+            .select('id, venue_id, is_active, venues!inner(is_active)')
+            .eq('id', court_id)
+            .eq('is_active', true)
+            .eq('venues.is_active', true)
+            .maybeSingle();
+
+        if (courtError || !courtData) {
+            return NextResponse.json(
+                { error: 'Court is not available for booking' },
+                { status: 404 }
+            );
+        }
+
         // Fetch bookings for that court on that day
         const { data: existingBookings, error: fetchError } = await supabase
             .from('bookings')
@@ -66,6 +81,7 @@ export async function POST(req: Request) {
         const { data, error } = await supabase
             .from('bookings')
             .insert({
+                venue_id: courtData.venue_id,
                 court_id,
                 customer_name,
                 phone,
@@ -86,7 +102,7 @@ export async function POST(req: Request) {
 
         return NextResponse.json({ success: true, booking: data });
 
-    } catch (err: any) {
+    } catch (err: unknown) {
         console.error('Internal error:', err);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }

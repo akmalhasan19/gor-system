@@ -33,8 +33,9 @@ export async function GET(
         // 1. Get Venue Operating Hours
         const { data: venue, error: venueError } = await supabase
             .from('venues')
-            .select('operating_hours_start, operating_hours_end')
+            .select('operating_hours_start, operating_hours_end, is_active')
             .eq('id', id)
+            .eq('is_active', true)
             .single();
 
         if (venueError || !venue) {
@@ -114,7 +115,7 @@ export async function GET(
             }
         });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Internal Server Error:', error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }

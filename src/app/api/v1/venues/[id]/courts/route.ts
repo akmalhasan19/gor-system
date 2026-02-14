@@ -13,6 +13,17 @@ export async function GET(
     try {
         const { id } = await params;
 
+        const { data: venue } = await supabase
+            .from('venues')
+            .select('id, is_active')
+            .eq('id', id)
+            .eq('is_active', true)
+            .maybeSingle();
+
+        if (!venue) {
+            return NextResponse.json({ error: 'Venue not found' }, { status: 404 });
+        }
+
         // Verify venue exists and get courts
         const { data: courts, error } = await supabase
             .from('courts')
@@ -27,7 +38,7 @@ export async function GET(
 
         return NextResponse.json({ data: courts });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Internal Server Error:', error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }

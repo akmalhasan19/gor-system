@@ -7,6 +7,11 @@ const supabase = createClient(
     process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
+type VenueWithCourtsCount = {
+    courts?: Array<{ count: number }>;
+    [key: string]: unknown;
+};
+
 export async function GET(request: Request) {
     try {
         const { searchParams } = new URL(request.url);
@@ -26,6 +31,8 @@ export async function GET(request: Request) {
         // Filtering
         if (isActive !== null) {
             query = query.eq('is_active', isActive === 'true');
+        } else {
+            query = query.eq('is_active', true);
         }
 
         // Sorting
@@ -47,7 +54,7 @@ export async function GET(request: Request) {
         }
 
         // Transform data to flatten courts count
-        const formattedData = data?.map((venue: any) => ({
+        const formattedData = data?.map((venue: VenueWithCourtsCount) => ({
             ...venue,
             courts_count: venue.courts?.[0]?.count || 0,
             courts: undefined // Remove the raw courts object
@@ -62,7 +69,7 @@ export async function GET(request: Request) {
                 last_page: Math.ceil((count || 0) / limit)
             }
         });
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Internal Server Error:', error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
